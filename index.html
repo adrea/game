@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>游戏乐园</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+  html, body { height: 100%; }
+  body {
+    font-family: -apple-system, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans CJK SC", sans-serif;
+    background: linear-gradient(180deg, #6ec6ff 0%, #9fdcfa 40%, #c8f4c2 100%);
+    overflow-y: auto;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+
+  /* 太阳 */
+  .sun {
+    position: fixed; top: -40px; right: -40px;
+    width: 140px; height: 140px; border-radius: 50%;
+    background: radial-gradient(circle, #ffe082 55%, #ffd54f 100%);
+    box-shadow: 0 0 60px 30px rgba(255, 224, 130, .55);
+    animation: sunspin 24s linear infinite;
+  }
+  @keyframes sunspin { to { transform: rotate(360deg); } }
+
+  /* 云朵 */
+  .cloud {
+    position: fixed; background: #fff; border-radius: 50px;
+    opacity: .9; animation: drift linear infinite;
+  }
+  .cloud::before, .cloud::after {
+    content: ""; position: absolute; background: #fff; border-radius: 50%;
+  }
+  .c1 { width: 110px; height: 38px; top: 12%; animation-duration: 60s; }
+  .c1::before { width: 50px; height: 50px; top: -24px; left: 18px; }
+  .c1::after  { width: 38px; height: 38px; top: -16px; left: 58px; }
+  .c2 { width: 80px; height: 30px; top: 30%; animation-duration: 85s; animation-delay: -30s; }
+  .c2::before { width: 38px; height: 38px; top: -18px; left: 14px; }
+  .c2::after  { width: 28px; height: 28px; top: -12px; left: 44px; }
+  @keyframes drift {
+    from { left: -160px; } to { left: 110vw; }
+  }
+
+  /* 标题 */
+  h1 {
+    text-align: center;
+    font-size: clamp(40px, 9vw, 72px);
+    color: #fff;
+    margin: 4vh 0 2vh;
+    text-shadow: 0 4px 0 #f48fb1, 0 8px 16px rgba(0, 0, 0, .18);
+    letter-spacing: .08em;
+    animation: pop .5s ease-out;
+  }
+  @keyframes pop {
+    0% { transform: scale(.3); opacity: 0; }
+    70% { transform: scale(1.12); }
+    100% { transform: scale(1); opacity: 1; }
+  }
+
+  /* 游戏卡片 */
+  .games {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 2.5vh;
+    padding: 0 6vw 4vh;
+  }
+  @media (orientation: landscape), (min-width: 700px) {
+    .games {
+      grid-template-columns: 1fr 1fr;
+      max-width: 980px;
+      margin: 0 auto;
+    }
+  }
+  a.card {
+    display: flex; align-items: center; gap: 4vw;
+    width: 100%;
+    min-height: 14vh;
+    padding: 2.5vh 6vw;
+    border-radius: 32px;
+    text-decoration: none;
+    color: #4e342e;
+    box-shadow: 0 8px 0 rgba(0, 0, 0, .14), 0 14px 28px rgba(0, 0, 0, .16);
+    transition: transform .12s, box-shadow .12s;
+    animation: rise .5s ease-out backwards;
+  }
+  a.card:nth-child(1) { background: #fff8e1; animation-delay: .15s; }
+  a.card:nth-child(2) { background: #e8f5e9; animation-delay: .3s; }
+  a.card:nth-child(3) { background: #ede7f6; animation-delay: .45s; }
+  a.card:nth-child(4) { background: #fff3e0; animation-delay: .6s; }
+  a.card:nth-child(5) { background: #e1f5fe; animation-delay: .75s; }
+  a.card:nth-child(6) { background: #fce4ec; animation-delay: .9s; }
+  a.card:nth-child(7) { background: #f1f8e9; animation-delay: 1.05s; }
+  a.card:nth-child(8) { background: #e0f2f1; animation-delay: 1.2s; }
+  @keyframes rise {
+    from { transform: translateY(60px); opacity: 0; }
+    to   { transform: translateY(0);    opacity: 1; }
+  }
+
+  a.card:active {
+    transform: translateY(6px) scale(.97);
+    box-shadow: 0 2px 0 rgba(0, 0, 0, .14), 0 6px 12px rgba(0, 0, 0, .12);
+  }
+
+  .icon {
+    font-size: clamp(52px, 12vw, 84px);
+    line-height: 1;
+    animation: bob 2.2s ease-in-out infinite;
+  }
+  a.card:nth-child(2) .icon { animation-delay: .3s; }
+  a.card:nth-child(3) .icon { animation-delay: .6s; }
+  a.card:nth-child(4) .icon { animation-delay: .9s; }
+  a.card:nth-child(5) .icon { animation-delay: 1.2s; }
+  a.card:nth-child(6) .icon { animation-delay: 1.5s; }
+  a.card:nth-child(7) .icon { animation-delay: 1.8s; }
+  a.card:nth-child(8) .icon { animation-delay: 2.1s; }
+  @keyframes bob {
+    0%, 100% { transform: translateY(0) rotate(-4deg); }
+    50%      { transform: translateY(-10px) rotate(4deg); }
+  }
+
+  .name {
+    font-size: clamp(30px, 7vw, 48px);
+    font-weight: 800;
+    letter-spacing: .05em;
+  }
+  .sub {
+    display: block;
+    font-size: clamp(16px, 3.6vw, 24px);
+    font-weight: 600;
+    color: #8d6e63;
+    margin-top: .4em;
+    letter-spacing: 0;
+  }
+</style>
+</head>
+<body>
+  <div class="sun"></div>
+  <div class="cloud c1"></div>
+  <div class="cloud c2"></div>
+
+  <h1>游戏乐园</h1>
+
+  <nav class="games">
+    <a class="card" href="bear-sokoban.html">
+      <span class="icon">🐻</span>
+      <span class="name">小熊推箱子<span class="sub">帮小熊搬蜂蜜罐</span></span>
+    </a>
+    <a class="card" href="Railio.html">
+      <span class="icon">🚂</span>
+      <span class="name">小小火车司机<span class="sub">开火车去旅行</span></span>
+    </a>
+    <a class="card" href="treasure_hunt.html">
+      <span class="icon">💎</span>
+      <span class="name">小火车寻宝记<span class="sub">找到亮晶晶的宝贝</span></span>
+    </a>
+    <a class="card" href="bagua_train.html">
+      <span class="icon">🛤️</span>
+      <span class="name">八卦铁轨<span class="sub">拼一拼铁轨，小火车开跑啦</span></span>
+    </a>
+    <a class="card" href="dino_grow.html">
+      <span class="icon">🦕</span>
+      <span class="name">小恐龙进化记<span class="sub">喂喂小恐龙，看它慢慢长大</span></span>
+    </a>
+    <a class="card" href="train_gohome.html">
+      <span class="icon">🖍️</span>
+      <span class="name">小火车回家<span class="sub">画一条线，送小火车回家</span></span>
+    </a>
+    <a class="card" href="xiaohuoche-dudu.html">
+      <span class="icon">📦</span>
+      <span class="name">小火车嘟嘟<span class="sub">开上嘟嘟车，给朋友送快递</span></span>
+    </a>
+    <a class="card" href="train_memory.html">
+      <span class="icon">🎴</span>
+      <span class="name">小火车翻翻乐<span class="sub">记住图案，帮小火车找到回家的路</span></span>
+    </a>
+  </nav>
+</body>
+</html>

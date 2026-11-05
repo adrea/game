@@ -1,0 +1,2384 @@
+<!DOCTYPE html>
+<html data-page-node-id="ZaA0auRsLpDhSaRqf8PPlf" lang="zh-CN">
+<head data-page-node-id="pR5EF7DyTi0sB961iaoooz">
+<script data-page-node-id="ihtK6A3Rm7MB3HX99dagdy" src="/page/page_comm/inject.js"></script>
+<meta data-page-node-id="7bfNdTt7XLggIPLXspGvTJ" charset="UTF-8">
+<meta data-page-node-id="Nne8kYa8M8y8NUafgbSP4X" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover" name="viewport">
+<meta data-page-node-id="1z1fk9hl2RsKZyqCtlcliA" content="#7fd8ff" name="theme-color">
+<meta data-page-node-id="lkqMZ4pjzWHngd747fEKpI" content="yes" name="apple-mobile-web-app-capable">
+<meta data-page-node-id="YTSjWzZgRnBhFHppEWTlfc" content="yes" name="mobile-web-app-capable">
+<meta data-page-node-id="5yCu0u9W6qWaPuUWGmezBn" content="black-translucent" name="apple-mobile-web-app-status-bar-style">
+<meta data-page-node-id="OGqbBekj8DS5spcBriUC8Y" content="小火车嘟嘟" name="apple-mobile-web-app-title">
+<title data-page-node-id="flHYxFlKN0H6Bs12EfJILb" data-pnid-children="pVGLGEZ7tFlOQcQBIoctp0">小火车嘟嘟 · 快乐送货</title>
+<style data-page-node-id="wsdc5P7vDqTj1rI5D8x6xU" data-pnid-children="JlmebW3A0M3opdTajAGaZa">
+  *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  html,body{
+    width:100%;height:100%;overflow:hidden;position:fixed;
+    overscroll-behavior:none;touch-action:none;
+    user-select:none;-webkit-user-select:none;
+    font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif,
+      "Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji","EmojiOne Color",sans-serif;
+    background:#0d2432;
+  }
+  #stage{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;
+    background:radial-gradient(circle at 50% 25%, #1e5570 0%, #0b1f2c 100%);}
+  canvas#game{display:block;touch-action:none;}
+
+  /* 竖屏时的小提示 */
+  #rotateTip{
+    position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom) + 14px);transform:translateX(-50%);
+    background:rgba(255,255,255,.16);color:#fff;font-size:13px;padding:7px 16px;border-radius:999px;
+    letter-spacing:.5px;pointer-events:none;display:none;z-index:5;backdrop-filter:blur(4px);
+    border:1px solid rgba(255,255,255,.2);
+  }
+  #rotateTip.show{display:block;}
+
+  /* ===== 菜单层 ===== */
+  #overlay{
+    position:fixed;inset:0;z-index:10;display:none;align-items:center;justify-content:center;
+    padding:calc(env(safe-area-inset-top) + 10px) 12px calc(env(safe-area-inset-bottom) + 10px);
+    background:rgba(10,32,46,.66);
+    -webkit-backdrop-filter:blur(7px);backdrop-filter:blur(7px);
+    touch-action:manipulation;
+  }
+  #overlay.show{display:flex;animation:fadeIn .22s ease-out;}
+  @keyframes fadeIn{from{opacity:0}to{opacity:1}}
+
+  /* 卡片：整体纵向 flex —— 中间内容区可滚动，底部按钮固定不跑掉。
+     平板横屏时高度很矮（iPad 1040×660 之类），旧写法会让"开始送货"被挤出屏幕外，
+     孩子根本点不到"确定"，所以这里必须把按钮钉在底部。 */
+  .card{
+    width:min(94vw,760px);max-height:94vh;max-height:94svh;
+    display:flex;flex-direction:column;
+    background:linear-gradient(180deg,#fffdf6 0%,#fff3de 100%);
+    border-radius:34px;border:7px solid #ffcf5c;
+    box-shadow:0 24px 60px rgba(0,0,0,.4), inset 0 0 0 4px #fff;
+    padding:20px 22px 16px;text-align:center;color:#4a3a2c;overflow:hidden;
+    animation:pop .3s cubic-bezier(.2,1.4,.5,1);
+  }
+  @keyframes pop{from{transform:scale(.86) translateY(14px);opacity:0}to{transform:scale(1);opacity:1}}
+  .card::-webkit-scrollbar{width:0;height:0}
+  /* 内容区：只有它滚动 */
+  .card > .body{
+    flex:1 1 auto;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;
+    overscroll-behavior:contain;padding:2px 2px 4px;
+  }
+  .card > .body::-webkit-scrollbar{width:0;height:0}
+  /* 底部按钮栏：永远贴在卡片最下面，绝不滚走 */
+  .card .rowline{
+    flex:0 0 auto;margin-top:6px;padding-top:12px;
+    border-top:3px dashed #f0dcbb;
+    background:linear-gradient(180deg, rgba(255,243,222,0), #fff3de 40%);
+  }
+  /* 卡片底部按钮加大、加高，手指好按 */
+  .card .rowline .chip{font-size:18px;padding:14px 24px;min-height:56px;min-width:150px;}
+
+  .title{font-size:30px;font-weight:800;letter-spacing:1px;color:#3d7ac4;
+    text-shadow:0 3px 0 #fff, 0 5px 6px rgba(0,0,0,.13);margin-bottom:4px;}
+  .subtitle{font-size:15px;color:#8b7355;margin-bottom:18px;letter-spacing:.5px;}
+
+  .btnrow{display:flex;gap:14px;justify-content:center;flex-wrap:wrap;margin:10px 0;}
+  .bigbtn{
+    flex:1 1 190px;min-height:104px;border:none;border-radius:26px;cursor:pointer;
+    background:#ff8b5e;color:#fff;font-size:23px;font-weight:800;font-family:inherit;
+    box-shadow:0 8px 0 #d9632f, 0 12px 18px rgba(0,0,0,.18);
+    transition:transform .08s ease, box-shadow .08s ease;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;
+    padding:12px 10px;line-height:1.25;
+  }
+  .bigbtn:active{transform:translateY(6px);box-shadow:0 2px 0 #d9632f,0 4px 10px rgba(0,0,0,.2);}
+  .bigbtn .ico{font-size:36px;line-height:1;}
+  .bigbtn .sm{font-size:14px;font-weight:600;opacity:.9;}
+  .bigbtn.blue{background:#56a8f5;box-shadow:0 8px 0 #2f7cc9,0 12px 18px rgba(0,0,0,.18);}
+  .bigbtn.blue:active{box-shadow:0 2px 0 #2f7cc9,0 4px 10px rgba(0,0,0,.2);}
+  .bigbtn.green{background:#5ec97a;box-shadow:0 8px 0 #33a053,0 12px 18px rgba(0,0,0,.18);}
+  .bigbtn.green:active{box-shadow:0 2px 0 #33a053,0 4px 10px rgba(0,0,0,.2);}
+  .bigbtn.purple{background:#a98cff;box-shadow:0 8px 0 #7f61d6,0 12px 18px rgba(0,0,0,.18);}
+  .bigbtn.purple:active{box-shadow:0 2px 0 #7f61d6,0 4px 10px rgba(0,0,0,.2);}
+  .bigbtn.ghost{background:#fff;border:4px dashed #d9b98c;color:#a3825c;box-shadow:none;font-size:19px;min-height:72px;}
+  .bigbtn.ghost:active{background:#f6ead6;transform:translateY(3px);}
+
+  .levels{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin:6px 0 14px;}
+  .lvbtn{
+    position:relative;width:104px;height:104px;border-radius:26px;border:none;cursor:pointer;font-family:inherit;
+    background:#ffd166;color:#6b4a17;font-size:38px;font-weight:800;
+    box-shadow:0 7px 0 #e0a92f,0 10px 16px rgba(0,0,0,.16);
+    display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;
+    transition:transform .08s ease;
+  }
+  .lvbtn:active{transform:translateY(5px);box-shadow:0 2px 0 #e0a92f;}
+  .lvbtn .stars{font-size:13px;letter-spacing:1px;height:16px;line-height:16px;color:#b3821f;}
+  .lvbtn.locked{background:#ded6cb;color:#a89e93;box-shadow:0 7px 0 #bdb3a6;}
+  .lvbtn small{font-size:12px;font-weight:700;opacity:.65}
+  /* 15 关：按钮收小一点，一行放得下 5 个，最多 3 行 */
+  .levels15{gap:11px;}
+  .levels15 .lvbtn{width:94px;height:90px;font-size:32px;border-radius:22px;}
+  /* 有山洞的关卡右上角挂个"洞"字小牌 */
+  .lvbtn i.tag{
+    position:absolute;top:5px;right:7px;font-style:normal;font-size:12px;font-weight:800;
+    color:#7a4a12;background:#fff6dd;border-radius:8px;padding:0 5px;line-height:18px;
+    box-shadow:0 2px 0 rgba(0,0,0,.14);
+  }
+
+  .rowline{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin-top:6px;}
+  .chip{
+    border:none;cursor:pointer;font-family:inherit;font-size:16px;font-weight:700;color:#fff;
+    background:#8ecae6;border-radius:999px;padding:11px 20px;box-shadow:0 5px 0 #5aa3c2;min-height:46px;
+  }
+  .chip:active{transform:translateY(4px);box-shadow:0 1px 0 #5aa3c2;}
+  .chip.off{background:#c9bfb3;box-shadow:0 5px 0 #a2978a;}
+  /* 卡片底部的"回首页 / 开始送货"：深色字压深色底会糊成一团，统一用实心彩色 + 白字 */
+  .card .rowline .chip{background:#4fa8ff;box-shadow:0 5px 0 #2f7cc9;color:#fff;}
+  .card .rowline .chip:active{box-shadow:0 1px 0 #2f7cc9;}
+  .card .rowline .chip.green{background:#5ec97a;box-shadow:0 5px 0 #33a053;color:#fff;}
+  .card .rowline .chip.green:active{box-shadow:0 1px 0 #33a053;}
+
+  .swatches{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin:8px 0 16px;}
+  .sw{width:74px;height:74px;border-radius:22px;border:6px solid #fff;cursor:pointer;
+    box-shadow:0 5px 10px rgba(0,0,0,.22);transition:transform .1s;}
+  .sw:active{transform:scale(.92);}
+  .sw.sel{border-color:#3d7ac4;transform:scale(1.08);}
+  .opts{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin:8px 0 16px;}
+  .opt{min-width:120px;min-height:62px;border-radius:20px;border:5px solid #e7d3b4;background:#fff;
+    color:#8a6a45;font-size:19px;font-weight:800;cursor:pointer;font-family:inherit;}
+  .opt:active{transform:translateY(3px);}
+  .opt.sel{border-color:#3d7ac4;background:#e8f2ff;color:#2b5d9e;}
+  .sect{font-size:16px;font-weight:800;color:#9a7a52;margin:6px 0 2px;letter-spacing:1px;}
+  #garageCanvas{border-radius:22px;background:linear-gradient(180deg,#bfe8ff 0%,#dff6c8 60%,#a8dd84 100%);
+    border:5px solid #fff;box-shadow:0 8px 14px rgba(0,0,0,.14);margin:2px 0 8px;max-width:100%;height:auto;}
+
+  /* 矮屏（平板横屏、手机横屏）：一切收紧，保证颜色+造型+确定键都在一屏内 */
+  @media (max-height:760px){
+    .card{padding:14px 18px 12px;border-width:6px;border-radius:28px;}
+    .title{font-size:25px;margin-bottom:2px;}
+    .subtitle{font-size:13px;margin-bottom:8px;}
+    .sect{font-size:14px;margin:2px 0 0;}
+    .swatches{gap:10px;margin:6px 0 8px;}
+    .sw{width:58px;height:58px;border-radius:18px;border-width:5px;}
+    .opts{gap:10px;margin:6px 0 8px;}
+    .opt{min-width:104px;min-height:50px;font-size:17px;border-width:4px;border-radius:16px;}
+    .card .rowline{padding-top:9px;margin-top:2px;}
+    .card .rowline .chip{min-height:50px;padding:12px 20px;font-size:17px;}
+    .levels{gap:10px;margin:2px 0 8px;}
+    .lvbtn{width:88px;height:88px;font-size:32px;border-radius:22px;}
+    .bigbtn{min-height:88px;font-size:21px;}
+  }
+  @media (max-height:600px){
+    .title{font-size:22px;}
+    .subtitle{display:none;}
+    .sw{width:50px;height:50px;}
+    .opt{min-height:44px;font-size:15px;min-width:92px;}
+    .bigbtn{min-height:76px;font-size:19px;}
+    .bigbtn .ico{font-size:28px;}
+  }
+  .winstars{font-size:52px;letter-spacing:8px;margin:2px 0 6px;}
+  .dim{font-size:14px;color:#a08a6d;line-height:1.7;margin-top:8px;}
+</style>
+</head>
+<body data-page-node-id="3Sde5v3HwF3XGYNF1Z60DZ">
+<div data-page-node-id="C4afv5g9v0SQoYFTgsPd4c" id="stage"><canvas data-page-node-id="8Kcbh79SFmw59XwKnhdWNK" id="game"></canvas></div>
+<div data-page-node-id="KF0Y8VxWFahJcd04WrYjxX" id="rotateTip"><!--pnid:4nV6G8hZpkkOme8GNFoWI4-->把平板横过来，火车会更大更好玩哦</div>
+<div data-page-node-id="rSwjd1IyCJo3Rp0qrpdCIr" id="overlay"></div>
+
+<script data-page-node-id="EdS0YCc8XnjgPbfFTfTagi" data-pnid-children="jZStqxoZF9t6l6bGLcLQKr">
+"use strict";
+/* =========================================================================
+   小火车嘟嘟 · 快乐送货
+   面向 5 岁小朋友的平板触屏游戏 —— 单文件、零依赖、离线可玩
+   ========================================================================= */
+
+/* ---------------------------- 基础工具 ---------------------------- */
+const W = 1280, H = 800;                 // 逻辑画布尺寸
+const clamp = (v,a,b)=> v<a?a:(v>b?b:v);
+const lerp  = (a,b,t)=> a+(b-a)*t;
+const rnd   = (a,b)=> a+Math.random()*(b-a);
+const rndI  = (a,b)=> Math.floor(rnd(a,b+1));
+const TAU   = Math.PI*2;
+const now   = ()=> performance.now();
+
+function roundRect(c,x,y,w,h,r){
+  r = Math.min(r, w/2, h/2);
+  c.beginPath();
+  c.moveTo(x+r,y);
+  c.arcTo(x+w,y,x+w,y+h,r);
+  c.arcTo(x+w,y+h,x,y+h,r);
+  c.arcTo(x,y+h,x,y,r);
+  c.arcTo(x,y,x+w,y,r);
+  c.closePath();
+}
+function circlePath(c,x,y,r){ c.beginPath(); c.arc(x,y,r,0,TAU); c.closePath(); }
+// 固定种子的伪随机（保证同一关的风景每次一样）
+function makeRandom(seed){
+  let s = seed>>>0 || 1;
+  return function(){ s ^= s<<13; s>>>=0; s ^= s>>17; s ^= s<<5; s>>>=0; return s/4294967296; };
+}
+
+const OUTLINE = '#3e2f26';
+function stroke(c, w){ c.lineWidth = w||5; c.strokeStyle = OUTLINE; c.stroke(); }
+
+/* ---------------------------- 货物（配对用的四种） ---------------------------- */
+const GOODS = ['apple','star','balloon','melon'];
+const GMETA = {
+  apple  : { name:'苹果', c1:'#ff5f63', c2:'#ff9d9f', dark:'#c9413f' },
+  star   : { name:'星星', c1:'#ffc63c', c2:'#ffe38a', dark:'#d1901b' },
+  balloon: { name:'气球', c1:'#4fa8ff', c2:'#9ad4ff', dark:'#2b78d0' },
+  melon  : { name:'西瓜', c1:'#4ecb71', c2:'#96e7ad', dark:'#2f9a52' }
+};
+
+/* ---------------------------- 关卡与主题 ---------------------------- */
+/* 15 关，越往后越忙：
+   站点 2→4 个，每站要的货 2→4 件，车速 慢→快，
+   第 5、8、10、12、14 关有山洞（tunnel:true）。
+   货物一共只有 4 种，所以站点最多 4 个 —— 难度靠"每站要几件"和"车速"往上加。 */
+const LEVELS = [
+  { id:1,  theme:'meadow',  stations:[0.10,0.60],            need:2, spd:0, weather:'none',    tip:'把下面的货物拖到一样的车厢' },
+  { id:2,  theme:'blossom', stations:[0.12,0.62],            need:2, spd:0, weather:'petal',   tip:'花瓣飘下来啦，慢慢拖' },
+  { id:3,  theme:'lake',    stations:[0.10,0.38,0.68],       need:2, spd:0, weather:'none',    tip:'三种货物啦，看清楚再放' },
+  { id:4,  theme:'sunset',  stations:[0.08,0.40,0.72],       need:3, spd:1, weather:'leaf',    tip:'每座房子要多送一件哦' },
+  { id:5,  theme:'snow',    stations:[0.10,0.30,0.70],       need:3, spd:1, weather:'snow',    tunnel:true, tip:'小心！前面有一个山洞' },
+  { id:6,  theme:'night',   stations:[0.10,0.35,0.60,0.85],  need:3, spd:1, weather:'firefly', tip:'夜晚的星星快递，出发！' },
+  { id:7,  theme:'desert',  stations:[0.10,0.35,0.60,0.85],  need:3, spd:1, weather:'none',    tip:'沙漠里四座房子在等你' },
+  { id:8,  theme:'autumn',  stations:[0.10,0.35,0.60,0.85],  need:3, spd:1, weather:'leaf',    tunnel:true, tip:'又一个山洞，别着急' },
+  { id:9,  theme:'farm',    stations:[0.10,0.35,0.60,0.85],  need:3, spd:2, weather:'none',    tip:'火车变快啦，看准再放' },
+  { id:10, theme:'ocean',   stations:[0.10,0.35,0.60,0.85],  need:4, spd:1, weather:'petal',   tunnel:true, tip:'每站要四件才够，装满再走' },
+  { id:11, theme:'candy',   stations:[0.10,0.35,0.60,0.85],  need:4, spd:2, weather:'none',    tip:'糖果世界大送货' },
+  { id:12, theme:'spring',  stations:[0.10,0.35,0.60,0.85],  need:4, spd:2, weather:'petal',   tunnel:true, tip:'春雨里也要送到哦' },
+  { id:13, theme:'dusk',    stations:[0.10,0.35,0.60,0.85],  need:4, spd:2, weather:'leaf',    tip:'天快黑了，抓紧时间' },
+  { id:14, theme:'aurora',  stations:[0.10,0.35,0.60,0.85],  need:4, spd:2, weather:'snow',    tunnel:true, tip:'极光下的雪夜，最后一程' },
+  { id:15, theme:'starry',  stations:[0.10,0.35,0.60,0.85],  need:4, spd:2, weather:'firefly', tip:'最后一关！全部送到就是最棒的司机' }
+];
+const SPEEDS = [52, 84, 128];
+const SPEED_NAME = ['慢','中','快'];
+
+const THEMES = {
+  meadow : { sky:['#7fd8ff','#d9f4ff'], hill:'#8ed081', grass:['#a9e07d','#7cc95a'], inner:['#c6ef95','#9ad96d'], cloud:'#ffffff', night:false },
+  blossom: { sky:['#a5d9ff','#ffe1ec'], hill:'#a8d98c', grass:['#b5e58c','#8ad066'], inner:['#d2f2a4','#a8e079'], cloud:'#fff2f7', night:false },
+  sunset : { sky:['#ffb27a','#ffe2b0'], hill:'#e2a86d', grass:['#f3c777','#dfa85c'], inner:['#ffd98f','#eab86d'], cloud:'#ffd0b0', night:false },
+  snow   : { sky:['#cfe9ff','#f2fbff'], hill:'#e6f4ff', grass:['#f6fdff','#ddf0fb'], inner:['#ffffff','#e8f6ff'], cloud:'#ffffff', night:false },
+  night  : { sky:['#2f2b62','#584b86'], hill:'#294a55', grass:['#3c6b5e','#2d564c'], inner:['#4b8272','#376556'], cloud:'#6a6ea8', night:true },
+  // —— 下面 10 个是第 7~15 关的新景色，让每一关看起来都不一样 ——
+  lake   : { sky:['#a8e6ff','#e4fbff'], hill:'#7fc8b8', grass:['#a8e0cf','#7fc4ac'], inner:['#c8f0e2','#9ad6c2'], cloud:'#ffffff',  night:false },
+  desert : { sky:['#ffd89b','#ffeec2'], hill:'#e8b96a', grass:['#f5d99a','#e3bd72'], inner:['#ffe9b8','#f0cf8e'], cloud:'#fff4dc', night:false },
+  autumn : { sky:['#ffc98a','#ffe6c4'], hill:'#c98a4b', grass:['#e8b06a','#c98a4b'], inner:['#f5c98a','#dcae68'], cloud:'#fff0d8', night:false },
+  farm   : { sky:['#bfe8ff','#eafaff'], hill:'#9ad06a', grass:['#bce88a','#96c96a'], inner:['#d8f5a8','#b0dd80'], cloud:'#ffffff',  night:false },
+  ocean  : { sky:['#8fd9ff','#d8f4ff'], hill:'#6fc4b8', grass:['#e8dcc0','#d4c4a0'], inner:['#f5eccf','#e0d4b0'], cloud:'#ffffff',  night:false },
+  candy  : { sky:['#ffc8e8','#ffe8f6'], hill:'#f5a8d0', grass:['#ffd6ec','#f0b0d8'], inner:['#ffe6f5','#ffc8e8'], cloud:'#fff0fa', night:false },
+  spring : { sky:['#cfe4ff','#eef6ff'], hill:'#a8d898', grass:['#c0e8a8','#a0d088'], inner:['#d8f5c0','#b8e0a0'], cloud:'#f0f8ff', night:false },
+  dusk   : { sky:['#a88ab8','#e8c8d8'], hill:'#7a6a90', grass:['#98a878','#7a8a60'], inner:['#b8c898','#98a878'], cloud:'#e8d8f0', night:false },
+  aurora : { sky:['#1b2a5e','#3d5a8a'], hill:'#254a5c', grass:['#2f6b64','#24544f'], inner:['#3f8078','#2c6459'], cloud:'#5a6ea8', night:true  },
+  starry : { sky:['#241a4a','#4a3a7a'], hill:'#2a3f5c', grass:['#3a5f7a','#28455c'], inner:['#4a7a94','#356075'], cloud:'#5a5a9a', night:true  }
+};
+
+/* ---------------------------- 存档 ---------------------------- */
+const SAVE_KEY = 'xiaohuoche_dudu_v1';
+let save = { unlocked:1, stars:{}, train:{ color:'#ff5f63', style:'steam' }, music:true, voice:true };
+try{
+  const raw = localStorage.getItem(SAVE_KEY);
+  if(raw){ const o = JSON.parse(raw); save = Object.assign(save, o); save.train = Object.assign({color:'#ff5f63',style:'steam'}, o.train||{}); }
+}catch(e){}
+function persist(){ try{ localStorage.setItem(SAVE_KEY, JSON.stringify(save)); }catch(e){} }
+
+/* ---------------------------- 音效（WebAudio 合成，无外部文件） ---------------------------- */
+const Sfx = {
+  ctx:null, master:null, musicGain:null, on:true, timer:null, mstep:0, ready:false,
+  init(){
+    if(this.ctx) return;
+    try{
+      const AC = window.AudioContext || window.webkitAudioContext;
+      if(!AC) return;
+      this.ctx = new AC();
+      this.master = this.ctx.createGain(); this.master.gain.value = 0.85;
+      this.musicGain = this.ctx.createGain(); this.musicGain.gain.value = 0.10;
+      this.musicGain.connect(this.master); this.master.connect(this.ctx.destination);
+      this.ready = true;
+    }catch(e){}
+  },
+  resume(){ if(this.ctx && this.ctx.state === 'suspended') this.ctx.resume(); },
+  tone(freq, dur, type, vol, delay, glide, bus){
+    if(!this.ready || !this.on) return;
+    const t0 = this.ctx.currentTime + (delay||0);
+    const o = this.ctx.createOscillator(), g = this.ctx.createGain();
+    o.type = type || 'sine';
+    o.frequency.setValueAtTime(freq, t0);
+    if(glide) o.frequency.exponentialRampToValueAtTime(Math.max(24,glide), t0+dur);
+    g.gain.setValueAtTime(0.0001, t0);
+    g.gain.exponentialRampToValueAtTime(Math.max(0.0002, vol||0.18), t0+0.02);
+    g.gain.exponentialRampToValueAtTime(0.0001, t0+dur);
+    o.connect(g); g.connect(bus||this.master);
+    o.start(t0); o.stop(t0+dur+0.06);
+  },
+  whistle(){
+    if(!this.ready||!this.on) return;
+    this.tone(660,0.5,'sawtooth',0.075,0);
+    this.tone(985,0.5,'sawtooth',0.055,0.015);
+    this.tone(1320,0.44,'triangle',0.04,0.03);
+    this.tone(330,0.5,'sine',0.05,0);
+  },
+  loadOk(){ this.tone(784,0.11,'triangle',0.16); this.tone(1046,0.20,'triangle',0.15,0.09); },
+  deliver(){ this.tone(988,0.09,'sine',0.15); this.tone(1318,0.10,'sine',0.14,0.07); this.tone(1568,0.18,'sine',0.12,0.14); },
+  stationDone(){ [523,659,784,1047].forEach((f,i)=> this.tone(f,0.24,'triangle',0.15,i*0.1)); },
+  oops(){ this.tone(233,0.14,'square',0.07); this.tone(196,0.16,'square',0.07,0.13); },
+  chug(){ this.tone(96,0.07,'square',0.035); },
+  sparkle(){ this.tone(1568,0.07,'triangle',0.10); this.tone(2093,0.09,'triangle',0.08,0.05); },
+  pop(){ this.tone(520,0.06,'triangle',0.10,0,760); },
+  fanfare(){
+    [523,659,784,1047,1318].forEach((f,i)=> this.tone(f,0.34,'triangle',0.16,i*0.12));
+    [261,329,392].forEach((f,i)=> this.tone(f,0.6,'sine',0.10,i*0.12));
+  },
+  click(){ this.tone(700,0.05,'sine',0.10); },
+  startMusic(){
+    if(this.timer || !this.ready) return;
+    const MEL = [0,4,7,4, 9,7,4,2, 0,4,7,12, 9,7,4,0];
+    const BASE = 523.25;
+    this.mstep = 0;
+    this.timer = setInterval(()=>{
+      if(!this.on || !this.ready) return;
+      if(document.hidden) return;
+      const i = this.mstep % 16;
+      const f = BASE * Math.pow(2, MEL[i]/12);
+      this.tone(f, 0.26, 'triangle', 0.5, 0, 0, this.musicGain);
+      if(i%4===0) this.tone(BASE/4*Math.pow(2,(i<8?0:5)/12), 0.45, 'sine', 0.6, 0, 0, this.musicGain);
+      this.mstep++;
+    }, 260);
+  },
+  stopMusic(){ if(this.timer){ clearInterval(this.timer); this.timer=null; } }
+};
+
+/* ---------------------------- 语音朗读 ---------------------------- */
+function speak(text){
+  if(!save.voice) return;
+  try{
+    const ss = window.speechSynthesis;
+    if(!ss) return;
+    ss.cancel();
+    const u = new SpeechSynthesisUtterance(text);
+    u.lang = 'zh-CN'; u.rate = 0.92; u.pitch = 1.3; u.volume = 1;
+    ss.speak(u);
+  }catch(e){}
+}
+function shutUp(){ try{ window.speechSynthesis && window.speechSynthesis.cancel(); }catch(e){} }
+
+/* ---------------------------- 曲线轨道 ---------------------------- */
+function catmullClosed(pts, per){
+  const n = pts.length, out = [];
+  for(let i=0;i<n;i++){
+    const p0=pts[(i-1+n)%n], p1=pts[i], p2=pts[(i+1)%n], p3=pts[(i+2)%n];
+    for(let j=0;j<per;j++){
+      const t=j/per, t2=t*t, t3=t2*t;
+      out.push({
+        x: 0.5*((2*p1.x)+(-p0.x+p2.x)*t+(2*p0.x-5*p1.x+4*p2.x-p3.x)*t2+(-p0.x+3*p1.x-3*p2.x+p3.x)*t3),
+        y: 0.5*((2*p1.y)+(-p0.y+p2.y)*t+(2*p0.y-5*p1.y+4*p2.y-p3.y)*t2+(-p0.y+3*p1.y-3*p2.y+p3.y)*t3)
+      });
+    }
+  }
+  return out;
+}
+function buildPath(ctrl){
+  const raw = ctrl.map(p => Array.isArray(p) ? { x:p[0], y:p[1] } : p);   // 兼容 [x,y] 写法
+  const pts = catmullClosed(raw, 44);
+  const N = pts.length, cum = new Float64Array(N+1);
+  for(let i=1;i<=N;i++){
+    const a = pts[i-1], b = pts[i%N];
+    cum[i] = cum[i-1] + Math.hypot(b.x-a.x, b.y-a.y);
+  }
+  const total = cum[N];
+  let cx=0, cy=0;
+  for(const p of pts){ cx+=p.x; cy+=p.y; }
+  cx/=N; cy/=N;
+
+  function locate(d){
+    d = ((d % total) + total) % total;
+    let lo=0, hi=N;
+    while(lo<hi){ const mid=(lo+hi)>>1; if(cum[mid] <= d) lo=mid+1; else hi=mid; }
+    const i = clamp(lo-1, 0, N-1);
+    const segLen = cum[i+1]-cum[i] || 1;
+    const t = (d - cum[i]) / segLen;
+    const a = pts[i], b = pts[(i+1)%N];
+    return { x: lerp(a.x,b.x,t), y: lerp(a.y,b.y,t), ang: Math.atan2(b.y-a.y, b.x-a.x), d:d };
+  }
+  // 在弧长 d 处、向法线外侧（或内侧）偏移 off 的点。off>0 = 远离画面中心（轨道外侧）
+  function offset(d, off){
+    const p = locate(d);
+    const nx = -Math.sin(p.ang), ny = Math.cos(p.ang);
+    const vx = p.x - cx, vy = p.y - cy;
+    const s = (nx*vx + ny*vy) >= 0 ? 1 : -1;
+    return { x: p.x + nx*off*s, y: p.y + ny*off*s, ang: p.ang, base:p };
+  }
+  /* 自动挑选站点位置：优先轨道外侧，但必须完整留在画面内；
+     外侧放不下就试内侧，两侧都不行再找局部最优 —— 保证 5 岁小朋友永远看得见小房子 */
+  function stationSpot(d, boxW, boxH){
+    const place = (off, p) => {
+      const top = p.y - boxH, bot = p.y + 14, l = p.x - boxW/2, r = p.x + boxW/2;
+      if(top < 78 || bot > 636 || l < 16 || r > W-16) return null;
+      // 与轨道的最小距离（防止压在铁轨上）
+      let minD = 1e9;
+      for(let k=-260;k<=260;k+=20){
+        const q = locate(d+k);
+        minD = Math.min(minD, Math.hypot(q.x-p.x, q.y-p.y));
+      }
+      if(minD < 48) return null;
+      return p;
+    };
+    let res = place(88, offset(d, 88));
+    if(res) return res;
+    res = place(-88, offset(d, -88));
+    if(res) return res;
+    for(let off = 100; off <= 150; off += 8){
+      const p = place(off, offset(d, off));
+      if(p) return p;
+    }
+    for(let off = -100; off >= -150; off -= 8){
+      const p = place(off, offset(d, off));
+      if(p) return p;
+    }
+    return offset(d, 88);   // 兜底
+  }
+  // 找轨道上离 (x,y) 最近的点：用于"把货物扔到铁轨附近也能装上"的宽容判定
+  function nearest(x,y){
+    let bi=0, bd=1e9;
+    for(let i=0;i<N;i++){
+      const px = pts[i].x - x, py = pts[i].y - y;
+      const dd = px*px + py*py;
+      if(dd < bd){ bd = dd; bi = i; }
+    }
+    return { arc: cum[bi], dist: Math.sqrt(bd) };
+  }
+  return {
+    pts, total, cx, cy, locate, N, nearest,
+    offset,          // 按"远离质心"定义的偏移
+    stationSpot,
+    side(d, off){ return offset(d, off); }   // 兼容旧调用
+  };
+}
+// 轨道控制点：整体压低，给车头烟囱和顶部 HUD 留出空间（火车再高也不会被裁切）
+const CTRL = [
+  [178,268],[430,212],[852,208],[1112,278],[1162,442],[1048,560],[802,604],[466,604],[206,536],[152,400]
+];
+const PATH = buildPath(CTRL);
+
+/* ---------------------------- 画布与缩放 ---------------------------- */
+const CV = document.getElementById('game');
+const CTX = CV.getContext('2d');
+let scaleV = 1, dpr = 1, rect = {left:0, top:0};
+let bgLayer = null;
+
+function resize(){
+  const availW = window.innerWidth, availH = window.innerHeight;
+  dpr = Math.min(window.devicePixelRatio || 1, 2.5);
+  scaleV = Math.min(availW/W, availH/H);
+  CV.style.width  = (W*scaleV)+'px';
+  CV.style.height = (H*scaleV)+'px';
+  CV.width  = Math.round(W*scaleV*dpr);
+  CV.height = Math.round(H*scaleV*dpr);
+  CTX.setTransform(scaleV*dpr,0,0,scaleV*dpr,0,0);
+  rect = CV.getBoundingClientRect();
+  document.getElementById('rotateTip').className = (availH > availW*1.12) ? 'show' : '';
+  buildBackground();
+}
+window.addEventListener('resize', resize);
+window.addEventListener('orientationchange', ()=> setTimeout(resize, 260));
+
+function toLogic(clientX, clientY){
+  return { x: (clientX - rect.left)/scaleV, y: (clientY - rect.top)/scaleV };
+}
+
+/* ---------------------------- 静态背景层（一次绘制，缓存复用） ---------------------------- */
+let BG_THEME = null;
+let bgSceneCache = null;
+function buildBackground(){
+  const th = THEMES[(game.level && game.level.theme) || 'meadow'];
+  if(!bgLayer){
+    bgLayer = document.createElement('canvas');
+  }
+  const q = Math.min(2, Math.max(1, dpr));
+  bgLayer.width = W*q; bgLayer.height = H*q;
+  const c = bgLayer.getContext('2d');
+  c.setTransform(q,0,0,q,0,0);
+  c.clearRect(0,0,W,H);
+  drawSceneStatic(c, th);
+  BG_THEME = th;
+}
+
+// 判断某个点是否靠近任意站点（装饰物要让路）
+function nearStation(p, minDist){
+  const list = (game.stations && game.stations.length) ? game.stations
+             : (SPECIAL_SPOTS || []);
+  for(const st of list){
+    const pos = st.pos || st;
+    if(Math.hypot(p.x-pos.x, p.y-pos.y) < minDist) return true;
+  }
+  return false;
+}
+let SPECIAL_SPOTS = [];
+
+function drawSceneStatic(c, th){
+  /* 天空 */
+  const g = c.createLinearGradient(0,0,0,H);
+  g.addColorStop(0, th.sky[0]); g.addColorStop(1, th.sky[1]);
+  c.fillStyle = g; c.fillRect(0,0,W,H);
+
+  /* 夜晚：星星 + 月亮 */
+  if(th.night){
+    const r = makeRandom(20250101);
+    for(let i=0;i<130;i++){
+      const x = r()*W, y = r()*430, s = r()*2.2+0.9;
+      c.globalAlpha = 0.35 + r()*0.6;
+      c.fillStyle = '#fff';
+      circlePath(c,x,y,s); c.fill();
+    }
+    c.globalAlpha = 1;
+    // 月亮
+    c.save();
+    circlePath(c, 1082, 108, 46); c.fillStyle = '#fff6cf'; c.fill();
+    circlePath(c, 1062, 96, 9); c.fillStyle = '#ead9a6'; c.fill();
+    circlePath(c, 1100, 126, 6); c.fillStyle = '#ead9a6'; c.fill();
+    circlePath(c, 1096, 86, 4.5); c.fillStyle = '#ead9a6'; c.fill();
+    c.restore();
+  }else{
+    /* 太阳（带笑脸） */
+    c.save();
+    circlePath(c, 1108, 106, 52); c.fillStyle = 'rgba(255,255,255,.35)'; c.fill();
+    circlePath(c, 1108, 106, 40); c.fillStyle = '#ffd75e'; c.fill();
+    c.fillStyle = OUTLINE;
+    circlePath(c, 1098, 100, 4); c.fill();
+    circlePath(c, 1120, 100, 4); c.fill();
+    c.beginPath(); c.arc(1109, 108, 11, 0.15*Math.PI, 0.85*Math.PI); c.lineWidth=3.4; c.strokeStyle=OUTLINE; c.stroke();
+    c.restore();
+  }
+
+  /* 远山（两层视差） */
+  function mountain(yBase, h, col, seedv, alpha){
+    c.save(); c.globalAlpha = alpha;
+    const rr = makeRandom(seedv);
+    c.beginPath(); c.moveTo(-40, yBase+40);
+    let x = -40;
+    while(x < W+80){
+      const step = 130 + rr()*140;
+      const pk = yBase - h*(0.45+rr()*0.75);
+      c.lineTo(x+step*0.5, pk);
+      x += step;
+      c.lineTo(x, yBase+40);
+    }
+    c.lineTo(W+80, H); c.lineTo(-40, H); c.closePath();
+    c.fillStyle = col; c.fill();
+    c.restore();
+  }
+  mountain(240, 118, th.hill, 777, 0.55);
+  mountain(300, 86,  th.hill, 313, 0.85);
+
+  /* 地面 */
+  const gg = c.createLinearGradient(0,240,0,H);
+  gg.addColorStop(0, th.grass[0]); gg.addColorStop(1, th.grass[1]);
+  c.beginPath();
+  c.moveTo(-10, 330);
+  const rg = makeRandom(5551);
+  let gx = -10;
+  while(gx < W+40){
+    const step = 150+rg()*160;
+    c.quadraticCurveTo(gx+step*0.5, 300 - rg()*46, gx+step, 322 - rg()*22);
+    gx += step;
+  }
+  c.lineTo(W+40, H); c.lineTo(-10, H); c.closePath();
+  c.fillStyle = gg; c.fill();
+
+  /* 草地上的纹理小点 */
+  const rt = makeRandom(98881);
+  c.globalAlpha = 0.16;
+  for(let i=0;i<420;i++){
+    const x = rt()*W, y = 320 + rt()*(H-320);
+    c.fillStyle = '#2b6b32';
+    c.fillRect(x, y, 3, 7);
+  }
+  c.globalAlpha = 1;
+
+  /* 轨道围出来的内部草地区 */
+  c.save();
+  c.beginPath();
+  const pts = PATH.pts;
+  c.moveTo(pts[0].x, pts[0].y);
+  for(let i=1;i<pts.length;i++) c.lineTo(pts[i].x, pts[i].y);
+  c.closePath();
+  const ig = c.createLinearGradient(0,150,0,620);
+  ig.addColorStop(0, th.inner[0]); ig.addColorStop(1, th.inner[1]);
+  c.fillStyle = ig; c.fill();
+  c.lineWidth = 26; c.strokeStyle = 'rgba(0,0,0,.07)'; c.stroke();
+  c.restore();
+
+  /* 内部：小湖 + 风车 */
+  const pond = { x: 700, y: 380, r: 92 };
+  c.save();
+  c.beginPath(); c.ellipse(pond.x, pond.y, pond.r, pond.r*0.62, 0, 0, TAU);
+  c.fillStyle = th.night ? '#2f6b86' : '#7fd4f7'; c.fill();
+  c.lineWidth = 7; c.strokeStyle = th.night ? '#1f4a60' : '#4fb0dd'; c.stroke();
+  // 水波
+  c.lineWidth = 4; c.strokeStyle = 'rgba(255,255,255,.6)';
+  for(let i=0;i<3;i++){
+    c.beginPath();
+    c.moveTo(pond.x-52+i*8, pond.y-14+i*20);
+    c.quadraticCurveTo(pond.x-20+i*6, pond.y-24+i*20, pond.x+16+i*6, pond.y-14+i*20);
+    c.stroke();
+  }
+  // 小鸭
+  c.fillStyle = '#fff8e2';
+  circlePath(c, pond.x+30, pond.y+16, 13); c.fill();
+  circlePath(c, pond.x+43, pond.y+7, 8); c.fill();
+  c.fillStyle = '#ffa726';
+  c.beginPath(); c.moveTo(pond.x+50, pond.y+6); c.lineTo(pond.x+60, pond.y+8); c.lineTo(pond.x+50, pond.y+11); c.fill();
+  c.fillStyle = OUTLINE;
+  circlePath(c, pond.x+45, pond.y+5, 1.9); c.fill();
+  c.restore();
+
+  /* 沿路装饰：内侧花草石头、外侧树丛（自动避开小房子和火车航道） */
+  const rdec = makeRandom(4242);
+  // 树干/石头较大，离铁轨要更远；花草可以靠近铁轨当"路边小花"
+  for(let i=0;i<78;i++){
+    const d = (i/78) * PATH.total + rdec()*44;
+    const outward = rdec() > 0.40;
+    const off = outward ? (60 + rdec()*92) : -(52 + rdec()*86);
+    const p = PATH.offset(d, off);
+    if(p.y < 158 || p.y > 648) continue;
+    if(p.x < 34 || p.x > W-34) continue;
+    if(nearStation(p, 112)) continue;                 // 不挡住小朋友的小房子
+    const kind = rdec();
+    const big = outward ? (kind < 0.55) : (kind > 0.80);
+    if(big && Math.abs(off) < 80) continue;           // 大树别压到铁轨
+    if(outward){
+      if(kind < 0.55) drawTree(c, p.x, p.y, 0.66 + rdec()*0.5, th, rdec()<0.28);
+      else if(kind < 0.74) drawBush(c, p.x, p.y, 0.78 + rdec()*0.5, th);
+      else drawFlowers(c, p.x, p.y, 0.95 + rdec()*0.45, th);
+    }else{
+      if(kind < 0.42) drawFlowers(c, p.x, p.y, 0.9 + rdec()*0.45, th);
+      else if(kind < 0.66) drawRock(c, p.x, p.y, 0.66 + rdec()*0.46, th);
+      else if(kind < 0.86) drawFlowers(c, p.x, p.y, 0.8 + rdec()*0.4, th);
+      else drawTree(c, p.x, p.y, 0.46 + rdec()*0.24, th, false);
+    }
+  }
+  // 外圈远处再撒一层树和小房子，让画面有层次
+  for(let i=0;i<16;i++){
+    const x = 40 + (i/16)*W + rdec()*30;
+    const y = 128 + rdec()*70;
+    if(nearStation({x:x,y:y+60}, 120)) continue;
+    if(i%3===0) drawTree(c, x, y, 0.5 + rdec()*0.3, th, true);
+    else if(i%3===1) drawBush(c, x, y, 0.7 + rdec()*0.3, th);
+    else drawTree(c, x, y, 0.42 + rdec()*0.26, th, rdec()<0.5);
+  }
+  /* 固定景点：风车（放在内圈空地上，避开湖与小房子） */
+  if(!nearStation({x:352,y:366}, 130)) drawWindmill(c, 352, 366, 0.78, th);
+
+  /* 石板小路：从湖通向轨道 */
+  c.save(); c.globalAlpha = .5; c.fillStyle = th.night ? '#8d7f66' : '#e3c68f';
+  for(let i=0;i<7;i++){
+    const a = -0.6 + i*0.19;
+    const px = 700 + Math.cos(a)* (i*16), py = 470 + i*24;
+    c.beginPath(); c.ellipse(px, py, 15-i*0.6, 9-i*0.4, a*0.4, 0, TAU); c.fill();
+  }
+  c.restore();
+}
+
+/* -------------------- 风景小元素绘制 -------------------- */
+function drawTree(c,x,y,s,th,pine){
+  c.save(); c.translate(x,y); c.scale(s,s);
+  c.fillStyle = 'rgba(0,0,0,.13)';
+  c.beginPath(); c.ellipse(0,4,26,9,0,0,TAU); c.fill();
+  c.fillStyle = '#a9743f'; roundRect(c,-7,-8,14,26,5); c.fill(); c.lineWidth=4; c.strokeStyle=OUTLINE; c.stroke();
+  if(pine || th===THEMES.snow){
+    c.fillStyle = th===THEMES.snow ? '#3f8f6d' : '#3f9a63';
+    for(let i=0;i<3;i++){
+      const yy = -6 - i*24, ww = 40 - i*9;
+      c.beginPath(); c.moveTo(-ww, yy); c.lineTo(0, yy-34); c.lineTo(ww, yy); c.closePath();
+      c.fill(); c.lineWidth=3.6; c.strokeStyle=OUTLINE; c.stroke();
+    }
+    if(th===THEMES.snow){ c.fillStyle='rgba(255,255,255,.75)';
+      c.beginPath(); c.moveTo(-22,-40); c.lineTo(0,-66); c.lineTo(22,-40); c.closePath(); c.fill(); }
+  }else{
+    c.fillStyle = th===THEMES.sunset ? '#c98a4a' : '#54a85f';
+    circlePath(c,-14,-24,18); c.fill(); c.lineWidth=4; c.strokeStyle=OUTLINE; c.stroke();
+    circlePath(c, 14,-26,19); c.fill(); c.stroke();
+    circlePath(c, 0,-44,21); c.fill(); c.stroke();
+    if(th===THEMES.blossom){
+      c.fillStyle = '#ffc0d8';
+      [[-18,-30],[16,-32],[0,-52],[4,-24]].forEach(p=>{ circlePath(c,p[0],p[1],5); c.fill(); });
+    }
+  }
+  c.restore();
+}
+function drawBush(c,x,y,s,th){
+  c.save(); c.translate(x,y); c.scale(s,s);
+  c.fillStyle = th===THEMES.snow ? '#cfe8f5' : '#57ab63';
+  c.beginPath(); c.ellipse(-12,-6,14,12,0,0,TAU); c.fill();
+  c.beginPath(); c.ellipse(12,-6,14,12,0,0,TAU); c.fill();
+  c.beginPath(); c.ellipse(0,-15,17,14,0,0,TAU); c.fill();
+  c.lineWidth=4; c.strokeStyle=OUTLINE; c.stroke();
+  c.restore();
+}
+function drawRock(c,x,y,s,th){
+  c.save(); c.translate(x,y); c.scale(s,s);
+  c.fillStyle = '#b6a894';
+  c.beginPath(); c.moveTo(-14,2); c.lineTo(-6,-13); c.lineTo(8,-11); c.lineTo(15,2); c.closePath();
+  c.fill(); c.lineWidth=3.6; c.strokeStyle=OUTLINE; c.stroke();
+  c.restore();
+}
+function drawFlowers(c,x,y,s,th){
+  c.save(); c.translate(x,y); c.scale(s,s);
+  const cols = th.night ? ['#8f7fd0','#6e8fd6'] : ['#ff7ba3','#ffd45e','#b18cff','#fff'];
+  for(let i=0;i<3;i++){
+    const fx = -14 + i*14, fy = -2 - (i===1?8:0);
+    c.strokeStyle = '#4aa35c'; c.lineWidth=3;
+    c.beginPath(); c.moveTo(fx,0); c.lineTo(fx,fy+8); c.stroke();
+    c.fillStyle = cols[i%cols.length];
+    for(let k=0;k<5;k++){
+      const a = k/5*TAU;
+      circlePath(c, fx+Math.cos(a)*5, fy+Math.sin(a)*5, 3.6); c.fill();
+    }
+    c.fillStyle = '#fff2a8'; circlePath(c, fx, fy, 2.6); c.fill();
+  }
+  c.restore();
+}
+function drawWindmill(c,x,y,s,th){
+  c.save(); c.translate(x,y); c.scale(s,s);
+  c.fillStyle = '#f2e4c8';
+  c.beginPath(); c.moveTo(-24,60); c.lineTo(-16,-30); c.lineTo(16,-30); c.lineTo(24,60); c.closePath();
+  c.fill(); c.lineWidth=5; c.strokeStyle=OUTLINE; c.stroke();
+  c.fillStyle = '#c1603f';
+  c.beginPath(); c.moveTo(-30,-28); c.lineTo(0,-52); c.lineTo(30,-28); c.closePath(); c.fill(); c.stroke();
+  c.fillStyle = '#8a5a33'; roundRect(c,-8,4,16,22,4); c.fill();
+  c.save(); c.translate(0,-30);
+  for(let i=0;i<4;i++){
+    c.save(); c.rotate(i*Math.PI/2 + 0.35);
+    c.fillStyle='#fffaf0';
+    roundRect(c,0,-9,60,16,7); c.fill(); c.lineWidth=4; c.strokeStyle=OUTLINE; c.stroke();
+    c.restore();
+  }
+  c.fillStyle='#7a5230'; circlePath(c,0,0,6); c.fill();
+  c.restore();
+  c.restore();
+}
+
+/* -------------------- 云（动态，会飘） -------------------- */
+const clouds = [];
+for(let i=0;i<7;i++) clouds.push({ x: rnd(0,W), y: rnd(46,190), s: rnd(0.6,1.25), v: rnd(4,12) });
+function drawCloud(c,x,y,s,th){
+  c.save(); c.translate(x,y); c.scale(s,s);
+  c.fillStyle = th.cloud; c.globalAlpha = th.night ? 0.55 : 0.95;
+  c.beginPath();
+  c.ellipse(-30,0,26,20,0,0,TAU); c.fill();
+  c.ellipse(0,-8,32,26,0,0,TAU); c.fill();
+  c.ellipse(32,2,24,19,0,0,TAU); c.fill();
+  c.ellipse(0,14,40,15,0,0,TAU); c.fill();
+  c.restore();
+}
+
+/* -------------------- 货物图形（配对核心） -------------------- */
+function drawItem(c, type, x, y, s, rot){
+  c.save(); c.translate(x,y); c.scale(s,s); if(rot) c.rotate(rot);
+  const m = GMETA[type];
+  if(type === 'apple'){
+    // 梗和叶
+    c.strokeStyle = '#8a5a33'; c.lineWidth = 5; c.lineCap='round';
+    c.beginPath(); c.moveTo(0,-12); c.quadraticCurveTo(3,-24,9,-30); c.stroke();
+    c.fillStyle = '#57a349';
+    c.beginPath(); c.ellipse(20,-31,12,6.5,-0.45,0,TAU); c.fill(); stroke(c,3.4);
+    // 苹果本体：上宽下圆、顶部有凹的经典轮廓
+    c.beginPath();
+    c.moveTo(0,-13);
+    c.bezierCurveTo(-13,-27,-31,-15,-29,4);
+    c.bezierCurveTo(-27,20,-13,29,0,26);
+    c.bezierCurveTo(13,29,27,20,29,4);
+    c.bezierCurveTo(31,-15,13,-27,0,-13);
+    c.closePath();
+    c.fillStyle = m.c1; c.fill(); stroke(c,4.5);
+    // 底部一点暖色，看起来更立体
+    c.save();
+    c.beginPath();
+    c.moveTo(0,-13);
+    c.bezierCurveTo(-13,-27,-31,-15,-29,4);
+    c.bezierCurveTo(-27,20,-13,29,0,26);
+    c.bezierCurveTo(13,29,27,20,29,4);
+    c.bezierCurveTo(31,-15,13,-27,0,-13);
+    c.closePath(); c.clip();
+    c.globalAlpha=.35; c.fillStyle = m.dark;
+    c.beginPath(); c.ellipse(20,16,20,20,0,0,TAU); c.fill();
+    c.restore();
+    // 高光
+    c.fillStyle='rgba(255,255,255,.7)';
+    c.beginPath(); c.ellipse(-12,-8,7.5,5,-0.55,0,TAU); c.fill();
+  }else if(type === 'star'){
+    c.beginPath();
+    for(let i=0;i<10;i++){
+      const r = i%2===0 ? 26 : 12;
+      const a = -Math.PI/2 + i*Math.PI/5;
+      const px = Math.cos(a)*r, py = Math.sin(a)*r;
+      i===0 ? c.moveTo(px,py) : c.lineTo(px,py);
+    }
+    c.closePath(); c.fillStyle = m.c1; c.fill(); stroke(c,4.5);
+    c.beginPath();
+    c.moveTo(-10,2); c.lineTo(-4,8); c.lineTo(4,2); c.lineTo(10,8); c.lineTo(14,0);
+    c.closePath(); c.fillStyle = 'rgba(255,255,255,.5)'; c.fill();
+  }else if(type === 'balloon'){
+    c.strokeStyle = OUTLINE; c.lineWidth = 3.4;
+    c.beginPath(); c.moveTo(0,14); c.quadraticCurveTo(12,32,-2,46); c.stroke();
+    c.beginPath(); c.moveTo(-13,10); c.lineTo(0,20); c.lineTo(13,10); c.closePath();
+    c.fillStyle = m.dark; c.fill(); stroke(c,4);
+    c.beginPath(); c.ellipse(0,-8,20,25,0,0,TAU); c.fillStyle = m.c1; c.fill(); stroke(c,4.5);
+    c.fillStyle='rgba(255,255,255,.6)';
+    c.beginPath(); c.ellipse(-7,-16,6,9,-0.3,0,TAU); c.fill();
+  }else{ // melon
+    c.beginPath(); c.arc(0,10,24,Math.PI,0); c.closePath();
+    c.fillStyle = m.c1; c.fill(); stroke(c,4.5);
+    c.beginPath(); c.arc(0,10,17,Math.PI,0); c.closePath();
+    c.fillStyle = '#ff6d78'; c.fill();
+    c.beginPath(); c.arc(0,10,17,Math.PI,0); c.lineWidth=3.4; c.strokeStyle='#fff'; c.stroke();
+    c.beginPath(); c.arc(0,10,17,Math.PI,0); c.lineWidth=2.6; c.strokeStyle=GMETA.melon.dark; c.stroke();
+    c.fillStyle = '#3a2b22';
+    [[-9,4],[0,2],[9,4],[-4,12],[5,12]].forEach(p=>{ circlePath(c,p[0],p[1],2.1); c.fill(); });
+    c.fillStyle='rgba(255,255,255,.45)';
+    c.beginPath(); c.ellipse(-11,-1,6,3,-0.4,0,TAU); c.fill();
+  }
+  c.restore();
+}
+
+/* -------------------- 小小́动物（按喇叭会跳舞） -------------------- */
+function drawCritter(c, kind, x, y, s, hop, faceDir){
+  c.save(); c.translate(x,y); c.scale(s,s);
+  c.fillStyle='rgba(0,0,0,.14)';
+  c.beginPath(); c.ellipse(0,2,26,8,0,0,TAU); c.fill();
+  c.translate(0,-hop);
+  c.rotate(Math.sin(hop*0.08)*0.12);
+  const body = kind===0 ? '#fdfaf2' : (kind===1 ? '#ffd7a8' : '#fff4cf');
+  if(kind===2){ // 小鸭子
+    c.fillStyle='#ffcf3f';
+    c.beginPath(); c.ellipse(0,0,16,12,0,0,TAU); c.fill(); stroke(c,4);
+    circlePath(c,12,-14,10); c.fillStyle='#fff4cf'; c.fill(); stroke(c,4);
+    c.fillStyle='#ff8c2b';
+    c.beginPath(); c.moveTo(20,-14); c.lineTo(31,-11); c.lineTo(20,-8); c.closePath(); c.fill(); stroke(c,3.4);
+    c.fillStyle=OUTLINE; circlePath(c,14,-16,2.2); c.fill();
+  }else{
+    c.beginPath(); c.ellipse(0,-2,19,14,0,0,TAU); c.fillStyle=body; c.fill(); stroke(c,4);
+    // 腿
+    c.lineWidth=3.6; c.strokeStyle=OUTLINE;
+    c.beginPath(); c.moveTo(-8,10); c.lineTo(-9,18); c.moveTo(8,10); c.lineTo(9,18); c.stroke();
+    // 头
+    const hx = faceDir*20;
+    circlePath(c,hx,-16,11); c.fillStyle=body; c.fill(); stroke(c,4);
+    if(kind===0){ // 羊：卷卷毛
+      c.fillStyle='#fdfaf2';
+      [[-14,-14],[-4,-16],[6,-16],[14,-14],[-16,-4],[16,-4],[-4,-6],[6,-6]].forEach(p=>{
+        circlePath(c,p[0],p[1],7); c.fill();
+      });
+    }else{ // 奶牛斑纹
+      c.fillStyle='#5a4436';
+      c.beginPath(); c.ellipse(-6,-6,6,5,0.4,0,TAU); c.fill();
+      c.beginPath(); c.ellipse(8,2,5,4,-0.3,0,TAU); c.fill();
+    }
+    c.fillStyle=OUTLINE;
+    circlePath(c,hx-4,-18,2.2); c.fill();
+    circlePath(c,hx+4,-18,2.2); c.fill();
+    c.beginPath(); c.moveTo(hx-4,-11); c.quadraticCurveTo(hx,-8,hx+4,-11);
+    c.lineWidth=2.4; c.strokeStyle=OUTLINE; c.stroke();
+  }
+  c.restore();
+}
+
+/* -------------------- 房子小站 -------------------- */
+// 地基台：画在轨道之下，让小房子像"嵌在草地上"，一眼能认出是站点
+function drawStationBase(c, st, th){
+  const p = st.pos;
+  const sc = st.scale || 1;
+  const heading = Math.atan2(st.track.y - p.y, st.track.x - p.x);
+  c.save();
+  c.translate(p.x, p.y); c.scale(sc, sc);
+  c.fillStyle='rgba(0,0,0,.12)';
+  c.beginPath(); c.ellipse(0, 40, 72, 16, 0, 0, TAU); c.fill();
+  // 草地台座（房子正好坐在上面）
+  c.beginPath(); c.ellipse(0, 20, 62, 19, 0, 0, TAU);
+  c.fillStyle = th.night ? '#4f8a76' : '#8fd76d'; c.fill();
+  c.lineWidth = 5; c.strokeStyle='rgba(0,0,0,.16)'; c.stroke();
+  // 台座上的小石子边
+  c.globalAlpha=.45; c.fillStyle = th.night ? '#6fa893' : '#a9e07d';
+  c.beginPath(); c.ellipse(0, 16, 48, 12, 0, 0, TAU); c.fill(); c.globalAlpha=1;
+  // 通向轨道的小石子路
+  c.save(); c.globalAlpha = .8;
+  const sa = heading;
+  for(let i=1;i<=5;i++){
+    const d = 46 + i*17;
+    c.beginPath();
+    c.ellipse(Math.cos(sa)*d, Math.sin(sa)*d, 12-i*1.4, 8-i*0.9, sa, 0, TAU);
+    c.fillStyle = th.night ? '#8d8570' : '#efd9a8'; c.fill();
+  }
+  c.restore();
+  c.restore();
+}
+
+/* 火车（车头 + 每节车厢）离这个气泡有多近：0=没挡住，1=正压在上面。
+   气泡本身不动，只按这个值变淡 —— 孩子的视线始终能穿过气泡看到火车。 */
+function stationClash(st, bx, by){
+  if(game.mode !== 'play') return 0;
+  let best = 0;
+  const R = 78;
+  for(let i=-1;i<game.wagons.length;i++){
+    const p = PATH.locate(game.dist - (i+1)*WAGON_GAP);
+    const dd = Math.hypot(p.x-bx, (p.y-34)-by);
+    if(dd < R) best = Math.max(best, 1 - dd/R);
+  }
+  return best;
+}
+function drawHouse(c, st, th, t){
+  const p = st.pos;
+  const sc = st.scale || 1;
+  const done = st.need <= 0;
+  c.save(); c.translate(p.x, p.y); c.scale(sc, sc);
+
+  const col = GMETA[st.type];
+  const wob = done ? Math.sin(t*0.006)*0.05 : 0;
+  c.rotate(wob);
+
+  // 墙
+  roundRect(c,-42,-10,84,62,10); c.fillStyle = done ? '#fff5da' : '#fff0cf'; c.fill(); stroke(c,5);
+  // 屋顶
+  c.beginPath(); c.moveTo(-54,-8); c.lineTo(0,-52); c.lineTo(54,-8); c.closePath();
+  c.fillStyle = col.c1; c.fill(); stroke(c,5);
+  c.beginPath(); c.moveTo(-54,-8); c.lineTo(54,-8); c.lineWidth=4; c.strokeStyle='rgba(0,0,0,.18)'; c.stroke();
+  // 屋瓦纹
+  c.strokeStyle='rgba(0,0,0,.12)'; c.lineWidth=3;
+  for(let i=1;i<4;i++){
+    c.beginPath(); c.moveTo(-54+i*27, -8-i*2); c.lineTo(0,-52+i*11); c.stroke();
+  }
+  // 烟囱
+  roundRect(c,22,-44,15,26,4); c.fillStyle='#e07a5f'; c.fill(); stroke(c,4.4);
+  // 门 + 窗
+  roundRect(c,-13,26,26,26,6); c.fillStyle='#c98a5a'; c.fill(); stroke(c,4.4);
+  c.fillStyle='#ffe38a'; circlePath(c,7,38,2.6); c.fill();
+  roundRect(c,-36,8,22,20,5); c.fillStyle= done? '#bfe9ff':'#9fd7f2'; c.fill(); stroke(c,4.4);
+  roundRect(c,14,8,22,20,5); c.fillStyle= done? '#bfe9ff':'#9fd7f2'; c.fill(); stroke(c,4.4);
+
+  // 屋顶旗帜：站点要的那种货物
+  c.save(); c.translate(0,-56);
+  c.strokeStyle=OUTLINE; c.lineWidth=4;
+  c.beginPath(); c.moveTo(0,8); c.lineTo(0,-16); c.stroke();
+  const flap = Math.sin(t*0.005)*0.18;
+  c.beginPath(); c.moveTo(0,-16); c.lineTo(26,-8+flap*8); c.lineTo(0,0); c.closePath();
+  c.fillStyle=col.c2; c.fill(); c.stroke();
+  c.restore();
+
+  c.restore();
+
+  // 需求气泡（浮动，等比放大，5 岁小朋友远远也能看清）
+  const fl = Math.sin(t*0.0028 + st.seed)*6;
+  const bs = Math.max(1, sc*1.06);           // 气泡单独放大，不跟着房子缩
+  // 气泡挂在房子"背离轨道"的那一侧 —— 火车永远压不到它，孩子就能一直看着数字往下减。
+  // 房子在轨道下方（y 更大）-> 气泡往下挂；房子在轨道上方 -> 气泡往上挂。
+  const aboveTrack = !!st.track && (p.y < st.track.y - 20);
+  const bx = p.x;
+  const by = aboveTrack
+    ? p.y - (96 + 26*(sc-1)) + fl      // 上方房子：气泡在屋顶上
+    : p.y + (104 + 12*(sc-1)) + fl;    // 下方房子：气泡挂在房子底下
+  // 万一同款气泡还是挨着火车（比如轨道弯到房子外面），再淡一点让火车透出来
+  c.globalAlpha = 1 - 0.55*stationClash(st, bx, by);
+  c.save();
+  c.translate(bx, by); c.scale(bs, bs);
+  // 气泡默认尖角朝下；挂到房子底下时上下翻转，尖角朝上
+  if(!aboveTrack) c.scale(1,-1);
+  if(done){
+    circlePath(c,0,0,30);
+    c.fillStyle='#7fd86b'; c.fill(); stroke(c,4.4);
+    c.strokeStyle='#fff'; c.lineWidth=6.4; c.lineCap='round'; c.lineJoin='round';
+    c.beginPath(); c.moveTo(-12,1); c.lineTo(-3,11); c.lineTo(13,-10); c.stroke();
+    c.beginPath(); c.moveTo(-8,26); c.lineTo(0,40); c.lineTo(8,26); c.closePath();
+    c.fillStyle='#7fd86b'; c.fill();
+  }else{
+    // 外圈彩色光环：一眼就能看到"这座房子在等我"
+    roundRect(c,-46,-33,92,66,24); c.fillStyle = GMETA[st.type].c2; c.fill();
+    roundRect(c,-42,-29,84,58,21); c.fillStyle='#fffdf5'; c.fill(); stroke(c,4.6);
+    c.beginPath(); c.moveTo(-9,27); c.lineTo(0,41); c.lineTo(9,27); c.closePath();
+    c.fillStyle='#fffdf5'; c.fill();
+    drawItem(c, st.type, -16, 0, 0.6);
+    c.save(); c.scale(1, aboveTrack ? 1 : -1);   // 翻转后文字再翻回来，不能成镜像
+    c.fillStyle='#4a3a2c'; c.font='bold 34px -apple-system,sans-serif'; c.textAlign='left'; c.textBaseline='middle';
+    c.fillText('×'+st.need, 4, 2);
+    c.restore();
+  }
+  c.restore();
+}
+
+/* -------------------- 隧道 -------------------- */
+const TUNNEL = { d0: PATH.total*0.42, d1: PATH.total*0.47 };
+// 山洞由关卡自己说了算（LEVELS[i].tunnel），自由模式没有山洞。
+// 没画山洞的关卡绝不能让火车"凭空消失"。
+function hasTunnel(){
+  if(game.free) return false;
+  const lv = LEVELS[game.lvIndex];
+  return !!(game.level && lv && lv.tunnel);
+}
+/* 某一节火车（按弧长 d 定位）在山洞里的程度：
+   0 = 完全在洞外，照常画；1 = 完全在洞里，不画。
+   洞口两端各留 30px 做淡入淡出，孩子看到的是"慢慢地钻进山洞"，
+   而不是"啪"地一下整列火车没了。 */
+function tunnelHide(d){
+  if(!hasTunnel()) return 0;                       // 没山洞的关卡：一律显示
+  const a = TUNNEL.d0, b = TUNNEL.d1, fade = 30;
+  // 弧长是环形的，先把它折算到 [0,total) 再比较
+  const dd = ((d % PATH.total) + PATH.total) % PATH.total;
+  if(dd <= a || dd >= b) return 0;
+  if(dd < a + fade) return (dd - a) / fade;        // 正在进洞：渐渐淡出
+  if(dd > b - fade) return (b - dd) / fade;        // 正在出洞：渐渐淡入
+  return 1;                                        // 完全在洞里
+}
+function drawTunnel(c, covering, th){
+  const a = PATH.locate(TUNNEL.d0), b = PATH.locate(TUNNEL.d1);
+  const mx = (a.x+b.x)/2, my = (a.y+b.y)/2;
+  const ang = Math.atan2(b.y-a.y, b.x-a.x);
+  const len = Math.hypot(b.x-a.x, b.y-a.y);
+  // 这一段轨道在拐角上：隧道整体被"沿轨道方向"拉长，避免竖着的轨道上画出一个横着压扁的山
+  const R  = len/2 + 34;      // 沿轨道方向的半长
+  const Rp = 56;              // 垂直于轨道方向的半宽（山有多"胖"）
+  c.save();
+  c.translate(mx,my); c.rotate(ang);
+  // 山体：轨道方向 R，垂直方向 Rp
+  c.beginPath();
+  c.moveTo(-R, -6);
+  c.bezierCurveTo(-R*0.92, -Rp*0.78, -R*0.42, -Rp, 0, -Rp);
+  c.bezierCurveTo( R*0.42, -Rp,  R*0.92, -Rp*0.78,  R, -6);
+  c.lineTo(R, 6);
+  c.bezierCurveTo( R*0.92,  Rp*0.78,  R*0.42,  Rp, 0,  Rp);
+  c.bezierCurveTo(-R*0.42,  Rp, -R*0.92,  Rp*0.78, -R, 6);
+  c.closePath();
+  c.fillStyle = covering ? (th.night ? '#2b3f4a' : '#8a7a63') : (th.night ? '#35505c' : '#9c8b70');
+  c.fill(); stroke(c,6);
+  // 两端洞口：按垂直于轨道的朝向画椭圆，看着才是"火车钻进去的黑洞"
+  [-1,1].forEach(sd=>{
+    const ox = sd*(R-16);
+    c.beginPath(); c.ellipse(ox, 0, 26, 30, 0, 0, TAU);
+    c.fillStyle = th.night ? '#101c24' : '#2c2620'; c.fill(); stroke(c,5);
+  });
+  // 石头纹理
+  c.globalAlpha=.2; c.fillStyle='#000';
+  for(let i=0;i<7;i++){
+    const rx = -R*0.55 + i*(R*1.1)/6;
+    c.beginPath(); c.ellipse(rx, -Rp*0.55 - (i%3)*7, 10, 7, 0.3, 0, TAU); c.fill();
+  }
+  c.globalAlpha=1;
+  c.restore();
+}
+
+/* -------------------- 火车 -------------------- */
+function wheel(c,x,y,r){
+  circlePath(c,x,y,r); c.fillStyle='#4a3a30'; c.fill(); stroke(c,3.4);
+  circlePath(c,x,y,r*0.42); c.fillStyle='#f0d9a8'; c.fill();
+  for(let i=0;i<4;i++){
+    const a = i*Math.PI/4;
+    c.beginPath(); c.moveTo(x+Math.cos(a)*r*0.42, y+Math.sin(a)*r*0.42);
+    c.lineTo(x-Math.cos(a)*r*0.42, y-Math.sin(a)*r*0.42);
+    c.lineWidth=2.4; c.strokeStyle='#b08c52'; c.stroke();
+  }
+}
+function drawLocomotive(c, x, y, ang, opt){
+  const st = (opt && opt.style) || save.train.style;
+  const col = (opt && opt.color) || save.train.color;
+  const s = opt && opt.scale ? opt.scale : 1;
+  const t = opt && opt.t ? opt.t : 0;
+  c.save();
+  c.translate(x,y); c.rotate(ang); c.scale(s,s);
+  c.translate(0,-32);
+
+  c.fillStyle='rgba(0,0,0,.16)';
+  c.beginPath(); c.ellipse(0,30,52,13,0,0,TAU); c.fill();
+
+  if(st === 'steam'){
+    // 底盘 + 轮
+    roundRect(c,-46,-6,92,30,10); c.fillStyle='#6b5140'; c.fill(); stroke(c,4.4);
+    const wob = Math.sin(t*0.02)*4;
+    wheel(c,-30,22,13); wheel(c,4,22,13); wheel(c,32,22,11);
+    // 连杆
+    c.beginPath(); c.moveTo(-30+wob,22); c.lineTo(4+wob,22); c.lineWidth=5; c.strokeStyle='#d9b25e'; c.stroke();
+    // 锅炉
+    roundRect(c,-52,-38,74,44,16); c.fillStyle=col; c.fill(); stroke(c,5);
+    // 锅炉带纹
+    c.strokeStyle='rgba(255,255,255,.45)'; c.lineWidth=5;
+    for(let i=0;i<3;i++){ c.beginPath(); c.moveTo(-40+i*20,-36); c.lineTo(-40+i*20,4); c.stroke(); }
+    // 驾驶室
+    roundRect(c,20,-52,38,58,11); c.fillStyle=col; c.fill(); stroke(c,5);
+    roundRect(c,27,-45,24,22,6); c.fillStyle='#bfe9ff'; c.fill(); stroke(c,4);
+    c.fillStyle='#ffd166'; circlePath(c,39,-34,4); c.fill();
+    // 烟囱
+    c.beginPath(); c.moveTo(-46,-38); c.lineTo(-42,-62); c.lineTo(-30,-60); c.lineTo(-30,-38); c.closePath();
+    c.fillStyle='#5c4740'; c.fill(); stroke(c,4.4);
+    roundRect(c,-48,-66,22,8,4); c.fillStyle='#7d6055'; c.fill(); stroke(c,4.4);
+    // 排障器
+    c.beginPath(); c.moveTo(-52,-4); c.lineTo(-72,12); c.lineTo(-72,22); c.lineTo(-52,20); c.closePath();
+    c.fillStyle='#e2724f'; c.fill(); stroke(c,4.4);
+    // 大灯
+    circlePath(c,-58,-30,9); c.fillStyle='#ffe9a8'; c.fill(); stroke(c,3.6);
+  }else if(st === 'bullet'){
+    roundRect(c,-50,-2,100,26,13); c.fillStyle='#5c4a3c'; c.fill(); stroke(c,4.4);
+    wheel(c,-32,20,11); wheel(c,-2,20,11); wheel(c,28,20,11);
+    // 流线车身
+    c.beginPath();
+    c.moveTo(-62,10); c.lineTo(-56,-24);
+    c.quadraticCurveTo(-10,-52,42,-46);
+    c.lineTo(52,-2); c.closePath();
+    c.fillStyle=col; c.fill(); stroke(c,5);
+    // 挡风玻璃
+    c.beginPath(); c.moveTo(-52,-22); c.quadraticCurveTo(-18,-44,14,-40); c.lineTo(14,-22); c.closePath();
+    c.fillStyle='#bfe9ff'; c.fill(); stroke(c,4);
+    //  nose stripe
+    c.strokeStyle='#fff'; c.lineWidth=6; c.globalAlpha=.7;
+    c.beginPath(); c.moveTo(-58,4); c.lineTo(50,4); c.stroke(); c.globalAlpha=1;
+    circlePath(c,-46,-6,7); c.fillStyle='#ffe9a8'; c.fill(); stroke(c,3.4);
+    // 尾翼
+    c.beginPath(); c.moveTo(46,-44); c.lineTo(58,-62); c.lineTo(62,-40); c.closePath();
+    c.fillStyle='#ffe38a'; c.fill(); stroke(c,4);
+  }else{ // candy
+    roundRect(c,-48,-2,96,26,13); c.fillStyle='#6b5140'; c.fill(); stroke(c,4.4);
+    wheel(c,-30,20,12); wheel(c,0,20,12); wheel(c,30,20,12);
+    roundRect(c,-46,-46,66,52,18); c.fillStyle=col; c.fill(); stroke(c,5);
+    // 糖果螺旋（裁剪在车体内，绝不溢出）
+    c.save();
+    c.beginPath(); roundRect(c,-46,-46,66,52,18); c.clip();
+    c.strokeStyle='rgba(255,255,255,.62)'; c.lineWidth=7; c.lineCap='round';
+    c.beginPath();
+    for(let i=0;i<4;i++){ c.moveTo(-44+i*18,-46); c.lineTo(-32+i*18,-4); }
+    c.stroke();
+    c.restore();
+    roundRect(c,14,-42,32,48,14); c.fillStyle=col; c.fill(); stroke(c,5);
+    roundRect(c,21,-35,19,20,6); c.fillStyle='#bfe9ff'; c.fill(); stroke(c,4);
+    // 棒棒糖烟囱
+    c.beginPath(); c.moveTo(-40,-46); c.lineTo(-40,-64); c.lineWidth=6; c.strokeStyle=OUTLINE; c.stroke();
+    circlePath(c,-40,-72,13); c.fillStyle='#ff9ec4'; c.fill(); stroke(c,4.4);
+    c.strokeStyle='#fff'; c.lineWidth=3;
+    c.beginPath(); c.arc(-40,-72,7,0,Math.PI*1.4); c.stroke();
+    circlePath(c,-52,-16,8); c.fillStyle='#ffe9a8'; c.fill(); stroke(c,3.4);
+  }
+
+  /* 可爱的脸 */
+  const fx = st==='bullet' ? -6 : -18, fy = st==='bullet' ? -26 : -22;
+  const blink = ((t + (opt&&opt.seed?opt.seed:0)) % 3600) < 130 ? 1 : 0;
+  c.fillStyle = '#fff';
+  if(blink){
+    c.fillStyle=OUTLINE;
+    c.fillRect(fx-9,fy-1,16,3); c.fillRect(fx+13,fy-1,16,3);
+  }else{
+    circlePath(c,fx,fy,10); c.fill(); circlePath(c,fx+20,fy,10); c.fill();
+    c.fillStyle=OUTLINE;
+    circlePath(c,fx+1,fy+1,4.6); c.fill(); circlePath(c,fx+21,fy+1,4.6); c.fill();
+    c.fillStyle='#fff';
+    circlePath(c,fx-1,fy-2,2); c.fill(); circlePath(c,fx+19,fy-2,2); c.fill();
+  }
+  c.fillStyle='rgba(255,140,150,.55)';
+  c.beginPath(); c.ellipse(fx-14,fy+12,8,5,0,0,TAU); c.fill();
+  c.beginPath(); c.ellipse(fx+34,fy+12,8,5,0,0,TAU); c.fill();
+  c.strokeStyle=OUTLINE; c.lineWidth=3.2; c.lineCap='round';
+  c.beginPath(); c.arc(fx+10, fy+10, 9, 0.15*Math.PI, 0.85*Math.PI); c.stroke();
+  c.restore();
+}
+
+function drawWagon(c, x, y, ang, type, load, t, cap){
+  c.save();
+  c.translate(x,y); c.rotate(ang);
+  c.translate(0,-32);
+  c.fillStyle='rgba(0,0,0,.16)';
+  c.beginPath(); c.ellipse(0,30,46,12,0,0,TAU); c.fill();
+  // 底盘
+  roundRect(c,-42,-4,84,24,9); c.fillStyle='#6b5140'; c.fill(); stroke(c,4.4);
+  wheel(c,-24,18,11); wheel(c,24,18,11);
+  // 车厢（敞篷货车）
+  const m = GMETA[type];
+  roundRect(c,-42,-34,84,32,9); c.fillStyle=m.c1; c.fill(); stroke(c,5);
+  roundRect(c,-36,-28,72,20,6); c.fillStyle='rgba(0,0,0,.16)'; c.fill();
+  // 木纹挡板
+  c.strokeStyle='rgba(255,255,255,.4)'; c.lineWidth=3.4;
+  for(let i=-28;i<=28;i+=14){ c.beginPath(); c.moveTo(i,-30); c.lineTo(i,-6); c.stroke(); }
+  // 侧面的配对图标（淡淡的，裁剪在车厢内，不会透出去）
+  c.save();
+  c.beginPath(); roundRect(c,-36,-28,72,20,6); c.clip();
+  c.globalAlpha=.42; drawItem(c, type, 0, -18, 0.48);
+  c.restore();
+  // 装的货
+  for(let i=0;i<load;i++){
+    const px = -24 + (i%3)*24, py = cap && i>=3 ? -58 : -40 - Math.floor(i/3)*24;
+    const bob = Math.sin(t*0.006 + i)*2;
+    drawItem(c, type, px, py+bob, 0.52);
+  }
+  c.restore();
+}
+
+/* -------------------- 游戏状态 ---------------------------- */
+const game = {
+  mode:'idle',        // idle | play | pause | win
+  level:null, lvIndex:0, free:false,
+  dist:0, speedIdx:1, moving:true,
+  stations:[], wagons:[], critters:[],
+  stars:0, errors:0, t0:0, timeMs:0, dropFails:0,
+  hintT:0, chugT:0, tunnelLit:0, lastLoadOk:0
+};
+let particles = [];
+let drag = null;      // { type, x, y, from:'tray', id }
+let pressFx = {};     // 按钮按下动画
+let celebT = 0;
+
+function cartDist(d){ return { head:d }; }
+
+const WAGON_GAP = 104;
+const WAGON_COUNT = 6;    // 六节车厢的长火车
+const WAGON_CAP = 4;      // 一节车厢装 4 件：最多的一关每站要 4 件，一趟就能装完，不用干等
+
+function startLevel(idx, free){
+  const lv = LEVELS[clamp(idx,0,LEVELS.length-1)];
+  game.level = free ? { theme:'meadow', weather:'none' } : lv;
+  game.lvIndex = idx;
+  game.free = !!free;
+  game.mode = 'play';
+  game.dist = 0;
+  game.stars = 0; game.errors = 0;
+  game.speedIdx = free ? 1 : (lv.spd||1);
+  game.timeMs = 0; game.hintT = 0; game.dropFails = 0;
+  drag = null; particles = []; flyItems = []; celebT = 0; game.winFired = false;
+
+  // 站点
+  const stU = lv.stations;
+  const types = GOODS.slice(0, stU.length);
+  game.stations = stU.map((u,i)=>{
+    const d = u*PATH.total;
+    const spot = PATH.stationSpot(d, 132, 150);
+    const track = PATH.locate(d);
+    const sc = stU.length >= 4 ? 0.74 : 0.9;
+    return { u:u, d:d, pos:{x:spot.x, y:spot.y}, track:{x:track.x,y:track.y}, scale:sc,
+             type:types[i], need: free?1:lv.need, done:false, seed:i*77, glow:0, lastDrop:0 };
+  });
+
+  // 挂满 6 节车厢（长火车才气派）：按本关需要的货物种类循环分配
+  // 例：第1关只要苹果+星星 -> 苹果、星星、苹果、星星、苹果、星星
+  const wagonTypes = [];
+  for(let i=0;i<WAGON_COUNT;i++) wagonTypes.push(types[i % types.length]);
+  game.wagons = wagonTypes.map((tp,i)=>({ type:tp, load:0, flash:0, shake:0 }));
+  // 托盘同样只放这一关需要的货物 —— 拿起来就一定是需要的，怎么拖都不会白费
+  buildTray(free ? GOODS : types);
+
+  // 路边小动物（放在画得很小的远处，避开小房子）
+  const r = makeRandom(idx*991 + 7);
+  game.critters = [];
+  for(let i=0;i<6;i++){
+    const d = PATH.total * (0.03 + i*0.163) + r()*50;
+    let p = PATH.offset(d, -(40 + r()*18));                 // 先试内侧
+    if(p.y < 200 || p.y > 600 || p.x < 120 || p.x > W-120) p = PATH.offset(d, 56 + r()*14);
+    p.y = clamp(p.y, 210, 610); p.x = clamp(p.x, 110, W-110);
+    let blocked = false;
+    for(const st of game.stations){ if(Math.hypot(p.x-st.pos.x, p.y-st.pos.y) < 150) blocked = true; }
+    if(blocked) continue;
+    // 也别和别的动物挤在一起
+    let near = false;
+    for(const c of game.critters){ if(Math.hypot(p.x-c.x,p.y-c.y) < 110) near = true; }
+    if(near) continue;
+    game.critters.push({ kind:rndI(0,2), x:p.x, y:p.y, s:0.72 + r()*0.22, seed:r()*1000, hop:0, cool:0, faceDir:1 });
+  }
+
+  buildBackground();
+  hideOverlay();
+  speak(free ? '自由玩耍开始啦，随便玩吧！' : '第'+(idx+1)+'关，'+(lv.tip||'出发啦'));
+  Sfx.init(); Sfx.resume(); if(save.music) Sfx.startMusic();
+  updateHintTarget();
+}
+let hintTarget = null;
+function updateHintTarget(){
+  hintTarget = null;
+  if(!game.stations.length) return;
+  const need = {};
+  game.stations.forEach(s=>{ if(s.need>0) need[s.type] = (need[s.type]||0)+s.need; });
+  for(const st of traySlots){
+    if(need[st.type]){ hintTarget = st; break; }
+  }
+}
+
+/* -------------------- 货物飞行动画（飞回托盘 / 飞到车厢，让孩子看得见发生了什么） -------------------- */
+let flyItems = [];
+function flyItem(type, x, y, tx, ty){
+  flyItems.push({ type:type, x0:x, y0:y, tx:tx, ty:ty, t:0, dur:0.42, rot:0 });
+}
+function updateFlyItems(dt){
+  for(let i=flyItems.length-1;i>=0;i--){
+    const f = flyItems[i];
+    f.t += dt; f.rot += dt*7;
+    if(f.t >= f.dur) flyItems.splice(i,1);
+  }
+}
+function drawFlyItems(c){
+  for(const f of flyItems){
+    const k = clamp(f.t/f.dur, 0, 1);
+    const e = 1 - Math.pow(1-k, 2);
+    const x = lerp(f.x0, f.tx, e), y = lerp(f.y0, f.ty, e) - Math.sin(k*Math.PI)*46;
+    c.save();
+    c.globalAlpha = 0.9;
+    c.translate(x,y); c.rotate(f.rot); c.scale(1.1 - k*0.25, 1.1 - k*0.25);
+    drawItem(c, f.type, 0, 0, 1);
+    c.restore();
+  }
+  c.globalAlpha = 1;
+}
+
+/* -------------------- 粒子系统 -------------------- */
+function spawnFx(type, x, y, opt){
+  particles.push(Object.assign({ type:type, x:x, y:y, vx:0, vy:0, life:1, max:1, s:1, c:'#fff', rot:0, vr:0 }, opt||{}));
+}
+function burstStars(x,y,n){
+  for(let i=0;i<n;i++){
+    const a = rnd(-Math.PI, 0), sp = rnd(60,200);
+    spawnFx('starfx', x, y, { vx:Math.cos(a)*sp, vy:Math.sin(a)*sp-40, life:1.1, max:1.1, s:rnd(0.5,1.0), rot:rnd(0,TAU), vr:rnd(-6,6) });
+  }
+}
+function confetti(x,y,n){
+  for(let i=0;i<n;i++){
+    const a = rnd(-Math.PI,0), sp = rnd(140,420);
+    const cols=['#ff5f63','#ffc63c','#4fa8ff','#4ecb71','#a98cff','#ff9ec4'];
+    spawnFx('confetti', x, y, { vx:Math.cos(a)*sp, vy:Math.sin(a)*sp-120, life:1.8, max:1.8, s:rnd(6,13), c:cols[rndI(0,5)], rot:rnd(0,TAU), vr:rnd(-10,10) });
+  }
+}
+function smoke(x,y,dir,n){
+  for(let i=0;i<n;i++){
+    spawnFx('smoke', x+rnd(-4,4), y, { vx: dir*rnd(-6,-26), vy: rnd(-16,-40), life:1.4, max:1.4, s:rnd(9,17) });
+  }
+}
+
+// 天气粒子（循环存续）
+let weather = [];
+function initWeather(kind){
+  weather = [];
+  if(kind==='snow'){ for(let i=0;i<90;i++) weather.push({x:rnd(0,W),y:rnd(0,H),vy:rnd(24,52),vx:rnd(-14,14),r:rnd(2,4.5),a:rnd(0,TAU)}); }
+  else if(kind==='petal'){ for(let i=0;i<46;i++) weather.push({x:rnd(0,W),y:rnd(0,H),vy:rnd(28,56),vx:rnd(-30,10),r:rnd(4,8),a:rnd(0,TAU),va:rnd(-3,3)}); }
+  else if(kind==='leaf'){ for(let i=0;i<40;i++) weather.push({x:rnd(0,W),y:rnd(0,H),vy:rnd(34,64),vx:rnd(-40,10),r:rnd(5,9),a:rnd(0,TAU),va:rnd(-2.4,2.4),col:['#e8964a','#d9652f','#f0b45e'][rndI(0,2)]}); }
+  else if(kind==='firefly'){ for(let i=0;i<34;i++) weather.push({x:rnd(120,W-120),y:rnd(220,620),ph:rnd(0,TAU),r:rnd(2.4,4.6),vx:rnd(-16,16),vy:rnd(-14,14)}); }
+}
+function updateWeather(dt){
+  for(const p of weather){
+    if(p.ph !== undefined){
+      p.x += p.vx*dt; p.y += p.vy*dt; p.ph += dt*2.4;
+      if(p.x<100) p.vx=Math.abs(p.vx); if(p.x>W-100) p.vx=-Math.abs(p.vx);
+      if(p.y<200) p.vy=Math.abs(p.vy); if(p.y>640) p.vy=-Math.abs(p.vy);
+    }else{
+      p.x += (p.vx||0)*dt; p.y += (p.vy||0)*dt; p.a += (p.va||0)*dt*2;
+      if(p.y > H+20){ p.y = -20; p.x = rnd(0,W); }
+      if(p.x < -30) p.x = W+20; if(p.x > W+30) p.x = -20;
+    }
+  }
+}
+function drawWeather(c, kind){
+  if(kind==='snow'){
+    c.fillStyle='#fff';
+    for(const p of weather){ c.globalAlpha=.85; c.beginPath(); c.arc(p.x,p.y,p.r,0,TAU); c.fill(); }
+    c.globalAlpha=1;
+  }else if(kind==='petal'){
+    c.fillStyle='#ffb3ce';
+    for(const p of weather){
+      c.save(); c.translate(p.x,p.y); c.rotate(p.a); c.globalAlpha=.9;
+      c.beginPath(); c.ellipse(0,0,p.r,p.r*0.55,0,0,TAU); c.fill(); c.restore();
+    }
+    c.globalAlpha=1;
+  }else if(kind==='leaf'){
+    for(const p of weather){
+      c.save(); c.translate(p.x,p.y); c.rotate(p.a); c.fillStyle=p.col; c.globalAlpha=.92;
+      c.beginPath(); c.ellipse(0,0,p.r,p.r*0.6,0,0,TAU); c.fill(); c.restore();
+    }
+    c.globalAlpha=1;
+  }else if(kind==='firefly'){
+    for(const p of weather){
+      const a = 0.35 + Math.sin(p.ph)*0.5;
+      c.globalAlpha = a>0 ? a : 0.05;
+      c.fillStyle='#fff6a8';
+      c.beginPath(); c.arc(p.x,p.y,p.r,0,TAU); c.fill();
+      c.globalAlpha = (a>0?a:0.05)*0.28;
+      c.beginPath(); c.arc(p.x,p.y,p.r*3.4,0,TAU); c.fill();
+    }
+    c.globalAlpha=1;
+  }
+}
+
+/* -------------------- UI 布局（canvas 内的按钮） -------------------- */
+const traySlots = [];
+let uiBtns = [];
+// 按本关需要的货物种类重建托盘：种类越少图标越大，越好抓
+function buildTray(types){
+  traySlots.length = 0;
+  const n = types.length;
+  const gap = n >= 4 ? 152 : (n === 3 ? 186 : 220);
+  const r   = n >= 4 ? 56  : (n === 3 ? 62  : 70);
+  const x0 = W/2 - (n-1)*gap/2;
+  types.forEach((tp,i)=> traySlots.push({ type:tp, x: x0 + i*gap, y: 716, r:r, pulse:0 }));
+}
+function layoutUI(){
+  buildTray(GOODS);
+  uiBtns = [
+    { id:'pause',  x: W-54,  y: 56, r: 34, icon:'pause' },
+    { id:'music',  x: W-134, y: 56, r: 34, icon:'music' },
+    { id:'voice',  x: W-214, y: 56, r: 34, icon:'voice' },
+    { id:'whistle',x: W-100, y: 700, r: 70, icon:'bell' },
+    { id:'speed',  x: W-242, y: 700, r: 54, icon:'speed' }
+  ];
+}
+layoutUI();
+
+/* -------------------- 输入 -------------------- */
+let activePointer = null;
+CV.addEventListener('pointerdown', e=>{
+  if(game.mode !== 'play') return;
+  e.preventDefault();
+  Sfx.init(); Sfx.resume();
+  if(activePointer !== null) return;
+  activePointer = e.pointerId;
+  try{ CV.setPointerCapture(e.pointerId); }catch(err){}
+  const p = toLogic(e.clientX, e.clientY);
+  handleDown(p.x, p.y);
+}, { passive:false });
+CV.addEventListener('pointermove', e=>{
+  if(e.pointerId !== activePointer) return;
+  e.preventDefault();
+  const p = toLogic(e.clientX, e.clientY);
+  handleMove(p.x, p.y);
+}, { passive:false });
+function endPointer(e){
+  if(e.pointerId !== activePointer) return;
+  e.preventDefault();
+  const p = toLogic(e.clientX, e.clientY);
+  handleUp(p.x, p.y);
+  activePointer = null;
+}
+CV.addEventListener('pointerup', endPointer, { passive:false });
+CV.addEventListener('pointercancel', endPointer, { passive:false });
+document.addEventListener('touchmove', e=>{ if(e.cancelable) e.preventDefault(); }, { passive:false });
+document.addEventListener('gesturestart', e=> e.preventDefault());
+
+function hitBtn(x,y){
+  for(const b of uiBtns){ if(Math.hypot(x-b.x, y-b.y) <= b.r + 12) return b; }
+  return null;
+}
+function handleDown(x,y){
+  const b = hitBtn(x,y);
+  if(b){ pressFx[b.id] = 1; doButton(b.id); return; }
+  // 托盘：取一个货物开始拖（火车会立刻放慢速度等小朋友，见 update 里的 dragSlow）
+  for(const s of traySlots){
+    if(Math.hypot(x-s.x, y-s.y) <= s.r + 16){
+      drag = { type:s.type, x:x, y:y, fromx:s.x, fromy:s.y };
+      s.pulse = 1;
+      Sfx.pop();
+      updateDragTarget(x,y);
+      return;
+    }
+  }
+  // 直接点一下路边的小动物，它也会跳起来打招呼
+  for(const cr of game.critters){
+    if(Math.hypot(x-cr.x, y-cr.y) < 46){ cr.hop = 16; cr.cool = 1; Sfx.sparkle(); game.stars++; spawnFx('score', cr.x, cr.y-40, { life:0.9, max:0.9 }); break; }
+  }
+}
+// 手指移动时，实时算出"现在松手会落到哪一节车厢"，用于高亮引导
+let dragTarget = -1;
+function updateDragTarget(x,y){
+  if(!drag){ dragTarget = -1; return; }
+  // 关键：不管手指现在在哪，都先找到"离手指最近、且该装的那节车厢"并高亮它
+  // —— 现在同一种货物有好几节车厢，要挑最近的那节，孩子拖起来就能看到目标在哪
+  let bi = -1, bd = 1e9;
+  game.wagons.forEach((wg,i)=>{
+    if(wg.type !== drag.type || wg.load >= WAGON_CAP) return;
+    const p = PATH.locate(game.dist - (i+1)*WAGON_GAP);
+    const dd = Math.hypot(x-p.x, y-(p.y-30));
+    if(dd < bd){ bd = dd; bi = i; }
+  });
+  dragTarget = bi;
+}
+function handleMove(x,y){ if(drag){ drag.x = x; drag.y = y; updateDragTarget(x,y); } }
+
+function handleUp(x,y){
+  if(!drag) return;
+  const d = drag; drag = null;
+  const target = pickWagon(x, y, d.type);
+  dragTarget = -1;
+  if(target === -1){                                   // 没放上：货物飞回托盘，看得见
+    game.dropFails++;
+    flyItem(d.type, x, y - 30, d.fromx, d.fromy);
+    return;
+  }
+  game.dropFails = 0;
+  if(target === -3){                                   // 那节车厢已经装满了
+    let any = -1, ad = 1e9;
+    game.wagons.forEach((wg,i)=>{
+      const p = PATH.locate(game.dist - (i+1)*WAGON_GAP);
+      const dd = Math.hypot(x-p.x, y-(p.y-30));
+      if(dd < ad){ ad = dd; any = i; }
+    });
+    if(any >= 0){ game.wagons[any].shake = 1; }
+    Sfx.oops(); speak('这节车厢装满啦');
+    flyItem(d.type, x, y - 30, d.fromx, d.fromy);
+    return;
+  }
+  if(target === -2){                                   // 明确放到了"别的"车厢上
+    let any = -1, ad = 1e9;
+    game.wagons.forEach((wg,i)=>{
+      const p = PATH.locate(game.dist - (i+1)*WAGON_GAP);
+      const dd = Math.hypot(x-p.x, y-(p.y-30));
+      if(dd < ad){ ad = dd; any = i; }
+    });
+    if(any >= 0){ game.wagons[any].shake = 1; }
+    game.errors++;
+    Sfx.oops();
+    speak('不对哦，找一样的');
+    flyItem(d.type, x, y - 30, d.fromx, d.fromy);
+    return;
+  }
+  const best = target;
+  const wg = game.wagons[best];
+  if(wg.load >= WAGON_CAP){ wg.shake = 1; Sfx.oops(); flyItem(d.type, x, y-30, d.fromx, d.fromy); return; }
+  wg.load++; wg.flash = 1;
+  // 装到较远的同款车厢时，画一道飞行轨迹，让孩子看见货飞到哪去了
+  const wp = PATH.locate(game.dist - (best+1)*WAGON_GAP);
+  if(Math.hypot(x-wp.x, y-(wp.y-30)) > 150) flyItem(d.type, x, y-30, wp.x, wp.y-40);
+  Sfx.loadOk();
+  game.hintT = 0;
+  emitAtWagon(best, 'load');
+  // 全部装好给个小提示
+  const totalOnTrain = game.wagons.reduce((a,w)=>a+w.load,0);
+  if(totalOnTrain >= 3 && Math.abs(now()-game.lastLoadOk) > 900){
+    game.lastLoadOk = now();
+    speak('装好啦，等火车送到小房子');
+  }
+}
+/* 松手落点 -> 目标车厢
+   返回：>=0 车厢序号 | -1 放弃（静默弹回，不算错）| -2 放错车厢 | -3 装满了
+   核心原则：**孩子把货物拖到"火车身上"就算成功**。
+   5 岁小朋友不会精确对准某一节车厢，他只会往火车上一放。
+   所以只要手指落在火车附近，就帮他装进"该装的那节车厢"；
+   只有当他明显把货按在另一节车厢正中间（且正确车厢离得很远）时，才提示"不对哦"。 */
+const DROP_FAR  = 270;    // 手指离"该装的车厢"多远都算数（覆盖整列火车）
+const DROP_NEAR = 82;     // 判定"确实按在某一节车厢上"的半径
+function pickWagon(x, y, type){
+  // 「帮忙模式」：小朋友连着两次没放上去，说明他还掌握不好，
+  // 这时几乎来者不拒——只要手上有这节车厢，拖到画面里就帮他装上，绝不让他卡住。
+  const mercy = (game.dropFails >= 2);
+  const hd = game.dist;
+  let same = -1, sd = 1e9, anyI = -1, ad = 1e9, fullSame = false;
+  game.wagons.forEach((wg,i)=>{
+    const p = PATH.locate(hd - (i+1)*WAGON_GAP);
+    const dd = Math.hypot(x-p.x, y-(p.y-30));
+    if(dd < ad){ ad = dd; anyI = i; }
+    if(wg.type === type){
+      if(wg.load >= WAGON_CAP){ fullSame = true; return; }
+      if(dd < sd){ sd = dd; same = i; }
+    }
+  });
+  // 0) 手指就落在"同款车厢"上 —— 那孩子就是想装这个，一律不算错。
+  //    它满了就顺延到下一节同款车厢（现在同款有好几节），全满了才提示"装满啦"。
+  const nearWagon = game.wagons[anyI];
+  if(nearWagon && nearWagon.type === type){
+    if(same >= 0) return same;
+    return -3;
+  }
+  // 1) 手上有空位的正确车厢：只要手指在火车附近，一律成功
+  if(same >= 0){
+    if(mercy) return same;                        // 帮忙模式：来者不拒
+    // 只有"死死按在别的车厢正中间、而正确车厢远在天边"才算放错
+    const clearlyWrong = (ad <= DROP_NEAR && sd > 200 && ad < sd*0.34);
+    if(clearlyWrong) return -2;
+    if(sd <= DROP_FAR) return same;
+  }
+  if(fullSame && ad <= DROP_NEAR*1.6) return -3;   // 该装的那节满了
+  if(ad <= DROP_NEAR) return -2;
+  // 2) 最后再兜一次：手指落在铁轨上，顺着轨道找同类型车厢
+  const nz = PATH.nearest(x, y);
+  if(nz.dist <= 175){
+    let bi = -1, bd = 1e9;
+    game.wagons.forEach((wg,i)=>{
+      if(wg.type !== type || wg.load >= WAGON_CAP) return;
+      const wa = hd - (i+1)*WAGON_GAP;
+      let diff = ((nz.arc - wa) % PATH.total + PATH.total) % PATH.total;
+      if(diff > PATH.total/2) diff = PATH.total - diff;
+      if(diff < bd){ bd = diff; bi = i; }
+    });
+    if(bi >= 0 && bd <= 320) return bi;
+  }
+  return -1;
+}
+
+function emitAtWagon(i, kind){
+  const p = PATH.locate(game.dist - (i+1)*WAGON_GAP);
+  burstStars(p.x, p.y-40, 5);
+}
+function doButton(id){
+  if(id === 'pause'){ Sfx.click(); pauseGame(); }
+  else if(id === 'music'){
+    save.music = !save.music; persist(); Sfx.click();
+    if(save.music){ Sfx.startMusic(); } else { Sfx.stopMusic(); }
+  }
+  else if(id === 'voice'){ save.voice = !save.voice; persist(); Sfx.click(); if(!save.voice) shutUp(); else speak('语音打开啦'); }
+  else if(id === 'whistle'){ blowWhistle(); }
+  else if(id === 'speed'){ game.speedIdx = (game.speedIdx+1)%3; Sfx.click(); }
+}
+function blowWhistle(){
+  Sfx.whistle();
+  const hp = PATH.locate(game.dist);
+  smoke(hp.x + Math.cos(hp.ang)*-10, hp.y-62, 1, 8);
+  spawnFx('ring', hp.x, hp.y-40, { life:0.7, max:0.7, s:1 });
+  let any = false;
+  for(const cr of game.critters){
+    const d = Math.hypot(cr.x - hp.x, cr.y - hp.y);
+    if(d < 190 && cr.cool <= 0){
+      cr.hop = 26; cr.cool = 1.6; cr.faceDir = cr.x > hp.x ? 1 : -1;
+      game.stars++;
+      burstStars(cr.x, cr.y-30, 4);
+      spawnFx('score', cr.x, cr.y-46, { life:1, max:1 });
+      any = true;
+    }
+  }
+  if(any) Sfx.sparkle();
+}
+
+/* -------------------- 游戏更新 -------------------- */
+function update(dt){
+  const t = now();
+  if(game.mode !== 'play') return;
+  game.timeMs += dt*1000;
+
+  // 小朋友正在拖货物时，火车会温柔地慢下来等他（避免"追着车厢跑"的挫败感）
+  const dragSlow = drag ? 0.34 : 1;
+  const speed = SPEEDS[game.speedIdx] * (celebT>0 ? 0.35 : 1) * dragSlow;
+  game.dist += speed*dt;
+  if(game.dist > PATH.total) game.dist -= PATH.total;
+
+  // 车轮声
+  game.chugT -= dt;
+  if(game.chugT <= 0){ game.chugT = 0.44/ (speed/84); Sfx.chug(); }
+
+  // 烟囱冒烟
+  if(Math.random() < dt*7){
+    const hp = PATH.locate(game.dist);
+    if(save.train.style !== 'bullet') smoke(hp.x, hp.y-64, 1, 1);
+  }
+
+  // 到站卸货
+  const hp = PATH.locate(game.dist);
+  for(const st of game.stations){
+    if(st.need <= 0) continue;
+    game.wagons.forEach((wg,wi)=>{
+      if(wg.type !== st.type || wg.load <= 0) return;
+      const wp = PATH.locate(game.dist - (wi+1)*WAGON_GAP);
+      if(Math.hypot(wp.x-st.track.x, wp.y-st.track.y) < 74){
+        st.lastDrop = (st.lastDrop||0) - dt;
+        if(st.lastDrop <= 0){
+          st.lastDrop = 0.28;
+          wg.load--; st.need--; st.glow = 1;
+          Sfx.deliver();
+          confetti(st.pos.x, st.pos.y-70, 8);
+          if(st.need <= 0){
+            st.done = true;
+            Sfx.stationDone();
+            confetti(st.pos.x, st.pos.y-60, 26);
+            speak('送到啦，好棒！');
+          }
+        }
+      }
+    });
+  }
+
+  // 通关
+  if(game.stations.every(s=> s.need <= 0)){
+    celebT += dt;
+    if(!game.winFired){
+      game.winFired = true;
+      Sfx.fanfare();
+      speak('全部送到啦！你真棒！');
+      const stars = game.errors === 0 ? 3 : (game.errors <= 2 ? 2 : 1);
+      const key = 'L'+(game.lvIndex+1);
+      if(!save.stars[key] || save.stars[key] < stars) save.stars[key] = stars;
+      if(!game.free && game.lvIndex+2 > save.unlocked && game.lvIndex+1 < LEVELS.length){
+        save.unlocked = Math.min(LEVELS.length, game.lvIndex+2);
+      }
+      persist();
+      setTimeout(()=>{ if(game.mode==='play'){ game.mode='win'; showWin(stars); } }, 1500);
+    }
+    if(Math.random()<dt*22) confetti(rnd(200,W-200), rnd(120,420), 3);
+  }
+
+  // 站点完成标记（自由模式自动补货）
+  if(game.free){
+    for(const st of game.stations){
+      if(st.need<=0){ st.need = 1; st.seed++; }
+    }
+  }
+
+  for(const st of game.stations) if(st.glow>0) st.glow -= dt*2.2;
+  for(const wg of game.wagons){ if(wg.flash>0) wg.flash -= dt*2.4; if(wg.shake>0) wg.shake -= dt*3.2; }
+  for(const cr of game.critters){ if(cr.hop>0) cr.hop -= dt*52; if(cr.cool>0) cr.cool -= dt; }
+  for(const s of traySlots) if(s.pulse>0) s.pulse -= dt*2.6;
+
+  // 粒子
+  const arr = particles;
+  for(let i=arr.length-1;i>=0;i--){
+    const p = arr[i];
+    p.life -= dt;
+    if(p.life <= 0){ arr.splice(i,1); continue; }
+    p.x += p.vx*dt; p.y += p.vy*dt;
+    if(p.type==='starfx' || p.type==='confetti'){ p.vy += 480*dt; p.vx *= 0.99; p.rot += p.vr*dt; }
+    if(p.type==='smoke'){ p.vy -= 12*dt; p.vx *= 0.98; }
+    if(p.type==='score'){ p.vy -= 60*dt; }
+    if(p.type==='ring'){ p.s += dt*3.2; }
+  }
+  // 云
+  for(const cl of clouds){ cl.x += cl.v*dt; if(cl.x > W+90) cl.x = -90; }
+  updateWeather(dt);
+  updateFlyItems(dt);
+
+  // 空闲 3 秒后显示拖拽引导
+  if(!drag && game.wagons.every(w=>w.load === 0)) game.hintT += dt;
+}
+
+/* -------------------- 绘制 UI -------------------- */
+function drawIcon(c, name, x, y, s, active){
+  c.save(); c.translate(x,y); c.scale(s,s);
+  c.lineCap='round'; c.lineJoin='round';
+  const fill = active ? '#4a3a2c' : '#5c4a3a';
+  if(name==='pause'){
+    c.fillStyle=fill;
+    roundRect(c,-9,-11,6.5,22,2.4); c.fill();
+    roundRect(c,2.5,-11,6.5,22,2.4); c.fill();
+  }else if(name==='music'){
+    if(!active){ // 静音
+      c.strokeStyle=fill; c.lineWidth=3.6;
+      c.beginPath(); c.moveTo(-11,-8); c.lineTo(11,8); c.stroke();
+    }
+    c.fillStyle=fill;
+    c.save(); c.translate(-5,4); c.rotate(-0.18);
+    c.beginPath(); c.ellipse(0,0,7,5.4,-0.2,0,TAU); c.fill();
+    roundRect(c,4,-16,3,20,1.4); c.fill();
+    c.beginPath(); c.moveTo(7,-16); c.quadraticCurveTo(15,-12,11,-4); c.quadraticCurveTo(13,-12,7,-10); c.closePath(); c.fill();
+    c.restore();
+    c.save(); c.translate(9,-6);
+    c.beginPath(); c.ellipse(0,0,6,4.6,-0.2,0,TAU); c.fill();
+    c.restore();
+  }else if(name==='voice'){
+    c.fillStyle=fill;
+    roundRect(c,-12,-10,22,15,5); c.fill();
+    c.beginPath(); c.moveTo(-6,5); c.lineTo(-1,12); c.lineTo(2,5); c.closePath(); c.fill();
+    if(!active){
+      c.strokeStyle='#e2584f'; c.lineWidth=3.4;
+      c.beginPath(); c.moveTo(-12,-12); c.lineTo(11,9); c.stroke();
+    }else{
+      c.strokeStyle=fill; c.lineWidth=2.6;
+      c.beginPath(); c.arc(1,-2,7,-0.6,1.1); c.stroke();
+      c.beginPath(); c.arc(1,-2,12,-0.5,1.0); c.stroke();
+    }
+  }else if(name==='bell'){
+    c.beginPath();
+    c.moveTo(-18,12); c.quadraticCurveTo(-18,-16,0,-16); c.quadraticCurveTo(18,-16,18,12);
+    c.closePath(); c.fillStyle='#ffd166'; c.fill(); stroke(c,5);
+    roundRect(c,-22,11,44,7,3.4); c.fillStyle='#e8a93c'; c.fill(); stroke(c,4.4);
+    circlePath(c,0,20,5.5); c.fillStyle='#e2724f'; c.fill(); stroke(c,4);
+    c.strokeStyle='#fff'; c.lineWidth=3.4;
+    c.beginPath(); c.moveTo(-8,2); c.quadraticCurveTo(-8,-8,-1,-9); c.stroke();
+  }else if(name==='speed'){
+    const n = game.speedIdx+1;
+    c.strokeStyle=fill; c.lineWidth=4.4;
+    for(let i=0;i<3;i++){
+      const yy = 8 - i*8;
+      if(i<n){
+        c.beginPath(); c.moveTo(-11 + i*4, yy); c.lineTo(6 + i*2, yy); c.stroke();
+      }
+    }
+    c.globalAlpha=.35;
+    c.strokeStyle=fill; c.lineWidth=4;
+    for(let i=n;i<3;i++){
+      const yy = 8 - i*8;
+      c.beginPath(); c.moveTo(-11 + i*4, yy); c.lineTo(6 + i*2, yy); c.stroke();
+    }
+    c.globalAlpha=1;
+    c.fillStyle=fill; c.font='bold 15px -apple-system,sans-serif'; c.textAlign='center'; c.textBaseline='middle';
+    c.fillText(SPEED_NAME[game.speedIdx], 0, -14);
+  }
+  c.restore();
+}
+
+function drawHUD(c){
+  const t = now();
+  /* 顶部信息面板 —— 明确分两栏，避免任何重叠 */
+  c.save();
+  roundRect(c, 20, 22, 424, 66, 23);
+  c.fillStyle='rgba(255,255,255,.88)'; c.fill(); stroke(c,4.4);
+  // 左：星星
+  drawItem(c,'star', 62, 55, 0.66, Math.sin(t*0.002)*0.12);
+  c.fillStyle='#6b5233'; c.font='bold 30px -apple-system,"PingFang SC",sans-serif';
+  c.textAlign='left'; c.textBaseline='middle';
+  c.fillText('×'+game.stars, 86, 57);
+  // 分隔线
+  c.beginPath(); c.moveTo(158,38); c.lineTo(158,74); c.lineWidth=3; c.strokeStyle='rgba(120,95,60,.28)'; c.stroke();
+  // 右：关卡 + 剩余
+  const label = game.free ? '自由玩耍' : ('第 '+(game.lvIndex+1)+' 关');
+  c.fillStyle='#7d6446'; c.font='bold 26px -apple-system,"PingFang SC",sans-serif';
+  c.fillText(label, 176, 46);
+  const totalNeed = game.free ? 0 : game.stations.reduce((a,s)=>a+Math.max(0,s.need),0);
+  c.font='bold 19px -apple-system,"PingFang SC",sans-serif'; c.fillStyle='#a78a63';
+  c.fillText(game.free ? '随便玩，没有任务～' : ('还差 '+totalNeed+' 件货物'), 176, 73);
+  c.restore();
+
+  /* 顶部按钮 */
+  for(const b of uiBtns){
+    if(b.id==='whistle' || b.id==='speed') continue;
+    const press = pressFx[b.id] = Math.max(0, (pressFx[b.id]||0) - 0.06);
+    const active = b.id==='music' ? save.music : (b.id==='voice' ? save.voice : true);
+    c.save();
+    circlePath(c,b.x,b.y+press*3,b.r);
+    c.fillStyle = active ? 'rgba(255,255,255,.92)' : 'rgba(255,255,255,.6)'; c.fill(); stroke(c,4);
+    drawIcon(c, b.icon, b.x, b.y+press*3, 1.15, active);
+    c.restore();
+  }
+
+  /* 底部托盘 */
+  c.save();
+  roundRect(c, W/2-310, 640, 620, 152, 30);
+  c.fillStyle='rgba(255,255,255,.8)'; c.fill(); stroke(c,5);
+  c.restore();
+  for(const s of traySlots){
+    c.save();
+    const p = s.pulse>0 ? s.pulse : 0;
+    circlePath(c, s.x, s.y, s.r);
+    c.fillStyle = 'rgba(255,255,255,.9)'; c.fill(); stroke(c,4.4);
+    c.save();
+    c.translate(s.x, s.y + Math.sin(t*0.0022 + s.x)*3);
+    drawItem(c, s.type, 0, 0, 1.15 - p*0.15, Math.sin(t*0.0016+s.x)*0.07);
+    c.restore();
+    // 虚线提示
+    if(hintTarget === s && game.hintT > 3.2 && !drag && game.wagons.every(w=>w.load===0)){
+      const ph = (t*0.0012)%1;
+      const wp = PATH.locate(game.dist - WAGON_GAP*1.2);
+      c.globalAlpha = 0.85*(0.5+0.5*Math.sin(t*0.005));
+      c.setLineDash([12,12]); c.lineWidth=6; c.strokeStyle='#fff';
+      c.beginPath(); c.moveTo(s.x, s.y-58); c.quadraticCurveTo((s.x+wp.x)/2, s.y-150, wp.x, wp.y-40); c.stroke();
+      c.setLineDash([]);
+      const ax = lerp(s.x, wp.x, ph), ay = lerp(s.y-58, wp.y-40, ph);
+      const qx = lerp(s.x, (s.x+wp.x)/2, ph), qy = lerp(s.y-58, s.y-150, ph);
+      const bx = lerp(qx, lerp((s.x+wp.x)/2, wp.x, ph), ph), by = lerp(qy, lerp(s.y-150, wp.y-40, ph), ph);
+      circlePath(c,bx,by,17); c.fillStyle='rgba(255,255,255,.95)'; c.fill(); stroke(c,4);
+      c.globalAlpha=1;
+    }
+    c.restore();
+  }
+
+  /* 右下大按钮 */
+  for(const b of uiBtns){
+    if(b.id!=='whistle' && b.id!=='speed') continue;
+    const press = pressFx[b.id] = Math.max(0, (pressFx[b.id]||0) - 0.07);
+    const big = b.id==='whistle';
+    c.save();
+    // 光晕
+    const pulse = 1 + Math.sin(t*0.004)*0.03;
+    if(big){
+      c.globalAlpha=0.35; circlePath(c,b.x,b.y,(b.r+16)*pulse); c.fillStyle='#fff8d0'; c.fill(); c.globalAlpha=1;
+    }
+    circlePath(c, b.x, b.y + press*4, b.r);
+    c.fillStyle = big ? '#ffd166' : 'rgba(255,255,255,.92)'; c.fill(); stroke(c,5);
+    if(big){
+      c.save(); c.globalAlpha=.5; circlePath(c,b.x,b.y-6,b.r-11); c.fillStyle='#fff3c4'; c.fill(); c.restore();
+    }
+    drawIcon(c, b.icon, b.x, b.y + press*4 + (big?4:0), big?1.5:1.25, true);
+    c.restore();
+  }
+
+  /* 拖拽中的货物 —— 画在指尖上方一点，避免被小朋友的手指挡住 */
+  if(drag){
+    const gx = drag.x, gy = drag.y - 30;
+    // 引导虚线：从手指指向"该装的那一节车厢"
+    if(dragTarget >= 0){
+      const wp = PATH.locate(game.dist - (dragTarget+1)*WAGON_GAP);
+      const tx = wp.x, ty = wp.y - 46;
+      c.save();
+      c.setLineDash([14,12]); c.lineDashOffset = -t*0.02;
+      c.lineWidth = 7; c.strokeStyle = 'rgba(255,255,255,.95)'; c.lineCap='round';
+      c.beginPath(); c.moveTo(gx, gy+18); c.quadraticCurveTo((gx+tx)/2, Math.min(gy,ty)-90, tx, ty); c.stroke();
+      c.setLineDash([]);
+      // 终点画个货物小图，明确"放这里"
+      c.globalAlpha = .95; drawItem(c, drag.type, tx, ty, 0.62); c.globalAlpha = 1;
+      c.restore();
+    }
+    c.save();
+    c.globalAlpha=.22; circlePath(c, gx, gy+34, 40); c.fillStyle='#000'; c.fill();
+    c.globalAlpha=1;
+    c.save(); c.translate(gx, gy); c.rotate(Math.sin(t*0.006)*0.1); c.scale(1.3,1.3);
+    drawItem(c, drag.type, 0, 0, 1);
+    c.restore();
+    c.restore();
+  }
+}
+
+/* -------------------- 主渲染 -------------------- */
+function render(){
+  const c = CTX;
+  const t = now();
+  const th = THEMES[(game.level && game.level.theme) || 'meadow'];
+  c.clearRect(0,0,W,H);
+
+  if(bgLayer) c.drawImage(bgLayer, 0, 0, W, H);
+  else { c.fillStyle='#8fd9ff'; c.fillRect(0,0,W,H); }
+
+  if(game.mode === 'idle'){
+    // 主菜单背景：也画个小火车跑一圈，很讨喜
+    drawTrack(c, th);
+    const p = PATH.locate(t*0.045);
+    drawLocomotive(c, p.x, p.y, p.ang, { t:t, scale:0.9 });
+    for(let i=0;i<WAGON_COUNT;i++){
+      const wp = PATH.locate(t*0.045 - (i+1)*WAGON_GAP);
+      drawWagon(c, wp.x, wp.y, wp.ang, GOODS[i%GOODS.length], 1, t, WAGON_CAP);
+    }
+    drawWeather(c, 'petal');
+    return;
+  }
+
+  // 云
+  for(const cl of clouds) drawCloud(c, cl.x, cl.y, cl.s, th);
+
+  // 站点先画「地基台」（在轨道下面，这样台阶看起来嵌在草地里）
+  for(const st of game.stations) drawStationBase(c, st, th);
+
+  // 轨道
+  drawTrack(c, th);
+
+  // 山洞：逐节判断，钻进洞里的那几节才藏起来，其余照常跑
+  // （以前是"车头一进洞，整列火车全消失"，孩子会看见火车在右上角凭空不见）
+  const head = game.dist;
+  let anyHidden = false;
+  {
+    for(let i=game.wagons.length-1;i>=0;i--){
+      const wg = game.wagons[i];
+      const d = head - (i+1)*WAGON_GAP;
+      const hide = tunnelHide(d);
+      if(hide >= 1){ anyHidden = true; continue; }
+      const p = PATH.locate(d);
+      const shakeX = wg.shake>0 ? Math.sin(t*0.05)*wg.shake*6 : 0;
+      c.save();
+      if(hide > 0){ c.globalAlpha = 1 - hide; anyHidden = true; }
+      // 正在拖着对应的货物 —— 这节车厢会发光招手
+      if(drag && i === dragTarget){
+        c.save();
+        c.globalAlpha = (1 - hide) * (0.45 + 0.3*Math.sin(t*0.01));
+        circlePath(c, p.x, p.y-46, 74); c.fillStyle='#fff8c4'; c.fill();
+        c.globalAlpha = 1 - hide;
+        circlePath(c, p.x, p.y-46, 66);
+        c.lineWidth=7; c.strokeStyle='#ffd166'; c.setLineDash([16,12]); c.lineDashOffset = -t*0.02; c.stroke();
+        c.setLineDash([]);
+        // 向下的小箭头
+        const ay = p.y - 132 + Math.sin(t*0.008)*10;
+        c.beginPath(); c.moveTo(p.x-17, ay-14); c.lineTo(p.x, ay+8); c.lineTo(p.x+17, ay-14); c.closePath();
+        c.fillStyle='#ffb84d'; c.fill(); stroke(c,5);
+        c.restore();
+      }
+      drawWagon(c, p.x+shakeX, p.y, p.ang, wg.type, wg.load, t, WAGON_CAP);
+      if(wg.flash>0){
+        c.save(); c.globalAlpha = (1-hide) * wg.flash*0.6;
+        circlePath(c,p.x,p.y-58, 56); c.fillStyle='#fff'; c.fill();
+        c.restore();
+      }
+      c.restore();
+    }
+    const headHide = tunnelHide(head);
+    if(headHide < 1){
+      const hp = PATH.locate(head);
+      c.save();
+      if(headHide > 0){ c.globalAlpha = 1 - headHide; anyHidden = true; }
+      drawLocomotive(c, hp.x, hp.y, hp.ang, { t:t });
+      // 夜晚车头灯
+      if(th.night){
+        const lg = c.createRadialGradient(hp.x, hp.y-62, 4, hp.x, hp.y-62, 130);
+        lg.addColorStop(0,'rgba(255,246,180,.55)'); lg.addColorStop(1,'rgba(255,246,180,0)');
+        c.fillStyle=lg; c.beginPath();
+        c.moveTo(hp.x, hp.y-62);
+        c.arc(hp.x, hp.y-62, 130, hp.ang-0.42, hp.ang+0.42);
+        c.closePath(); c.fill();
+      }
+      c.restore();
+    } else { anyHidden = true; }
+  }
+  if(hasTunnel()) drawTunnel(c, anyHidden, th);
+
+  // 路边小动物（画在火车之后，是小房子的邻居）
+  for(const cr of game.critters) drawCritter(c, cr.kind, cr.x, cr.y, Math.max(0.55, cr.s), Math.max(0,cr.hop), cr.faceDir);
+
+  // 站点（画在火车之后：小房子永远在最前面，不会被车挡住）
+  for(const st of game.stations){
+    if(st.glow>0){
+      c.save(); c.globalAlpha = st.glow*0.55;
+      circlePath(c, st.pos.x, st.pos.y, 92); c.fillStyle='#fff9c4'; c.fill();
+      c.restore();
+    }
+    drawHouse(c, st, th, t);
+  }
+
+  // 粒子
+  drawParticles(c);
+
+  // 天气
+  drawWeather(c, (game.level && game.level.weather) || 'none');
+
+  // 飞回托盘的货物
+  drawFlyItems(c);
+
+  // UI
+  drawHUD(c);
+}
+
+function drawTrack(c, th){
+  const pts = PATH.pts, n = pts.length;
+  // 路基
+  c.save();
+  c.beginPath();
+  c.moveTo(pts[0].x, pts[0].y);
+  for(let i=1;i<n;i++) c.lineTo(pts[i].x, pts[i].y);
+  c.closePath();
+  c.lineWidth = 46; c.strokeStyle = th.night ? '#4a3f38' : '#c9a97e'; c.stroke();
+  c.lineWidth = 38; c.strokeStyle = th.night ? '#5b4f45' : '#dcbf95'; c.stroke();
+  c.restore();
+  // 枕木
+  c.save();
+  c.lineWidth = 6; c.strokeStyle = th.night ? '#6f5a44' : '#a87f52'; c.lineCap='butt';
+  for(let i=0;i<n;i+=3){
+    const p = pts[i], pn = pts[(i+1)%n];
+    const a = Math.atan2(pn.y-p.y, pn.x-p.x);
+    const nx = -Math.sin(a), ny = Math.cos(a);
+    c.beginPath();
+    c.moveTo(p.x+nx*17, p.y+ny*17);
+    c.lineTo(p.x-nx*17, p.y-ny*17);
+    c.stroke();
+  }
+  c.restore();
+  // 钢轨
+  c.save();
+  c.lineWidth = 5.5; c.strokeStyle = '#8e9aa8';
+  [-13, 13].forEach(off=>{
+    c.beginPath();
+    for(let i=0;i<=n;i++){
+      const p = pts[i%n], pn = pts[(i+1)%n];
+      const a = Math.atan2(pn.y-p.y, pn.x-p.x);
+      const nx = -Math.sin(a), ny = Math.cos(a);
+      const x = p.x+nx*off, y = p.y+ny*off;
+      i===0 ? c.moveTo(x,y) : c.lineTo(x,y);
+    }
+    c.closePath(); c.stroke();
+  });
+  c.restore();
+}
+
+function drawParticles(c){
+  for(const p of particles){
+    const a = clamp(p.life/p.max, 0, 1);
+    c.save();
+    if(p.type==='smoke'){
+      c.globalAlpha = a*0.55;
+      c.beginPath(); c.arc(p.x, p.y, p.s*(2-a), 0, TAU); c.fillStyle='#fff'; c.fill();
+    }else if(p.type==='starfx'){
+      c.globalAlpha = a;
+      c.translate(p.x,p.y); c.rotate(p.rot);
+      drawTinyStar(c, 0,0, 9*p.s);
+    }else if(p.type==='confetti'){
+      c.globalAlpha = a;
+      c.translate(p.x,p.y); c.rotate(p.rot);
+      c.fillStyle=p.c; c.fillRect(-p.s/2, -p.s/3, p.s, p.s*0.66);
+    }else if(p.type==='score'){
+      c.globalAlpha = a;
+      c.fillStyle='#ffd166'; c.font='bold 26px -apple-system,sans-serif'; c.textAlign='center';
+      c.fillText('+1 ⭐', p.x, p.y);
+    }else if(p.type==='ring'){
+      c.globalAlpha = a*0.5;
+      c.strokeStyle='#fff'; c.lineWidth=8*a;
+      circlePath(c,p.x,p.y, 30+p.s*40); c.stroke();
+    }
+    c.restore();
+  }
+  c.globalAlpha=1;
+}
+function drawTinyStar(c,x,y,r){
+  c.beginPath();
+  for(let i=0;i<10;i++){
+    const rr = i%2===0 ? r : r*0.45;
+    const a = -Math.PI/2 + i*Math.PI/5;
+    const px = Math.cos(a)*rr, py = Math.sin(a)*rr;
+    i===0?c.moveTo(px,py):c.lineTo(px,py);
+  }
+  c.closePath(); c.fillStyle='#ffd166'; c.fill();
+}
+
+/* -------------------- 主循环 -------------------- */
+let last = now();
+function loop(){
+  const t = now();
+  let dt = (t-last)/1000; last = t;
+  if(dt > 0.1) dt = 0.1;
+  update(dt);
+  render();
+  requestAnimationFrame(loop);
+}
+
+/* -------------------- 菜单（DOM） -------------------- */
+const overlay = document.getElementById('overlay');
+function hideOverlay(){ overlay.className=''; overlay.innerHTML=''; }
+function hideScreen(){ hideOverlay(); }
+overlay.addEventListener('pointerdown', e=>{
+  const el = e.target.closest ? e.target.closest('[data-act]') : null;
+  if(!el) return;
+  e.preventDefault();
+  Sfx.init(); Sfx.resume(); Sfx.click();
+  act(el.dataset.act, el.dataset.val);
+});
+
+function act(a, v){
+  if(a==='play-free'){ startLevel(0, true); initWeather('none'); }
+  else if(a==='levels'){ showLevels(); }
+  else if(a==='lv'){ const i = parseInt(v,10); initWeather(LEVELS[i].weather); startLevel(i,false); }
+  else if(a==='home'){ goHome(); }
+  else if(a==='garage'){ showGarage(); }
+  else if(a==='resume'){ game.mode='play'; hideOverlay(); Sfx.resume(); if(save.music) Sfx.startMusic(); }
+  else if(a==='retry'){ const i=game.lvIndex; initWeather(LEVELS[i].weather); startLevel(i, game.free); }
+  else if(a==='next'){
+    const i = Math.min(LEVELS.length-1, game.lvIndex+1);
+    initWeather(LEVELS[i].weather); startLevel(i,false);
+  }
+  else if(a==='music'){ save.music=!save.music; persist(); if(save.music){Sfx.startMusic();}else{Sfx.stopMusic();} renderCurrentScreen(); }
+  else if(a==='voice'){ save.voice=!save.voice; persist(); if(!save.voice) shutUp(); else speak('语音打开啦'); renderCurrentScreen(); }
+  else if(a==='color'){ save.train.color=v; persist(); syncGarageSel(); drawGaragePreview(); }
+  else if(a==='style'){ save.train.style=v; persist(); syncGarageSel(); drawGaragePreview(); }
+}
+/* 点完颜色/造型后立刻刷新"哪个是选中的"——只改 class，不重建 DOM，
+   避免整块卡片重排导致预览图闪一下、手指也跟着抖 */
+function syncGarageSel(){
+  document.querySelectorAll('[data-act="color"]').forEach(b=>{
+    b.classList.toggle('sel', b.dataset.val === save.train.color);
+  });
+  document.querySelectorAll('[data-act="style"]').forEach(b=>{
+    b.classList.toggle('sel', b.dataset.val === save.train.style);
+  });
+}
+let curScreen = 'home';
+function renderCurrentScreen(){
+  if(curScreen==='home') showHome();
+  else if(curScreen==='levels') showLevels();
+  else if(curScreen==='garage') showGarage();
+  else if(curScreen==='pause') showPause();
+}
+/* 把卡片拆成两段：可滚动的 .body（标题/预览/色块…）+ 固定在底部的 .rowline（返回/确定）
+   这样无论屏幕多矮，孩子要点的"确定"永远在屏幕里。 */
+function setCard(html){
+  const wrap = document.createElement('div');
+  wrap.innerHTML = html;
+  const card = document.createElement('div');
+  card.className = 'card';
+  const body = document.createElement('div');
+  body.className = 'body';
+  // 抽走所有 .rowline（可能有多个），统一放到卡片底部
+  const foot = document.createElement('div');
+  foot.className = 'rowline';
+  let flew = false;
+  [...wrap.querySelectorAll('.rowline')].forEach(rl=>{
+    while(rl.firstChild){ foot.appendChild(rl.firstChild); }
+    rl.remove(); flew = true;
+  });
+  while(wrap.firstChild){ body.appendChild(wrap.firstChild); }
+  card.appendChild(body);
+  if(flew) card.appendChild(foot);
+  overlay.innerHTML = '';
+  overlay.appendChild(card);
+  overlay.className = 'show';
+  overlay.scrollTop = 0;
+  body.scrollTop = 0;
+}
+
+function goHome(){
+  curScreen='home'; game.mode='idle'; shutUp(); Sfx.stopMusic(); showHome();
+}
+function showHome(){
+  curScreen='home';
+  overlay.className='show';
+  setCard(`
+    <div class="title">小火车嘟嘟</div>
+    <div class="subtitle">把货物拖到一样的车厢，送到小房子里！</div>
+    <canvas id="homeGoods" width="360" height="90" style="width:360px;height:90px;margin:0 auto 12px;display:block"></canvas>
+    <div class="btnrow">
+      <button class="bigbtn green" data-act="levels"><span class="ico">▶</span>开始送货<span class="sm">5 个好玩的关卡</span></button>
+      <button class="bigbtn blue" data-act="play-free"><span class="ico">◎</span>自由玩耍<span class="sm">随便开，没有任务</span></button>
+      <button class="bigbtn purple" data-act="garage"><span class="ico">✎</span>装扮火车<span class="sm">换颜色和造型</span></button>
+    </div>
+    <div class="rowline">
+      <button class="chip ${save.music?'':'off'}" data-act="music">${save.music?'♪ 音乐：开':'♪ 音乐：关'}</button>
+      <button class="chip ${save.voice?'':'off'}" data-act="voice">${save.voice?'✎ 语音：开':'✎ 语音：关'}</button>
+    </div>
+    <div class="dim">玩法：用手指按住下面的货物，拖到一样图案的车厢里<br>火车开到小房子会自动卸货，全部送到就赢啦！<br>右下角的大铃铛可以鸣笛，路边的小动物会跳舞哦</div>
+  `);
+  drawHomeGoods();
+}
+// 首页顶部的一排货物图标（用 canvas 画，不依赖 emoji 字体）
+function drawHomeGoods(){
+  const cv = document.getElementById('homeGoods');
+  if(!cv) return;
+  const q = Math.min(2, dpr);
+  cv.width = 360*q; cv.height = 90*q;
+  cv.style.width='360px'; cv.style.height='90px';
+  const c = cv.getContext('2d');
+  c.setTransform(q,0,0,q,0,0);
+  c.clearRect(0,0,360,90);
+  GOODS.forEach((g,i)=> drawItem(c, g, 52 + i*85, 46, 1.0, i===1?0.12:0));
+}
+function showLevels(){
+  curScreen='levels';
+  let btns='';
+  let got = 0;                                   // 已经拿到的星星总数
+  LEVELS.forEach((lv,i)=>{
+    const open = i < save.unlocked;
+    const st = save.stars['L'+(i+1)] || 0;
+    if(st) got += st;
+    const stars = open ? ('★'.repeat(st) + '☆'.repeat(3-st)) : '✕';
+    // 有山洞的关卡标一个小记号，孩子能提前知道
+    const tag = (open && lv.tunnel) ? '<i class="tag">洞</i>' : '';
+    btns += `<button class="lvbtn ${open?'':'locked'}" ${open?'data-act="lv" data-val="'+i+'"':''}><small>第${i+1}关</small>${stars}${tag}</button>`;
+  });
+  const max = LEVELS.length*3;
+  setCard(`
+    <div class="title">选择关卡</div>
+    <div class="subtitle">完成一关解锁下一关（灰色是还没解锁的）　★ ${got}/${max}　带"洞"的有山洞</div>
+    <div class="levels levels15">${btns}</div>
+    <div class="rowline">
+      <button class="chip" data-act="home">← 返回</button>
+      <button class="chip" data-act="play-free">◎ 自由玩耍</button>
+    </div>
+  `);
+}
+function showPause(){
+  curScreen='pause';
+  setCard(`
+    <div class="title">休息一下</div>
+    <div class="subtitle">${game.free?'自由玩耍':('第 '+(game.lvIndex+1)+' 关')} · 已经收集 ★ ${game.stars}</div>
+    <div class="btnrow">
+      <button class="bigbtn green" data-act="resume"><span class="ico">▶</span>继续玩</button>
+      <button class="bigbtn blue" data-act="retry"><span class="ico">↻</span>再来一次</button>
+    </div>
+    <div class="rowline">
+      <button class="chip ${save.music?'':'off'}" data-act="music">${save.music?'♪ 音乐：开':'♪ 音乐：关'}</button>
+      <button class="chip ${save.voice?'':'off'}" data-act="voice">${save.voice?'✎ 语音：开':'✎ 语音：关'}</button>
+      <button class="chip" data-act="home">⌂ 回首页</button>
+    </div>
+    <div class="dim">小提示：右下角带「慢」「中」「快」字样的按钮可以调速<br>觉得太快，就点一下调到「慢」</div>
+  `);
+}
+function showWin(stars){
+  curScreen='win';
+  const s = '★'.repeat(stars) + '☆'.repeat(3-stars);
+  const last = game.lvIndex+1 >= LEVELS.length;
+  setCard(`
+    <div class="title">全部送到啦！</div>
+    <div class="winstars">${s}</div>
+    <div class="subtitle">用时 ${Math.round(game.timeMs/1000)} 秒 · 收集 ★ ${game.stars}</div>
+    <div class="btnrow">
+      ${last?'':'<button class="bigbtn green" data-act="next"><span class="ico">▶</span>下一关</button>'}
+      <button class="bigbtn blue" data-act="retry"><span class="ico">↻</span>再玩一次</button>
+      <button class="bigbtn purple" data-act="home"><span class="ico">⌂</span>回首页</button>
+    </div>
+  `);
+  confetti(W/2, 260, 40);
+}
+function pauseGame(){
+  game.mode='pause'; shutUp(); Sfx.stopMusic(); showPause();
+}
+document.addEventListener('visibilitychange', ()=>{
+  if(document.hidden && game.mode==='play') pauseGame();
+});
+
+/* -------------------- 装扮车库 -------------------- */
+const COLORS = ['#ff5f63','#4fa8ff','#ffc63c','#4ecb71','#ff9ec4','#a98cff'];
+const STYLES = [{k:'steam',n:'蒸汽小火车'},{k:'bullet',n:'子弹头高铁'},{k:'candy',n:'糖果小火车'}];
+let garageCanvas = null;
+function showGarage(){
+  curScreen='garage';
+  setCard(`
+    <div class="title">装扮我的火车</div>
+    <div class="subtitle">选一个你最喜欢的样子</div>
+    <canvas id="garageCanvas" width="440" height="220"></canvas>
+    <div class="sect">颜色</div>
+    <div class="swatches">
+      ${COLORS.map(c=>`<button class="sw ${save.train.color===c?'sel':''}" style="background:${c}" data-act="color" data-val="${c}"></button>`).join('')}
+    </div>
+    <div class="sect">造型</div>
+    <div class="opts">
+      ${STYLES.map(s=>`<button class="opt ${save.train.style===s.k?'sel':''}" data-act="style" data-val="${s.k}">${s.n}</button>`).join('')}
+    </div>
+    <div class="rowline">
+      <button class="chip" data-act="home">⌂ 回首页</button>
+      <button class="chip green" data-act="levels">▶ 开始送货</button>
+    </div>
+  `);
+  garageCanvas = document.getElementById('garageCanvas');
+  syncGaragePreviewSize();
+  drawGaragePreview();
+  // 矮屏时把预览图缩小一点，保证颜色/造型也在第一屏里
+  window.addEventListener('resize', syncGaragePreviewSize);
+}
+/* 预览画布按可用高度自适应：横屏平板高度矮 -> 缩成 300×150，竖屏 -> 440×220 */
+const GARAGE_W = 440, GARAGE_H = 220;     // 逻辑尺寸（绘制坐标不变）
+let garageScale = 1;
+function syncGaragePreviewSize(){
+  if(!garageCanvas || !garageCanvas.isConnected) return;
+  const vh = window.innerHeight || 800;
+  // 矮屏（横屏平板常见 600~700）：先缩小预览
+  const s = vh < 720 ? 0.70 : (vh < 860 ? 0.84 : 1);
+  garageScale = s;
+  garageCanvas.style.width  = Math.round(GARAGE_W*s)+'px';
+  garageCanvas.style.height = Math.round(GARAGE_H*s)+'px';
+}
+function drawGaragePreview(){
+  if(!garageCanvas) return;
+  const c = garageCanvas.getContext('2d');
+  const q = Math.min(2, dpr);
+  if(garageCanvas.__q !== q){
+    garageCanvas.width = GARAGE_W*q; garageCanvas.height = GARAGE_H*q;
+    garageCanvas.__q = q;
+  }
+  syncGaragePreviewSize();
+  c.setTransform(q,0,0,q,0,0);
+  c.clearRect(0,0,GARAGE_W,GARAGE_H);
+  // 铁轨
+  c.fillStyle='#c9a97e'; c.fillRect(0,176,GARAGE_W,44);
+  c.strokeStyle='#a87f52'; c.lineWidth=6;
+  for(let x=6;x<GARAGE_W;x+=34){ c.beginPath(); c.moveTo(x,170); c.lineTo(x,200); c.stroke(); }
+  c.strokeStyle='#8e9aa8'; c.lineWidth=5;
+  c.beginPath(); c.moveTo(0,166); c.lineTo(GARAGE_W,166); c.stroke();
+  c.beginPath(); c.moveTo(0,190); c.lineTo(GARAGE_W,190); c.stroke();
+  const t = now();
+  drawLocomotive(c, 150, 150, 0, { t:t, scale:1.25, seed:0 });
+  for(let i=0;i<2;i++){
+    drawWagon(c, 262 + i*100, 150, 0, GOODS[i], 1, t, WAGON_CAP);
+  }
+}
+
+/* -------------------- 调试句柄（仅用于自动化验收，不影响玩法） -------------------- */
+window.__dudu = {
+  state: () => ({
+    mode: game.mode, level: game.lvIndex, free: game.free, dist: game.dist,
+    stations: game.stations.map(s=>({type:s.type, need:s.need, done:s.done, x:s.pos.x, y:s.pos.y})),
+    wagons: game.wagons.map(w=>({type:w.type, load:w.load})),
+    errors: game.errors, stars: game.stars
+  }),
+  wagonPos: (i) => PATH.locate(game.dist - (i+1)*WAGON_GAP),
+  trayPos: (i) => traySlots[i]
+};
+
+/* -------------------- 启动 -------------------- */
+function boot(){
+  resize();
+  initWeather('petal');
+  goHome();
+  // 深链接：#free 直接自由玩耍，#lv3 直接进第 3 关
+  try{
+    const h = (location.hash||'').replace('#','');
+    if(h === 'free'){ setTimeout(()=>{ Sfx.init(); act('play-free'); }, 60); }
+    else if(/^lv\d+$/.test(h)){                       // #lv1 ~ #lv15
+      const i = parseInt(h.slice(2),10)-1;
+      if(i >= 0 && i < LEVELS.length){
+        setTimeout(()=>{ Sfx.init(); initWeather(LEVELS[i].weather); startLevel(i,false); }, 60);
+      }
+    }
+  }catch(e){}
+  requestAnimationFrame(loop);
+  // 首次触摸解锁音频
+  const unlock = ()=>{ Sfx.init(); Sfx.resume(); window.removeEventListener('pointerdown', unlock); };
+  window.addEventListener('pointerdown', unlock);
+}
+boot();
+</script>
+</body>
+</html>

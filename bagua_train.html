@@ -1,0 +1,1169 @@
+<!DOCTYPE html>
+<html data-page-node-id="i7SLQP3i8kG7ZvfVewdtvZ" lang="zh-CN">
+<head data-page-node-id="VcVfqW48YHdncteBKfdSVp">
+<script data-page-node-id="a2cQrFRKVDGygldW5R9sOa" src="/page/page_comm/inject.js"></script>
+<meta data-page-node-id="VXnWhq7WTIw91KJPc9mS4J" charset="UTF-8">
+<meta data-page-node-id="AmayFsRgkVMMtrSKSHQwQ1" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" name="viewport">
+<title data-page-node-id="MaylBCMDl23nk31R6WCyL6" data-pnid-children="K18K1cCFWEQTKSczbIRR54">八卦铁轨 · 脱轨实验场</title>
+<style data-page-node-id="gQawKtlizuTWQnRqhrMzrQ" data-pnid-children="YDRpTOk83FKTqbK914Y0LY">
+  :root{
+    --bg:#070a12;
+    --panel:rgba(16,22,36,.82);
+    --line:rgba(226,201,120,.22);
+    --gold:#e2c978;
+    --text:#dfe6f2;
+    --muted:#8b96ab;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+  html,body{width:100%;height:100%;overflow:hidden;background:var(--bg);
+    font-family:"PingFang SC","Microsoft YaHei","Helvetica Neue",Arial,sans-serif;color:var(--text)}
+  #stage{position:fixed;inset:0}
+  canvas{display:block;width:100%;height:100%;cursor:crosshair}
+
+  /* ---------- HUD ---------- */
+  #hud{position:fixed;left:14px;top:14px;display:flex;gap:8px;flex-wrap:wrap;z-index:10;pointer-events:none}
+  .chip{background:var(--panel);border:1px solid var(--line);border-radius:9px;padding:6px 11px;
+    font-size:12px;letter-spacing:.5px;backdrop-filter:blur(8px)}
+  .chip b{color:var(--gold);font-size:14px;font-weight:600;margin-left:4px;font-variant-numeric:tabular-nums}
+
+  /* ---------- 控制面板 ---------- */
+  #panel{position:fixed;right:14px;top:14px;width:264px;z-index:20;
+    background:var(--panel);border:1px solid var(--line);border-radius:14px;
+    backdrop-filter:blur(10px);overflow:hidden;box-shadow:0 10px 40px rgba(0,0,0,.5);
+    transition:transform .28s cubic-bezier(.4,0,.2,1)}
+  #panel.collapsed{transform:translateX(calc(100% - 46px))}
+  .p-head{display:flex;align-items:center;justify-content:space-between;padding:11px 13px;
+    border-bottom:1px solid var(--line);cursor:pointer;user-select:none}
+  .p-head span{font-size:13px;font-weight:600;letter-spacing:1.5px;color:var(--gold)}
+  .p-head i{font-style:normal;font-size:15px;color:var(--muted);transition:transform .28s}
+  #panel.collapsed .p-head i{transform:rotate(180deg)}
+  .p-body{padding:12px 13px 14px;max-height:calc(100vh - 110px);overflow-y:auto}
+  .p-body::-webkit-scrollbar{width:5px}
+  .p-body::-webkit-scrollbar-thumb{background:rgba(226,201,120,.3);border-radius:3px}
+
+  .grp{font-size:11px;letter-spacing:2px;color:var(--muted);margin:12px 0 7px;
+    padding-bottom:4px;border-bottom:1px dashed rgba(139,150,171,.22)}
+  .grp:first-child{margin-top:0}
+
+  .row{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:8px 0;font-size:12px}
+  .row label{color:#b9c3d4;flex:0 0 auto;min-width:62px}
+  .row output{color:var(--gold);font-variant-numeric:tabular-nums;min-width:34px;text-align:right;font-size:11px}
+  input[type=range]{-webkit-appearance:none;appearance:none;flex:1;height:3px;border-radius:3px;
+    background:rgba(139,150,171,.28);outline:none;cursor:pointer}
+  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:12px;height:12px;border-radius:50%;
+    background:var(--gold);border:2px solid #1a2130;cursor:pointer}
+  input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;background:var(--gold);
+    border:2px solid #1a2130;cursor:pointer}
+
+  .btns{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:6px}
+  button{background:rgba(226,201,120,.1);border:1px solid rgba(226,201,120,.3);color:var(--text);
+    padding:7px 4px;border-radius:7px;font-size:12px;cursor:pointer;transition:.16s;letter-spacing:.5px}
+  button:hover{background:rgba(226,201,120,.22);border-color:var(--gold)}
+  button:active{transform:scale(.96)}
+
+  .checks{display:flex;flex-wrap:wrap;gap:9px;margin-top:8px}
+  .chk{display:flex;align-items:center;gap:5px;font-size:12px;color:#b9c3d4;cursor:pointer}
+  .chk input{accent-color:var(--gold);width:13px;height:13px;cursor:pointer}
+
+  #tip{position:fixed;left:50%;bottom:16px;transform:translateX(-50%);z-index:10;
+    background:var(--panel);border:1px solid var(--line);border-radius:20px;padding:7px 16px;
+    font-size:12px;color:var(--muted);letter-spacing:.5px;pointer-events:none;white-space:nowrap}
+  #tip b{color:var(--gold);font-weight:500}
+  @media (max-width:640px){
+    #panel{width:212px}
+    #tip{font-size:10px;padding:6px 11px;bottom:10px}
+    .chip{font-size:10px;padding:5px 8px}
+  }
+</style>
+</head>
+<body data-page-node-id="5M76d46eNtSHDv1nkNmzM1">
+
+<div data-page-node-id="NmomQWvjrax6hL5rlc9BaB" id="stage"><canvas data-page-node-id="8HGoYsVO88QmV5zvoGJGjK" id="cv"></canvas></div>
+
+<div data-page-node-id="ALtKnqzVqWtPs2jPKValcX" id="hud">
+  <div data-page-node-id="yPI7vNl5Du7zSqwdKsEY0S" class="chip"><!--pnid:iJl7IQI1ApP49C6K0czy8W-->存活火车<b data-page-node-id="TTwUAkpzlRefeaH8x4Y0wE" id="s-live"><!--pnid:L6wz2bwg1pF24DfBc6JcCF-->0</b></div>
+  <div data-page-node-id="oQxelCnv48DDV6bNHla644" class="chip"><!--pnid:79d2slpss3lET0jCNoNFL6-->累计脱轨<b data-page-node-id="Y4i2Xdihdl3d6nCOaTA7Uw" id="s-derail"><!--pnid:jEHPN0MTvpwhvbOmtlqTAM-->0</b></div>
+  <div data-page-node-id="GkmZRXrcU5M8lFhYzgVFeZ" class="chip"><!--pnid:FMIm9HS0Ohuk6yXlqgrhnw-->脱轨/分<b data-page-node-id="Qh84TFlMuhZTmNyh27eYLg" id="s-rate"><!--pnid:oDtJqGl86CpThZSdnqvkNI-->0</b></div>
+  <div data-page-node-id="xMiZ6JJBScXCkCZwb6g1Cy" class="chip"><!--pnid:llZqHykB3r72AiVGEHaFKJ-->FPS<b data-page-node-id="jZXOgKl4S0hkHhxArEVb24" id="s-fps"><!--pnid:1blgdMhkVLyiS8fkL6avon-->60</b></div>
+</div>
+
+<div data-page-node-id="6DcyH9UkHWyG7h4Gh3bVrJ" id="panel">
+  <div data-page-node-id="5hQKQ4txmB52MqJ4vSsKf8" class="p-head" id="p-head"><span data-page-node-id="8NxrlN66xjzuinnJQ04MoI"><!--pnid:VNq1BLlvrJ7kd81l5nxNbk-->八卦铁轨 · 参数台</span><i data-page-node-id="JQ0PaSPEkQuxr8H3H9Sgm4"><!--pnid:xZM6glISnO6dc4fShKrlPr-->›</i></div>
+  <div data-page-node-id="PQaFfd9AsydB9WdDvahB6s" class="p-body">
+    <div data-page-node-id="7YGj9gvW6kMRdTekUFwsCr" class="grp"><!--pnid:WAS4wd6l2H8PDqpNtmbNPV-->车队</div>
+    <div data-page-node-id="gdAsZ79REi55diy1BN0EhS" class="row"><label data-page-node-id="SRyHROxL5MVuyVNzIpJkDY"><!--pnid:b8O4TmsqhgiCceu7QKmrMq-->火车数量</label><input data-page-node-id="0TwlRmdfkUVs8j34SbxUef" id="c-count" max="16" min="2" step="1" type="range"><output data-page-node-id="PhYNMFbacjXFRqZ1Zy8jKV" id="o-count"></output></div>
+    <div data-page-node-id="UYyM8JAxn8DVm6bqSPjPqD" class="row"><label data-page-node-id="ayGeK8Xv3OfphKAbWxEmSl"><!--pnid:XI0DbnYskMzL6m7rCxSGBh-->基础速度</label><input data-page-node-id="tEEpiVI3MmtnYJo6jorrSN" id="c-speed" max="150" min="20" step="1" type="range"><output data-page-node-id="YnK7b424ftghu9uMA49fKk" id="o-speed"></output></div>
+    <div data-page-node-id="M89iFpIHYUQJCtgSxqUBjy" class="row"><label data-page-node-id="bBvDT3rghiGkhPnNM70WWl"><!--pnid:J0F68Q0IEJcalIGeNHBrD7-->速度差异</label><input data-page-node-id="FWV8ttOXYdbFcubJnABn7D" id="c-var" max="0.7" min="0" step="0.01" type="range"><output data-page-node-id="SjC1Dup1tjfegN9FHSjUG5" id="o-var"></output></div>
+    <div data-page-node-id="v4R9iPnBc3qvUYaxog8u6L" class="row"><label data-page-node-id="RfbYbBUhLl3HKiRsykIXLF"><!--pnid:bDgRixTjEH6Qp6CRDI0CoS-->车厢尺寸</label><input data-page-node-id="9LDncwfE0vruNnemlkKUIF" id="c-size" max="1.6" min="0.6" step="0.05" type="range"><output data-page-node-id="Jj0j1iZzD4J61n2w6y79vS" id="o-size"></output></div>
+
+    <div data-page-node-id="HE4ym0bbtGeyZaoc6cFCoS" class="grp"><!--pnid:13bX9rc8Gg8PJFufqgurkL-->轨道拓扑</div>
+    <div data-page-node-id="jbAEAFsYfohNoHuyWR9PFw" class="row"><label data-page-node-id="up9nhLKjgHHNUtjWirp3FC"><!--pnid:q5qPEnLmNd2dk1SnAQMpmC-->道岔切换</label><input data-page-node-id="iYDr7Cljbb5BHY0G2m3KFa" id="c-switch" max="1" min="0" step="0.01" type="range"><output data-page-node-id="98WAZK1GUmwFe9rZm4vl0J" id="o-switch"></output></div>
+    <div data-page-node-id="PrI2C2aJEeIrvZ9K0rhj7z" class="row"><label data-page-node-id="dMPA3WGcwUMpXHMITmr5jK"><!--pnid:VECQ5QKDPI00PmlzBAX11F-->内环半径</label><input data-page-node-id="p3yalnS0VU0j7ASESBMHp8" id="c-inner" max="0.34" min="0.1" step="0.005" type="range"><output data-page-node-id="8ToOmKGGfHFZcpsqvpx3iz" id="o-inner"></output></div>
+    <div data-page-node-id="GLfk0SrFFpYg85YKU42dv8" class="row"><label data-page-node-id="hLjUO1u0vYN3FikvLgElnH"><!--pnid:Qecezs6dw9rlC1bqYhBWlZ-->内侧环距</label><input data-page-node-id="y01KZucVE1P3967H3vEEbp" id="c-gap" max="0.22" min="0.08" step="0.005" type="range"><output data-page-node-id="KHrHyfxVFId0naFZTt4s9P" id="o-gap"></output></div>
+    <div data-page-node-id="zDPO64AoPwTfU8lXI9ZoP3" class="row"><label data-page-node-id="qX7wfnwn3AUUXkzUMuOXrZ"><!--pnid:Z5XetaI0BrDftUXNKvZZkr-->卦位分段</label><input data-page-node-id="Jpcn66TE00NXMciPlszs6w" id="c-sec" max="12" min="4" step="1" type="range"><output data-page-node-id="PryWGMRCjSL78azluu1oXr" id="o-sec"></output></div>
+
+    <div data-page-node-id="tPrC6hYMJAf0FaCOwODQvj" class="grp"><!--pnid:TmqKmFkQlbebmzRoaZLT2m-->物理与脱轨</div>
+    <div data-page-node-id="sNwiDpIqqwIFfxgn2RBYeZ" class="row"><label data-page-node-id="R5lYAHjr5CjZQ2BmkVhzun"><!--pnid:iM7BMR2A12cHCE0X0CMqSG-->碰撞半径</label><input data-page-node-id="D6ZqjFdNloPMo5QEuYHMhz" id="c-rad" max="14" min="2" step="0.5" type="range"><output data-page-node-id="XuGbCyYc7nOWQ4NmciKkJy" id="o-rad"></output></div>
+    <div data-page-node-id="ndEg06r0aUc0dLKG9IIu74" class="row"><label data-page-node-id="TZMPtiHdKk6FjkPdLP7Rnl"><!--pnid:VfTcTghPHsBbipjWF9tHtR-->脱轨重力</label><input data-page-node-id="lM6h9GvkeGegi4Cv6NLdt5" id="c-grav" max="1200" min="120" step="20" type="range"><output data-page-node-id="FchXj3AG0QHxLVZn2GMCFC" id="o-grav"></output></div>
+    <div data-page-node-id="vFey5lHqjmoqUk23VINWcJ" class="row"><label data-page-node-id="YzUlkCnLm2kNprCc0712bc"><!--pnid:mvL9Eqs0OnEQFR4NojJuiE-->爆炸冲量</label><input data-page-node-id="31Hjb1yV4MP1nIkOVB9WMM" id="c-imp" max="700" min="60" step="10" type="range"><output data-page-node-id="qmcAUMwHLgQj22Q5JducAk" id="o-imp"></output></div>
+    <div data-page-node-id="8PGfO7IheaSQ8PEOQhOnKG" class="row"><label data-page-node-id="bEPJsqwLvq6nwJPd2cMj0O"><!--pnid:NMmoCacvCbPf0Jf4QyxGWJ-->重生延迟</label><input data-page-node-id="oXGrLKFJSs0krSjLTwRdpH" id="c-delay" max="3" min="0" step="0.1" type="range"><output data-page-node-id="2sr1lbjbtOp1GjnXEctw7L" id="o-delay"></output></div>
+
+    <div data-page-node-id="68KUKUELr8qEvXzAxUdDMZ" class="grp"><!--pnid:5p8SbIzogxi7al73movIa9-->渲染</div>
+    <div data-page-node-id="sEKw3h6JQUsJMbWTVl5j02" class="checks">
+      <label data-page-node-id="l4t2ih5sAv6fAemZJ1CWcJ" class="chk"><input data-page-node-id="kBWJvPqLqR6AHu5JWRXW9R" checked id="k-trail" type="checkbox"><!--pnid:ruK43Bi1fN3v5O9R4N8Y5M-->拖尾</label>
+      <label data-page-node-id="8yMxTNgzVcGMnWQYf7aHqE" class="chk"><input data-page-node-id="NyKUJFQu4HbTWdy2XFsPP9" id="k-debug" type="checkbox"><!--pnid:Qba2vUV7jAFENjJoUPGq0d-->轨道调试</label>
+      <label data-page-node-id="ZcdsyYqz7cgp0ZlpfSBrBQ" class="chk"><input data-page-node-id="IEz6SpiCtDlvTn53dszEXD" id="k-mute" type="checkbox"><!--pnid:2ETWtvCwupTh6PJCqS0Up9-->静音</label>
+      <label data-page-node-id="FLXgVqnECDHzqmU8sjphy4" class="chk"><input data-page-node-id="nTjIk1r38IzodkcxpKGXB6" checked id="k-fx" type="checkbox"><!--pnid:upCNWHScYknmkDuuzrzCuq-->粒子特效</label>
+    </div>
+
+    <div data-page-node-id="9WDqQY56c0Tc7eH8yPrSO4" class="btns">
+      <button data-page-node-id="u9Qt6Me6sXaKyWqjDXSzSj" id="b-pause"><!--pnid:ixuHSlneGb4GLlp0WDrG7r-->暂停</button>
+      <button data-page-node-id="luc6gkB6awtIW5pG8PEuZH" id="b-reset"><!--pnid:OC3ooJVCnhq723MGYNDkIQ-->重置车队</button>
+      <button data-page-node-id="U0N1bS744PebJMVc0G5yPu" id="b-track"><!--pnid:lZ7FzWYUW12kCx1yLUBTqG-->重建轨道</button>
+      <button data-page-node-id="k3Ym5rsWkGmZb9ocOoGzt2" id="b-storm"><!--pnid:borUhuBy2ibYWQFiBxTKDn-->超级拥堵</button>
+    </div>
+  </div>
+</div>
+
+<div data-page-node-id="YNf0NS8YruT8kELNdgBPvR" id="tip"><!--pnid:EqShjWocvLJNwD10CH40Wc-->点击火车 = <b data-page-node-id="NSu25vlyGGGfil4OO31aTH"><!--pnid:rKMk5or6aHihkD1zReha4R-->冲刺</b><!--pnid:0eQUYn2ZrXjvSO2qKoCOdd--> · 空格暂停 · R 重置 · B 重建轨道 · D 调试 · M 静音</div>
+
+<script data-page-node-id="adWHCakHjP7N5efx7p2oTI" data-pnid-children="ZqnX77sinCMJWj2ewUxaRZ">
+"use strict";
+/* ==========================================================================
+   八卦铁轨 · 脱轨实验场
+   模块划分（相互独立、可单独替换 / 反复调参）：
+     0. CFG            全局可调参数（轨道生成 / 移动逻辑 / 物理 / 渲染）
+     1. Utils          数学与随机工具
+     2. Track          轨道生成器 + 轨道图（节点 / 边 / 道岔导航）
+     3. Train          单辆火车的状态机（行进 / 脱轨动画）
+     4. Collision      车体胶囊碰撞检测
+     5. FX             粒子与特效池
+     6. Audio          极简 WebAudio 音效
+     7. Renderer       双层渲染（离屏静态层 + 动态层）
+     8. UI             HUD 与调参面板绑定
+     9. Game           主循环与模块装配
+   对外暴露：window.BAGUA —— 可在控制台直接改 CFG 或调用 api，方便反复调参
+   ========================================================================== */
+
+/* ========================= 0. CONFIG ========================= */
+const CFG = {
+  track: {
+    rings      : 4,      // 同心环层数（最外层即八卦外圈）
+    sectors    : 8,      // 每环分段数（= 卦位数）
+    innerRatio : 0.20,   // 内环半径 = 基准半径 * innerRatio
+    ringGap    : 0.155,  // 内侧各相邻环的半径增量
+    outerRatio : 0.885,  // 最外环固定贴合八卦外圈（需为外侧刻度留出余量）
+    ringDir    : [1,-1,1,-1], // 每层行进方向：1=角度增(顺时针)，-1=逆时针
+    edgeGap    : 0.004   // 变道时的空隙（节点停留），避免瞬移
+  },
+  train: {
+    count    : 8,        // 初始火车数
+    speed    : 68,       // 基础速度 px/s
+    speedVar : 0.30,     // 每辆车的速度随机差异比例
+    length   : 30,       // 车体长度
+    width    : 11,       // 车体宽度
+    radius   : 6.5,      // 碰撞胶囊半径
+    spawnGuard : 66      // 重生时与其他火车的最小安全距离
+  },
+  physics: {
+    switchBias : 0.22,   // 到达节点时切换到道岔的概率（否则直行）
+    boostTime  : 1.5,    // 点击冲刺持续时间
+    boostMul   : 2.35
+  },
+  fx: {
+    derailLife : 1.35,   // 脱轨动画时长（秒）
+    respawnDelay: 0.9,   // 脱轨后多久补回新车
+    hitShakeTime: 0.30,  // 碰撞后车身抖动持续时间（仅本车）
+    gravity    : 560,    // 脱轨下坠重力
+    impulse    : 380,    // 碰撞爆炸冲量
+    spin       : 8.5,    // 脱轨翻滚角速度
+    maxParts   : 460
+  },
+  render: {
+    trail   : true,
+    debug   : false,
+    particles: true
+  },
+  audio: { muted:false }
+};
+
+/* 八十四卦取八经卦：后天八卦（离宫排），自正北起顺时针。每卦绑定一列车 */
+const TRIGRAMS = [
+  { name:'坎', color:'#4d8cff', lines:[0,1,0] },
+  { name:'艮', color:'#c98a4b', lines:[0,0,1] },
+  { name:'震', color:'#35d07f', lines:[1,0,0] },
+  { name:'巽', color:'#2ec4b6', lines:[0,1,1] },
+  { name:'离', color:'#ff5a4d', lines:[1,0,1] },
+  { name:'坤', color:'#f2c14e', lines:[0,0,0] },
+  { name:'兑', color:'#dfe9f5', lines:[1,1,0] },
+  { name:'乾', color:'#f6f0c4', lines:[1,1,1] }
+];
+
+/* ========================= 1. UTILS ========================= */
+const TAU = Math.PI * 2;
+const Utils = {
+  clamp : (v,a,b)=> v<a?a:(v>b?b:v),
+  lerp  : (a,b,t)=> a+(b-a)*t,
+  rand  : (a,b)=> a+Math.random()*(b-a),
+  randInt : n => (Math.random()*n)|0,
+  pick  : arr => arr[Utils.randInt(arr.length)],
+  // 点到线段的最短距离平方
+  distSqPointSeg(px,py,x1,y1,x2,y2){
+    const dx=x2-x1, dy=y2-y1, L=dx*dx+dy*dy;
+    let t = L>0 ? ((px-x1)*dx+(py-y1)*dy)/L : 0;
+    t = Utils.clamp(t,0,1);
+    const qx=x1+dx*t, qy=y1+dy*t;
+    return (px-qx)*(px-qx)+(py-qy)*(py-qy);
+  },
+  // 两线段最短距离平方
+  distSqSegSeg(x1,y1,x2,y2,x3,y3,x4,y4){
+    const d=(x,y,xA,yA,xB,yB)=>{
+      const A=xB-xA, B=yB-yA, C=x-xA, D=y-yA;
+      const den=A*A+B*B;
+      let t = den>0 ? (A*C+B*D)/den : 0; t=Utils.clamp(t,0,1);
+      const ex=C-A*t, ey=D-B*t;
+      return Math.hypot(ex,ey);
+    };
+    const d1=Utils.distSqPointSeg(x1,y1,x3,y3,x4,y4);
+    const d2=Utils.distSqPointSeg(x2,y2,x3,y3,x4,y4);
+    const d3=Utils.distSqPointSeg(x3,y3,x1,y1,x2,y2);
+    const d4=Utils.distSqPointSeg(x4,y4,x1,y1,x2,y2);
+    return Math.min(d1,d2,d3,d4);
+  },
+  rgba(hex,a){
+    const n=parseInt(hex.slice(1),16);
+    return `rgba(${(n>>16)&255},${(n>>8)&255},${n&255},${a})`;
+  },
+  rr(ctx,x,y,w,h,r){ // 圆角矩形路径
+    r=Math.min(r,w/2,h/2);
+    ctx.beginPath();
+    ctx.moveTo(x+r,y);
+    ctx.arcTo(x+w,y,x+w,y+h,r);
+    ctx.arcTo(x+w,y+h,x,y+h,r);
+    ctx.arcTo(x,y+h,x,y,r);
+    ctx.arcTo(x,y,x+w,y,r);
+    ctx.closePath();
+  }
+};
+
+/* ========================= 2. TRACK =========================
+   轨道图结构（纯数据 + 导航，与渲染完全解耦）：
+     node : { id, L, k, x, y, out:[edgeId] }
+     edge : { id, type:'ring'|'spoke', L, k, from, to, len, ...几何参数 }
+   环边按所在层的方向切分弧段；辐条边双向各一条，保证换层始终有出边。
+   ========================================================= */
+const Track = {
+  nodes:[], edges:[], nodeMap:new Map(), edgeMap:new Map(),
+  radii:[], cx:0, cy:0, base:0, step:TAU/8,
+
+  nid(L,k){ return `n${L}_${k}`; },
+
+  /** 依据 CFG.track 生成轨道图，center/size 为画布中心与基准半径 */
+  build(cx,cy,base){
+    const {rings,sectors,innerRatio,ringGap,outerRatio,ringDir} = CFG.track;
+    this.cx=cx; this.cy=cy; this.base=base;
+    this.step = TAU/sectors;
+    // 内侧各环按 innerRatio + i*ringGap 均匀生长；
+    // 最外环固定落在八卦外圈上（不再沿用等差），使"八卦外圈即轨道"
+    this.radii = Array.from({length:rings},(_,i)=>
+      i===rings-1 ? base*outerRatio : base*(innerRatio+i*ringGap));
+    this.nodes=[]; this.edges=[]; this.nodeMap.clear(); this.edgeMap.clear();
+
+    // --- 节点：每环每分界点一个 ---
+    for(let L=0;L<rings;L++){
+      for(let k=0;k<sectors;k++){
+        const a=k*this.step, r=this.radii[L];
+        const n={ id:this.nid(L,k), L, k, x:cx+Math.cos(a)*r, y:cy+Math.sin(a)*r, out:[] };
+        this.nodes.push(n); this.nodeMap.set(n.id,n);
+      }
+    }
+
+    // --- 环边：沿该层行进方向切分 ---
+    for(let L=0;L<rings;L++){
+      const d = ringDir[L % ringDir.length];
+      for(let k=0;k<sectors;k++){
+        const k2 = ((k+d)%sectors+sectors)%sectors;
+        const a0=k*this.step, a1=k2*this.step;
+        this.pushEdge({ type:'ring', L, k, a0, a1, r:this.radii[L],
+          from:this.nid(L,k), to:this.nid(L,k2),
+          len:Math.abs(a1-a0)*this.radii[L] });
+      }
+    }
+
+    // --- 辐条边：相邻环之间双向各一条（道岔） ---
+    for(let L=0;L<rings-1;L++){
+      for(let k=0;k<sectors;k++){
+        const A=this.nodeMap.get(this.nid(L,k));
+        const B=this.nodeMap.get(this.nid(L+1,k));
+        const dist=Math.hypot(B.x-A.x,B.y-A.y);
+        this.pushEdge({ type:'spoke', L, k, ax:A.x,ay:A.y,bx:B.x,by:B.y,
+          from:A.id, to:B.id, len:dist });
+        this.pushEdge({ type:'spoke', L, k, ax:B.x,ay:B.y,bx:A.x,by:A.y,
+          from:B.id, to:A.id, len:dist });
+      }
+    }
+
+    // --- 索引出边 & 供快速随机取边 ---
+    this.byFrom=new Map();
+    for(const e of this.edges){
+      this.edgeMap.set(e.id,e);
+      this.nodeMap.get(e.from).out.push(e.id);
+      if(!this.byFrom.has(e.from)) this.byFrom.set(e.from,[]);
+      this.byFrom.get(e.from).push(e);
+    }
+    return this;
+  },
+
+  pushEdge(d){ d.id='e'+this.edges.length; this.edges.push(d); return d; },
+
+  /** 在节点处选下一条边：直行优先，其余概率走道岔 */
+  pickNext(fromNodeId, preferType){
+    const list=this.byFrom.get(fromNodeId);
+    if(!list||!list.length) return null;
+    if(list.length===1) return list[0];
+    const straight=list.filter(e=>e.type===preferType);
+    const others =list.filter(e=>e.type!==preferType);
+    if(Math.random()<CFG.physics.switchBias && others.length) return Utils.pick(others);
+    if(straight.length) return Utils.pick(straight);
+    return Utils.pick(others);
+  },
+
+  /** 求边上参数 u∈[0,1] 对应的世界坐标与朝向 */
+  sample(edge,u,out){
+    if(edge.type==='ring'){
+      const a=edge.a0+(edge.a1-edge.a0)*u;
+      out.x=this.cx+Math.cos(a)*edge.r;
+      out.y=this.cy+Math.sin(a)*edge.r;
+      out.angle = a + (edge.a1>=edge.a0 ? Math.PI/2 : -Math.PI/2);
+    }else{
+      out.x=edge.ax+(edge.bx-edge.ax)*u;
+      out.y=edge.ay+(edge.by-edge.ay)*u;
+      out.angle=Math.atan2(edge.by-edge.ay,edge.bx-edge.ax);
+    }
+    return out;
+  },
+
+  /** 求距离世界坐标最近的边（resize 后重新安置列车用） */
+  nearestEdge(x,y){
+    const p={x:0,y:0,angle:0};
+    let best=null,bd=Infinity;
+    for(const e of this.edges){
+      for(let i=0;i<=24;i++){
+        const u=i/24;
+        this.sample(e,u,p);
+        const d=(p.x-x)*(p.x-x)+(p.y-y)*(p.y-y);
+        if(d<bd){ bd=d; best={e,u}; }
+      }
+    }
+    return best;
+  }
+};
+
+/* ========================= 3. TRAIN =========================
+   状态机：run(沿边行进) → derail(脱轨动画) → remove → respawn
+   ====================================================== */
+let TRAIN_SEQ = 0;
+const Train = class {
+  constructor(track){
+    this.id  = ++TRAIN_SEQ;
+    this.tri = TRIGRAMS[(this.id-1) % TRIGRAMS.length];
+    this.edge=null; this.u=0; this.x=0; this.y=0; this.angle=0;
+    this.speed=0; this.state='run';
+    this.trail=[]; this.boost=0; this.invuln=0.4; this.dead=0;
+    this.hitT=0; this.hitJit=0;   // 撞击抖动（仅影响本车，不影响全屏）
+    this.vx=0; this.vy=0; this.spin=0; this.life=0;
+    const p={x:0,y:0,angle:0};
+    this.place(track,null,p,true);
+  }
+
+  /** 放置到轨道上：指定边或随机安全位置 */
+  place(track,edge,p,anywhere){
+    const T=CFG.train;
+    let e=edge, u=Math.random();
+    if(!e){
+      let guard=0;
+      do{
+        e=Utils.pick(track.edges);
+        u=0.08+Math.random()*0.84;
+        guard++;
+      } while(guard<40 && !this.safeAt(track,e,u));
+      if(guard>=40){ e=Utils.pick(track.edges); u=0.5; }
+    }
+    this.edge=e; this.u=0;
+    this.speed = CFG.train.speed * (1 + (Math.random()*2-1)*CFG.train.speedVar);
+    this.baseSpeed = this.speed;
+    this.state='run'; this.trail.length=0; this.boost=0; this.invuln=0.4;
+    this.crashed=0;
+    track.sample(e,u,p);
+    this.x=p.x; this.y=p.y; this.angle=p.angle;
+    this.u=u; this.syncFromEdge(p);
+  }
+
+  /** 检查参数 u 处是否与其他火车距离过近 */
+  safeAt(track,e,u){
+    const p={x:0,y:0,angle:0}; track.sample(e,u,p);
+    const g=CFG.train.spawnGuard;
+    return !(typeof Game!=='undefined'&&Game.trains).some(t=> t!==this && t.state==='run'
+      && Math.hypot(t.x-p.x,t.y-p.y) < g );
+  }
+
+  syncFromEdge(p){ Track.sample(this.edge,this.u,p); this.x=p.x; this.y=p.y; this.angle=p.angle; }
+
+  /** 沿边行进；到达节点后按概率选择下一条边 */
+  advance(dt,track){
+    const p={x:0,y:0,angle:0};
+    if(this.boost>0) this.boost-=dt;
+    if(this.invuln>0) this.invuln-=dt;
+    if(this.hitT>0) this.hitT=Math.max(0,this.hitT-dt);
+
+    let move = this.speed*(this.boost>0?CFG.physics.boostMul:1)*dt;
+    let guard=0;
+    while(move>0 && guard++<8){
+      const remain=(1-this.u)*this.edge.len;
+      if(move<remain){ this.u+=move/this.edge.len; move=0; }
+      else{
+        move-=remain;
+        const nx=Track.pickNext(this.edge.to,this.edge.type);
+        if(!nx){ this.u=1; break; }
+        this.edge=nx; this.u=0;
+      }
+    }
+    this.syncFromEdge(p);
+    if(CFG.render.trail){
+      this.trail.push(this.x,this.y);
+      if(this.trail.length>34) this.trail.splice(0,this.trail.length-34);
+    }
+  }
+
+  /** 进入脱轨动画：沿当前朝向飞出 + 侧向冲量 + 翻滚 */
+  derail(impactAngle,impactPower){
+    if(this.state!=='run') return;
+    this.state='derail'; this.life=0;
+    const sp=this.speed*(this.boost>0?CFG.physics.boostMul:1);
+    const fx=Math.cos(this.angle), fy=Math.sin(this.angle);
+    const ix=Math.cos(impactAngle), iy=Math.sin(impactAngle);
+    const kick=CFG.fx.impulse*(0.55+impactPower);
+    this.vx = fx*sp*0.55 + ix*kick*Utils.rand(0.6,1.15);
+    this.vy = fy*sp*0.55 + iy*kick*Utils.rand(0.6,1.15);
+    this.spin=CFG.fx.spin*Utils.rand(0.6,1.4)*(Math.random()<.5?-1:1);
+    this.derailA=this.angle;
+    this.edge=null;
+    FX.burst(this.x,this.y,this.tri.color,impactPower);
+  }
+
+  updateDerail(dt){
+    this.life+=dt;
+    this.vy+=CFG.fx.gravity*dt;
+    this.vx*=1-1.1*dt;
+    this.x+=this.vx*dt; this.y+=this.vy*dt;
+    this.derailA+=this.spin*dt;
+    this.spin*=1-0.5*dt;
+    if(CFG.render.particles) FX.smoke(this.x,this.y);
+    return this.life >= CFG.fx.derailLife;
+  }
+};
+
+/* ========================= 4. COLLISION =========================
+   车体视为胶囊（车头点 - 车尾点，半径 r），两车最近距离 < r1+r2 即碰撞
+   ============================================================= */
+const Collision = {
+  check(trains,onHit){
+    for(let i=0;i<trains.length;i++){
+      const a=trains[i];
+      if(a.state!=='run'||a.invuln>0) continue;
+      const s=CFG.train, hx=Math.cos(a.angle)*s.length/2, hy=Math.sin(a.angle)*s.length/2;
+      const ax1=a.x-hx, ay1=a.y-hy, ax2=a.x+hx, ay2=a.y+hy;
+      for(let j=i+1;j<trains.length;j++){
+        const b=trains[j];
+        if(b.state!=='run'||b.invuln>0) continue;
+        const bx=Math.cos(b.angle)*s.length/2, by=Math.sin(b.angle)*s.length/2;
+        const d=Utils.distSqSegSeg(ax1,ay1,ax2,ay2,
+                                   b.x-bx,b.y-by,b.x+bx,b.y+by);
+        if(d < (s.radius*2)*(s.radius*2)){
+          onHit(a,b,Math.sqrt(d));
+        }
+      }
+    }
+  }
+};
+
+/* ========================= 5. FX ========================= */
+const FX = {
+  parts:[],
+  burst(x,y,color,power){
+    if(!CFG.render.particles) return;
+    for(let i=0;i<34;i++){
+      const a=Math.random()*TAU, v=Utils.rand(70,430)*(0.5+power);
+      this.parts.push({x,y,vx:Math.cos(a)*v,vy:Math.sin(a)*v-40,
+        life:0,max:Utils.rand(.35,.95),s:Utils.rand(1.4,3.6),
+        c:Math.random()<.55?color:'#ffd98a',g:520,t:'spark'});
+    }
+    for(let i=0;i<6;i++){
+      const a=Math.random()*TAU, v=Utils.rand(20,110);
+      this.parts.push({x,y,vx:Math.cos(a)*v,vy:Math.sin(a)*v-60,
+        life:0,max:Utils.rand(.4,.9),s:Utils.rand(4,10),c:'#6b7280',g:-24,t:'smoke'});
+    }
+  },
+  smoke(x,y){
+    if(this.parts.length>CFG.fx.maxParts||Math.random()<.72) return;
+    this.parts.push({x:x+Utils.rand(-4,4),y:y+Utils.rand(-4,4),
+      vx:Utils.rand(-10,10),vy:Utils.rand(-26,-6),
+      life:0,max:Utils.rand(.35,.8),s:Utils.rand(2.5,6),c:'#5b6270',g:-16,t:'smoke'});
+  },
+  boostFx(x,y,color){
+    if(!CFG.render.particles) return;
+    for(let i=0;i<3;i++) this.parts.push({x,y,vx:Utils.rand(-30,30),vy:Utils.rand(10,60),
+      life:0,max:.35,s:Utils.rand(2,4),c:color,g:60,t:'spark'});
+  },
+  update(dt){
+    for(let i=this.parts.length-1;i>=0;i--){
+      const p=this.parts[i];
+      p.life+=dt;
+      if(p.life>=p.max){ this.parts.splice(i,1); continue; }
+      p.vy+=p.g*dt; p.x+=p.vx*dt; p.y+=p.vy*dt;
+      if(p.t==='spark'){ p.vx*=1-2.2*dt; p.vy*=1-2.2*dt; }
+    }
+  },
+  draw(ctx){
+    for(const p of this.parts){
+      const k=1-p.life/p.max;
+      ctx.globalAlpha=k*.9;
+      ctx.fillStyle=p.c;
+      if(p.t==='smoke'){ ctx.beginPath(); ctx.arc(p.x,p.y,p.s*(1.6-k*.6),0,TAU); ctx.fill(); }
+      else{
+        ctx.save(); ctx.translate(p.x,p.y);
+        ctx.rotate(Math.atan2(p.vy,p.vx));
+        ctx.fillRect(-p.s*1.8,-p.s*.35,p.s*3.6,p.s*.7);
+        ctx.restore();
+      }
+    }
+    ctx.globalAlpha=1;
+  }
+};
+
+/* ========================= 6. AUDIO ========================= */
+const Sound = {
+  ctx:null,
+  ensure(){
+    if(CFG.audio.muted) return null;
+    if(!this.ctx){
+      try{ this.ctx=new (window.AudioContext||window.webkitAudioContext)(); }catch(e){ return null; }
+    }
+    if(this.ctx.state==='suspended') this.ctx.resume();
+    return this.ctx;
+  },
+  blip(freq,dur,type,vol,slide){
+    const c=this.ensure(); if(!c) return;
+    const o=c.createOscillator(), g=c.createGain();
+    o.type=type||'square'; o.frequency.setValueAtTime(freq,c.currentTime);
+    if(slide) o.frequency.exponentialRampToValueAtTime(Math.max(30,slide),c.currentTime+dur);
+    g.gain.setValueAtTime(0.0001,c.currentTime);
+    g.gain.linearRampToValueAtTime(vol||.06,c.currentTime+.008);
+    g.gain.exponentialRampToValueAtTime(0.0001,c.currentTime+dur);
+    o.connect(g); g.connect(c.destination); o.start(); o.stop(c.currentTime+dur+.02);
+  },
+  crash(){ this.blip(190,.42,'sawtooth',.10,42); this.blip(88,.5,'square',.07,30); },
+  spawn(){ this.blip(560,.10,'triangle',.045,880); },
+  boost(){ this.blip(300,.18,'square',.05,900); }
+};
+
+/* ========================= 7. RENDERER =========================
+   静态层（背景 / 太极 / 八卦爻象 / 轨道）绘制到离屏 canvas，仅在 resize 或
+   轨道重建时刷新；动态层每帧只画列车与粒子。
+   =========================================================== */
+const Renderer = {
+  cv:null, ctx:null, stat:null, sctx:null,
+  W:0, H:0, dpr:1,
+
+  init(cv){
+    this.cv=cv; this.ctx=cv.getContext('2d');
+    this.stat=document.createElement('canvas');
+    this.sctx=this.stat.getContext('2d');
+    this.resize();
+    window.addEventListener('resize',()=>this.resize());
+  },
+
+  resize(){
+    this.dpr=Math.min(window.devicePixelRatio||1,2);
+    this.W=window.innerWidth; this.H=window.innerHeight;
+    for(const c of [this.cv,this.stat]){
+      c.width=Math.floor(this.W*this.dpr);
+      c.height=Math.floor(this.H*this.dpr);
+    }
+    this.cv.style.width=this.W+'px'; this.cv.style.height=this.H+'px';
+    const base=Math.min(this.W,this.H)*0.5;
+    Track.build(this.W/2,this.H/2,base);
+    this.drawStatic();
+    // 注意：Game 是顶层 const（全局词法作用域），不会挂到 window 上，需用 typeof 判断
+    if (typeof Game !== 'undefined' && Game.trains) Game.onTrackRebuilt();
+  },
+
+  /* ---------- 静态层 ---------- */
+  drawStatic(){
+    const g=this.sctx;
+    g.setTransform(this.dpr,0,0,this.dpr,0,0);
+    g.clearRect(0,0,this.W,this.H);
+
+    // 背景
+    const bg=g.createRadialGradient(this.W/2,this.H/2,10,this.W/2,this.H/2,Math.max(this.W,this.H)*.7);
+    bg.addColorStop(0,'#141c2e'); bg.addColorStop(.55,'#0b1120'); bg.addColorStop(1,'#05070d');
+    g.fillStyle=bg; g.fillRect(0,0,this.W,this.H);
+
+    // 经纬网格
+    g.strokeStyle='rgba(226,201,120,.045)'; g.lineWidth=1;
+    for(let i=-this.W;i<this.W;i+=46){ g.beginPath(); g.moveTo(i,0); g.lineTo(i,this.H); g.stroke(); }
+    for(let i=-this.H;i<this.H;i+=46){ g.beginPath(); g.moveTo(0,i); g.lineTo(this.W,i); g.stroke(); }
+
+    this.drawBaguaRing(g);
+    this.drawTaiji(g,Track.radii[0]*0.66);
+    this.drawRails(g);
+  },
+
+  /** 八卦外圈：分隔线 + 卦名 + 爻象（最外圈同时是轨道，半径取自实际轨道） */
+  drawBaguaRing(g){
+    const cx=Track.cx, cy=Track.cy, base=Track.base;
+    const rOut=Track.radii[Track.radii.length-1]; // 与最外环轨道同心
+    const rTri=base*.700, rLbl=base*.830;
+
+    g.save(); g.translate(cx,cy);
+
+    // 八卦外圆：贴着最外轨道外缘的装饰线（不与轨道线重叠）
+    const decOff=base*.014;                 // 装饰线与分隔线外移量（等比）
+    g.strokeStyle='rgba(226,201,120,.34)'; g.lineWidth=1.2;
+    g.beginPath(); g.arc(0,0,rOut+decOff,0,TAU); g.stroke();
+
+    const step=TAU/8;
+    // 分隔线（爻位线）：从最外轨道内侧延伸到爻象区外缘
+    g.strokeStyle='rgba(226,201,120,.26)'; g.lineWidth=1;
+    g.setLineDash([7,9]);
+    for(let k=0;k<8;k++){
+      const a=k*step-Math.PI/2;
+      g.beginPath();
+      g.moveTo(Math.cos(a)*(rOut+decOff+1),Math.sin(a)*(rOut+decOff+1));
+      g.lineTo(Math.cos(a)*(rTri+base*.13),Math.sin(a)*(rTri+base*.13));
+      g.stroke();
+    }
+    g.setLineDash([]);
+
+    // 刻度：画在最外轨道之外，长度随基准半径等比缩放，避免小屏溢出
+    const tOut=base*.028, tLen=base*.040;   // 起点偏移 / 长刻度长度
+    g.strokeStyle='rgba(226,201,120,.40)';
+    for(let k=0;k<64;k++){
+      const a=k*TAU/64-Math.PI/2;
+      const long=(k%8===0);
+      g.lineWidth=long?1.8:1;
+      g.beginPath();
+      g.moveTo(Math.cos(a)*(rOut+tOut),Math.sin(a)*(rOut+tOut));
+      g.lineTo(Math.cos(a)*(rOut+tOut+(long?tLen:tLen*.55)),
+               Math.sin(a)*(rOut+tOut+(long?tLen:tLen*.55)));
+      g.stroke();
+    }
+
+    // 卦名（自正北顺时针）+ 爻象
+    g.textAlign='center'; g.textBaseline='middle';
+    for(let k=0;k<8;k++){
+      const a=k*step-Math.PI/2;
+      const tx=Math.cos(a)*rTri, ty=Math.sin(a)*rTri;
+      this.drawTrigram(g,tx,ty,base*.088,TRIGRAMS[k].lines,a+Math.PI/2);
+
+      g.fillStyle='rgba(226,201,120,.9)';
+      g.font=`600 ${Math.round(base*.072)}px "PingFang SC","Microsoft YaHei",serif`;
+      g.fillText(TRIGRAMS[k].name,Math.cos(a)*rLbl,Math.sin(a)*rLbl);
+    }
+    g.restore();
+  },
+
+  /** 绘制一个经卦（三爻，阳为整线，阴为断开两段），rot 使其朝外 */
+  drawTrigram(g,cx,cy,r,lines,rot){
+    const w=r*1.15, th=r*.20, gap=r*.52, cut=w*.19;
+    g.save(); g.translate(cx,cy); g.rotate(rot);
+    g.fillStyle='rgba(226,201,120,.86)';
+    for(let i=0;i<3;i++){
+      const y=(1-i)*gap;
+      if(lines[i]===1) g.fillRect(-w/2,y,w,th);
+      else{ g.fillRect(-w/2,y,(w-cut)/2,th); g.fillRect(cut/2,y,(w-cut)/2,th); }
+    }
+    g.restore();
+  },
+
+  /** 太极图（传统：左白右黑，上白点下黑点） */
+  drawTaiji(g,r){
+    g.save(); g.translate(Track.cx,Track.cy);
+    g.beginPath(); g.arc(0,0,r,0,TAU); g.clip();
+    g.fillStyle='#111726'; g.fillRect(-r,-r,r*2,r*2);      // 左半黑
+    g.fillStyle='#eef1f7'; g.fillRect(0,-r,r,r*2);          // 右半白
+    g.fillStyle='#eef1f7'; g.beginPath(); g.arc(0, r/2,r/2,0,Math.PI); g.fill(); // 下半 bulge 白
+    g.fillStyle='#111726'; g.beginPath(); g.arc(0,-r/2,r/2,Math.PI,0); g.fill(); // 上半 bulge 黑
+    g.fillStyle='#eef1f7'; g.beginPath(); g.arc(0, r/2,r*.16,0,TAU); g.fill(); // 白区内的黑点(下)
+    g.fillStyle='#111726'; g.beginPath(); g.arc(0,-r/2,r*.16,0,TAU); g.fill(); // 黑区内的白点(上)
+    g.restore();
+    g.beginPath(); g.arc(Track.cx,Track.cy,r,0,TAU);
+    g.strokeStyle='rgba(226,201,120,.7)'; g.lineWidth=Math.max(1.5,r*.035); g.stroke();
+  },
+
+  /** 轨道：双轨线 + 枕木 + 道岔节点 */
+  drawRails(g){
+    const cx=Track.cx, cy=Track.cy;
+    const rail=Math.max(3,CFG.train.width*.5);
+    const RAIL='rgba(168,198,240,.62)';   // 主轨线
+    const RAIL2='rgba(120,150,200,.30)';  // 副轨线
+
+    // --- 环 ---
+    Track.radii.forEach((r,L)=>{
+      const dir=CFG.track.ringDir[L%CFG.track.ringDir.length];
+
+      // 轨基（暗色底衬，让轨道从背景中凸显）
+      g.strokeStyle='rgba(8,12,22,.85)'; g.lineWidth=rail*2.6;
+      g.beginPath(); g.arc(cx,cy,r,0,TAU); g.stroke();
+
+      // 枕木
+      g.strokeStyle='rgba(150,178,220,.22)'; g.lineWidth=1.4;
+      const n=Math.max(28,Math.round(r*.5));
+      for(let i=0;i<n;i++){
+        const a=i*TAU/n;
+        g.beginPath();
+        g.moveTo(cx+Math.cos(a)*(r-rail*1.15),cy+Math.sin(a)*(r-rail*1.15));
+        g.lineTo(cx+Math.cos(a)*(r+rail*1.15),cy+Math.sin(a)*(r+rail*1.15));
+        g.stroke();
+      }
+
+      // 双轨线
+      g.strokeStyle=RAIL; g.lineWidth=1.7;
+      g.beginPath(); g.arc(cx,cy,r-rail*.62,0,TAU); g.stroke();
+      g.strokeStyle=RAIL2; g.lineWidth=1.4;
+      g.beginPath(); g.arc(cx,cy,r+rail*.62,0,TAU); g.stroke();
+
+      // 行进方向箭头
+      g.fillStyle='rgba(226,201,120,.34)';
+      for(let i=0;i<n;i+=3){
+        const a=i*TAU/n, ar=dir>0?a+Math.PI/2:a-Math.PI/2;
+        g.save(); g.translate(cx+Math.cos(a)*r,cy+Math.sin(a)*r); g.rotate(ar);
+        g.beginPath(); g.moveTo(5.5,0); g.lineTo(-3.6,-4); g.lineTo(-3.6,4); g.closePath(); g.fill();
+        g.restore();
+      }
+    });
+
+    // --- 辐条（同一对线只画一次，避免重复加深） ---
+    const drawn=new Set();
+    for(const e of Track.edges){
+      if(e.type!=='spoke') continue;
+      const key=e.L+'_'+e.k;
+      if(drawn.has(key)) continue;
+      drawn.add(key);
+      const other=Track.edges.find(x=>x.type==='spoke'&&x.L===e.L&&x.k===e.k&&x!==e);
+      const A=e, B=other||e;
+      const dx=B.bx-B.ax, dy=B.by-B.ay, L=Math.hypot(dx,dy)||1;
+      const nx=-dy/L*rail*.7, ny=dx/L*rail*.7;
+
+      g.strokeStyle='rgba(8,12,22,.8)'; g.lineWidth=rail*2.1;
+      g.beginPath(); g.moveTo(A.ax,A.ay); g.lineTo(B.bx,B.by); g.stroke();
+
+      g.strokeStyle=RAIL; g.lineWidth=1.6;
+      g.beginPath();
+      g.moveTo(A.ax+nx,A.ay+ny); g.lineTo(B.bx+nx,B.by+ny);
+      g.moveTo(A.ax-nx,A.ay-ny); g.lineTo(B.bx-nx,B.by-ny);
+      g.stroke();
+
+      g.strokeStyle='rgba(150,178,220,.20)'; g.lineWidth=1.3;
+      for(let t=.1;t<1;t+=.11){
+        const mx=A.ax+dx*t, my=A.ay+dy*t;
+        g.beginPath(); g.moveTo(mx+nx*1.5,my+ny*1.5); g.lineTo(mx-nx*1.5,my-ny*1.5); g.stroke();
+      }
+    }
+
+    // --- 道岔节点 ---
+    for(const n of Track.nodes){
+      const rad=Math.hypot(n.x-cx,n.y-cy);
+      const isOuter=rad>Track.radii[Track.radii.length-1]-1;
+      g.fillStyle=isOuter?'rgba(226,201,120,.45)':'rgba(190,214,250,.55)';
+      g.beginPath(); g.arc(n.x,n.y,3,0,TAU); g.fill();
+    }
+
+    if(CFG.render.debug){
+      g.strokeStyle='rgba(120,255,180,.5)'; g.lineWidth=1;
+      for(const e of Track.edges){
+        if(e.type==='ring'){
+          g.beginPath(); g.arc(cx,cy,e.r,e.a0,e.a1); g.stroke();
+        }else{
+          g.beginPath(); g.moveTo(e.ax,e.ay); g.lineTo(e.bx,e.by); g.stroke();
+        }
+      }
+      g.fillStyle='rgba(120,255,180,.85)'; g.font='10px monospace';
+      for(const e of Track.edges){
+        const p={x:0,y:0,angle:0}; Track.sample(e,.5,p);
+        g.fillText(e.id,p.x+3,p.y-3);
+      }
+    }
+  },
+
+  /* ---------- 动态层 ---------- */
+  draw(trains,dt){
+    const ctx=this.ctx;
+    ctx.setTransform(this.dpr,0,0,this.dpr,0,0);
+    ctx.clearRect(0,0,this.W,this.H);
+    ctx.drawImage(this.stat,0,0,this.W,this.H);
+
+    const s=CFG.train;
+    for(const t of trains){
+      if(t.state==='run'){
+        // 拖尾
+        if(CFG.render.trail&&t.trail.length>=4){
+          ctx.lineCap='round'; ctx.lineJoin='round';
+          for(let i=2;i<t.trail.length;i+=2){
+            const k=i/t.trail.length;
+            ctx.strokeStyle=Utils.rgba(t.tri.color,k*.34*(t.boost>0?1.8:1));
+            ctx.lineWidth=1.5+k*3.2;
+            ctx.beginPath();
+            ctx.moveTo(t.trail[i-2],t.trail[i-1]);
+            ctx.lineTo(t.trail[i],t.trail[i+1]);
+            ctx.stroke();
+          }
+        }
+        if(t.invuln>0) ctx.globalAlpha=.45+.55*Math.abs(Math.sin(t.invuln*22));
+        this.drawTrain(ctx,t,s.length,s.width,t.tri.color,t.boost>0);
+
+        // 局部撞击效果：仅涉事车辆抖动 + 过曝闪光，画面不整体晃动
+        if(t.hitT>0){
+          ctx.save();
+          ctx.globalCompositeOperation='lighter';
+          ctx.globalAlpha=(t.hitT/CFG.fx.hitShakeTime)*0.5;
+          ctx.fillStyle='#fff3d0';
+          Utils.rr(ctx,t.x-s.length/2-1.5,t.y-s.width/2-1.5,
+                    s.length+3,s.width+3,4);
+          ctx.fill();
+          ctx.restore();
+        }
+        ctx.globalAlpha=1;
+      }else if(t.state==='derail'){
+        this.drawTrain(ctx,t,s.length*1.05,s.width*1.1,t.tri.color,false,true);
+      }
+    }
+
+    FX.draw(ctx);
+
+    if(CFG.render.debug){
+      ctx.strokeStyle='rgba(255,90,120,.85)'; ctx.lineWidth=1.6;
+      for(const t of trains){
+        if(t.state!=='run') continue;
+        const hx=Math.cos(t.angle)*s.length/2, hy=Math.sin(t.angle)*s.length/2;
+        ctx.beginPath(); ctx.moveTo(t.x-hx,t.y-hy); ctx.lineTo(t.x+hx,t.y+hy); ctx.stroke();
+        ctx.beginPath(); ctx.arc(t.x,t.y,s.radius,0,TAU); ctx.stroke();
+      }
+    }
+    ctx.setTransform(this.dpr,0,0,this.dpr,0,0);
+  },
+
+  drawTrain(ctx,t,L,W,color,boost,dead){
+    ctx.save();
+    // 撞击抖动：仅本车在原位附近高频抖动，衰减由 hitT 控制
+    if(t.hitT>0){
+      const k=t.hitT/CFG.fx.hitShakeTime;
+      ctx.translate(Utils.rand(-1,1)*t.hitJit*k, Utils.rand(-1,1)*t.hitJit*k);
+    }
+    ctx.translate(t.x,t.y);
+    ctx.rotate(dead?t.derailA:t.angle);
+    if(dead){
+      const k=1-t.life/CFG.fx.derailLife;
+      ctx.globalAlpha=Math.max(0,1-k*k*.95);
+      ctx.rotate(t.spin*.12);
+    }
+
+    // 车体阴影
+    ctx.fillStyle='rgba(0,0,0,.35)';
+    Utils.rr(ctx,-L/2+2,-W/2+2.5,L,W,4); ctx.fill();
+
+    // 底盘
+    ctx.fillStyle='#1b2230'; Utils.rr(ctx,-L/2,-W/2,L,W,4); ctx.fill();
+
+    // 车身
+    const g=ctx.createLinearGradient(0,-W/2,0,W/2);
+    g.addColorStop(0,Utils.rgba(color,.98));
+    g.addColorStop(1,Utils.rgba(color,.62));
+    ctx.fillStyle=g; Utils.rr(ctx,-L/2+.5,-W/2+.5,L-1,W-1,3.5); ctx.fill();
+
+    // 驾驶室（车头）
+    ctx.fillStyle='rgba(255,255,255,.9)';
+    Utils.rr(ctx,L/2-W*1.15,-W/2+.5,W*1.05,W*.78,2); ctx.fill();
+    ctx.fillStyle='rgba(20,28,44,.75)';
+    Utils.rr(ctx,L/2-W*.95,-W/2+2,W*.55,W*.5,1.5); ctx.fill();
+
+    // 车厢分隔与侧窗
+    ctx.strokeStyle='rgba(0,0,0,.32)'; ctx.lineWidth=1;
+    for(let i=-1;i<=1;i++){
+      const x=i*L*.26;
+      ctx.beginPath(); ctx.moveTo(x,-W/2+1); ctx.lineTo(x,W/2-1); ctx.stroke();
+    }
+    ctx.fillStyle='rgba(255,255,255,.55)';
+    for(let i=-1;i<=1;i++) ctx.fillRect(i*L*.26+2.2,-W/2+1.8,4,W*.28);
+
+    // 前灯
+    if(boost||!dead){
+      ctx.fillStyle=boost?'rgba(120,255,190,.95)':'rgba(255,238,170,.9)';
+      ctx.beginPath(); ctx.arc(L/2-1.5,0,2.1,0,TAU); ctx.fill();
+      ctx.fillStyle=Utils.rgba(boost?'#7dffbe':'#ffe9a3',.16);
+      ctx.beginPath(); ctx.moveTo(L/2,0);
+      ctx.lineTo(L/2+34,-W*.85); ctx.lineTo(L/2+34,W*.85); ctx.closePath(); ctx.fill();
+    }
+
+    // 车轮
+    ctx.fillStyle='#0e1420';
+    for(const x of [-L*.28,L*.28])
+      for(const y of [-W/2,W/2])
+        ctx.fillRect(x-1.6,y-1.6,3.2,3.2);
+
+    // 卦名标牌
+    if(!dead){
+      ctx.rotate(-t.angle);
+      ctx.fillStyle='rgba(255,255,255,.92)';
+      ctx.font=`600 ${Math.round(W*.72)}px "PingFang SC",sans-serif`;
+      ctx.textAlign='center'; ctx.textBaseline='middle';
+      ctx.shadowColor='rgba(0,0,0,.9)'; ctx.shadowBlur=4;
+      ctx.fillText(t.tri.name,0,-W*.78);
+      ctx.shadowBlur=0;
+    }
+    ctx.restore();
+  }
+};
+
+/* ========================= 8. GAME ========================= */
+const Game = {
+  trains:[], pending:[], derailCount:0, derailLog:[], paused:false, running:false,
+  last:0, fps:60, acc:0,
+
+  init(){
+    Renderer.init(document.getElementById('cv'));
+    this.spawnAll(CFG.train.count);
+    this.bindInput();
+    this.loop(performance.now());
+  },
+
+  spawnAll(n){
+    this.trains=[];
+    TRAIN_SEQ=0;
+    for(let i=0;i<n;i++) this.trains.push(new Train(Track));
+  },
+
+  reset(){
+    this.trains=[]; this.pending=[]; this.derailCount=0; this.derailLog=[]; TRAIN_SEQ=0;
+    FX.parts.length=0;
+    this.spawnAll(CFG.train.count);
+  },
+
+  /** 轨道被重建：把每辆在跑的列车吸附到最近的新边上（脱轨态的车无 edge，跳过） */
+  onTrackRebuilt(){
+    const p={x:0,y:0,angle:0};
+    for(const t of this.trains){
+      if(t.state!=='run'||!t.edge) continue;
+      const ne=Track.nearestEdge(t.x,t.y);
+      if(ne){ t.edge=ne.e; t.u=ne.u; t.syncFromEdge(p); }
+    }
+  },
+
+  bindInput(){
+    const cv=Renderer.cv;
+    cv.addEventListener('pointerdown',e=>{
+      Sound.ensure();
+      const r=cv.getBoundingClientRect();
+      const x=e.clientX-r.left, y=e.clientY-r.top;
+      let best=null,bd=1e9;
+      for(const t of this.trains){
+        if(t.state!=='run') continue;
+        const d=Math.hypot(t.x-x,t.y-y);
+        if(d<bd){ bd=d; best=t; }
+      }
+      if(best&&bd<34){
+        best.boost=CFG.physics.boostTime;
+        FX.boostFx(best.x,best.y,best.tri.color);
+        Sound.boost();
+      }
+    });
+    window.addEventListener('keydown',e=>{
+      const k=e.key.toLowerCase();
+      if(k===' '){ e.preventDefault(); this.togglePause(); }
+      else if(k==='r') this.reset();
+      else if(k==='b') Renderer.resize();
+      else if(k==='d'){ CFG.render.debug=!CFG.render.debug; UI.syncChecks(); Renderer.drawStatic(); }
+      else if(k==='m'){ CFG.audio.muted=!CFG.audio.muted; UI.syncChecks(); }
+    });
+  },
+
+  togglePause(){
+    this.paused=!this.paused;
+    document.getElementById('b-pause').textContent=this.paused?'继续':'暂停';
+  },
+
+  update(dt){
+    if(this.paused) return;
+    FX.update(dt);
+    const p={x:0,y:0,angle:0};
+
+    // 行进
+    for(const t of this.trains) if(t.state==='run') t.advance(dt,Track);
+
+    // 碰撞 → 脱轨
+    Collision.check(this.trains,(a,b,dist)=>{
+      const mx=(a.x+b.x)/2, my=(a.y+b.y)/2;
+      const ang=Math.atan2(my-Track.cy,mx-Track.cx);
+      const power=Utils.clamp(1-dist/(CFG.train.radius*4),0,1);
+      // 局部撞击抖动：仅作用于涉事车辆，画面不整体晃动
+      const jit=6+power*8;
+      a.hitT=CFG.fx.hitShakeTime; a.hitJit=jit;
+      b.hitT=CFG.fx.hitShakeTime; b.hitJit=jit;
+      a.derail(ang+Math.PI/2,power); b.derail(ang-Math.PI/2,power);
+      Sound.crash();
+    });
+
+    // 脱轨动画结束 → 移出场景并登记重生倒计时
+    for(let i=this.trains.length-1;i>=0;i--){
+      const t=this.trains[i];
+      if(t.state!=='derail') continue;
+      if(t.updateDerail(dt)){
+        this.trains.splice(i,1);
+        this.pending.push(CFG.fx.derailLife*0.5 + CFG.fx.respawnDelay);
+        this.derailCount++;
+        this.derailLog.push(Date.now());
+      }
+    }
+
+    // 延迟重生：pending 每项代表一辆已脱轨待补回的名额，到期后兑现
+    for(let i=this.pending.length-1;i>=0;i--){
+      this.pending[i]-=dt;
+      if(this.pending[i]<=0) this.pending.splice(i,1);
+    }
+
+    // 统一按「目标缺口」补给：脱轨动画中的车不计入 runningCount，
+    // 因此无论碰撞多密集，车队规模都会稳定回到 CFG.train.count
+    let guard=0;
+    while(this.runningCount()<CFG.train.count && this.trains.length<CFG.train.count+4 && guard++<8){
+      this.trains.push(new Train(Track)); Sound.spawn();
+    }
+  },
+
+  /** 当前处于 run 状态的列车数 */
+  runningCount(){
+    let n=0;
+    for(const t of this.trains) if(t.state==='run') n++;
+    return n;
+  },
+
+  loop(now){
+    requestAnimationFrame(t=>this.loop(t));
+    let dt=(now-this.last)/1000;
+    this.last=now;
+    if(!(dt>0)) dt=0;
+    dt=Math.min(dt,0.05);
+    this.acc+=dt;
+    this.fps=this.fps*.92+(1/Math.max(dt,0.0001))*.08;
+
+    this.update(dt);
+    Renderer.draw(this.trains,dt);
+
+    // HUD
+    this.hudAcc=(this.hudAcc||0)+dt;
+    if(this.hudAcc>0.25){ this.hudAcc=0; this.updateHud(); }
+  },
+
+  updateHud(){
+    const live=this.trains.filter(t=>t.state==='run').length;
+    document.getElementById('s-live').textContent=live;
+    document.getElementById('s-derail').textContent=this.derailCount;
+    const now=Date.now();
+    this.derailLog=this.derailLog.filter(t=>now-t<60000);
+    document.getElementById('s-rate').textContent=this.derailLog.length;
+    document.getElementById('s-fps').textContent=Math.round(this.fps);
+  }
+};
+
+/* ========================= 9. UI ========================= */
+const UI = (()=>{
+  const bind=(id,oid,key,group,fmt,after)=>{
+    const el=document.getElementById(id), out=document.getElementById(oid);
+    const G=group?CFG[group]:CFG;
+    const apply=()=>{
+      const v=parseFloat(el.value);
+      G[key]=v;
+      out.textContent=fmt?fmt(v):v;
+      if(after) after();
+    };
+    el.addEventListener('input',apply);
+    el.value=G[key]; out.textContent=fmt?fmt(G[key]):G[key];
+    return el;
+  };
+
+  const rebuild=()=>{ Renderer.drawStatic(); Game.onTrackRebuilt(); };
+
+  document.addEventListener('DOMContentLoaded',()=>{
+    const f1=v=>v.toFixed(2), f0=v=>Math.round(v);
+    bind('c-count','o-count','count','train',f0,()=>Game.reset());
+    bind('c-speed','o-speed','speed','train',f0);
+    bind('c-var','o-var','speedVar','train',f1);
+    bind('c-switch','o-switch','switchBias','physics',f1);
+    bind('c-inner','o-inner','innerRatio','track',f1,rebuild);
+    bind('c-gap','o-gap','ringGap','track',f1,rebuild);
+    bind('c-sec','o-sec','sectors','track',f0,rebuild);
+    bind('c-rad','o-rad','radius','train',f1);
+    bind('c-grav','o-grav','gravity','fx',f0);
+    bind('c-imp','o-imp','impulse','fx',f0);
+    bind('c-delay','o-delay','respawnDelay','fx',v=>v.toFixed(1));
+
+    // 车厢尺寸：一个滑块同时缩放长度/宽度（需保持固定基准，故独立处理）
+    (()=>{
+      const el=document.getElementById('c-size'), out=document.getElementById('o-size');
+      const BASE_L=30, BASE_W=11;
+      const apply=()=>{
+        const s=parseFloat(el.value);
+        CFG.train.sizeScale=s;
+        CFG.train.length=BASE_L*s;
+        CFG.train.width =BASE_W*s;
+        CFG.train.radius=6.5*s;
+        out.textContent=s.toFixed(2);
+      };
+      el.addEventListener('input',apply);
+      el.value=1; apply();
+    })();
+
+    // 让所有火车立即应用新速度
+    const speedWatch=['c-speed','c-var'];
+    speedWatch.forEach(id=>document.getElementById(id)
+      .addEventListener('input',()=>Game.trains.forEach(t=>{
+        t.speed=CFG.train.speed*(1+(Math.random()*2-1)*CFG.train.speedVar);
+      })));
+
+    const chk=(id,get,set)=>{
+      const el=document.getElementById(id);
+      el.checked=get();
+      el.addEventListener('change',()=>{ set(el.checked); if(id==='k-debug') Renderer.drawStatic(); });
+    };
+    chk('k-trail',()=>CFG.render.trail,v=>CFG.render.trail=v);
+    chk('k-debug',()=>CFG.render.debug,v=>CFG.render.debug=v);
+    chk('k-mute', ()=>CFG.audio.muted, v=>{CFG.audio.muted=v; if(!v) Sound.ensure();});
+    chk('k-fx',   ()=>CFG.render.particles,v=>CFG.render.particles=v);
+
+    document.getElementById('b-pause').onclick=()=>Game.togglePause();
+    document.getElementById('b-reset').onclick=()=>Game.reset();
+    document.getElementById('b-track').onclick=()=>Renderer.resize();
+    document.getElementById('b-storm').onclick=()=>{
+      const target=Math.min(16,Game.trains.length+6);
+      while(Game.trains.length<target) Game.trains.push(new Train(Track));
+      Game.trains.forEach(t=>{ t.invuln=Math.min(t.invuln,0.25); });
+    };
+
+    const head=document.getElementById('p-head'), panel=document.getElementById('panel');
+    head.onclick=()=>panel.classList.toggle('collapsed');
+    if(window.innerWidth<760) panel.classList.add('collapsed');
+  });
+
+  return {
+    syncChecks(){
+      document.getElementById('k-debug').checked=CFG.render.debug;
+      document.getElementById('k-mute').checked=CFG.audio.muted;
+    }
+  };
+})();
+
+/* ========================= 10. BOOT ========================= */
+window.BAGUA = { CFG, TRIGRAMS, Track, Train, Game, FX, Renderer, Utils, Sound };
+Game.init();
+</script>
+</body>
+</html>

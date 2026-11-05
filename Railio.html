@@ -1,0 +1,912 @@
+<!DOCTYPE html>
+<html data-page-node-id="gumfQw1DaZunApfRCoYuOy" lang="zh-CN">
+<head data-page-node-id="siB4qRYTMfFiSKJlgM4oXt">
+<script data-page-node-id="RV62bCNUeDkSrIJ7ggFTWA" src="/page/page_comm/inject.js"></script>
+<meta data-page-node-id="ch0CFPQ3Igaxa0P0EykcoX" charset="utf-8">
+<meta data-page-node-id="eMHhkIlEEqb78aLxnLAy5p" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" name="viewport">
+<title data-page-node-id="eCTxBP8N4XxJKZUvDT3iaA" data-pnid-children="utvJkWTXCg5hlCkiIBKC2k">小小火车司机 🚂</title>
+<style data-page-node-id="KKDZOSjLIPoP7YT4SokkX6" data-pnid-children="RCYksH8AHwBqg9Aol8YdpI">
+  * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  html,body { width:100%; height:100%; overflow:hidden; background:#9fce7e;
+    font-family:"PingFang SC","Microsoft YaHei",system-ui,sans-serif; user-select:none; }
+  #cv { position:fixed; inset:0; touch-action:none; }
+  #ui { position:fixed; inset:0; pointer-events:none; }
+  #ui button { pointer-events:auto; border:none; cursor:pointer;
+    font-family:inherit; font-weight:700; color:#4e342e; }
+
+  #topbar { position:absolute; top:12px; left:12px; display:flex; gap:10px; align-items:center; }
+  .mode { font-size:20px; padding:12px 20px; border-radius:18px; background:#fff;
+    box-shadow:0 4px 0 rgba(0,0,0,.15), 0 8px 18px rgba(0,0,0,.12); transition:transform .08s; }
+  .mode.active { background:#ffca28; box-shadow:0 4px 0 #c79a00, 0 8px 18px rgba(0,0,0,.15); }
+  .mode:active { transform:scale(.94); }
+  .mini { font-size:22px; width:52px; height:52px; border-radius:16px; background:#fff;
+    box-shadow:0 4px 0 rgba(0,0,0,.15); }
+  .mini:active { transform:scale(.92); }
+
+  #toolbar { position:absolute; left:50%; bottom:14px; transform:translateX(-50%);
+    display:flex; gap:8px; background:rgba(255,255,255,.92); padding:8px;
+    border-radius:22px; box-shadow:0 8px 22px rgba(0,0,0,.18); max-width:96vw;
+    overflow-x:auto; }
+  .tool { display:flex; flex-direction:column; align-items:center; gap:2px;
+    min-width:74px; padding:8px 6px; border-radius:16px; background:transparent; font-size:26px; }
+  .tool span { font-size:14px; }
+  .tool.active { background:#bbdefb; box-shadow:inset 0 0 0 3px #42a5f5; }
+  .tool:active { transform:scale(.93); }
+  .tool.danger { color:#c62828; }
+
+  #whistle { position:absolute; right:18px; bottom:22px; font-size:24px;
+    padding:18px 26px; border-radius:26px; background:#ff7043; color:#fff;
+    box-shadow:0 6px 0 #d84315, 0 10px 20px rgba(0,0,0,.2); display:none; }
+  #whistle:active { transform:scale(.93); }
+
+  #asm { position:absolute; inset:0; background:rgba(38,50,56,.45);
+    display:flex; align-items:center; justify-content:center; pointer-events:auto; }
+  #asm.hidden { display:none; }
+  .panel { width:min(660px,94vw); max-height:88vh; overflow-y:auto; background:#fffdf7;
+    border-radius:26px; padding:20px 22px 22px; box-shadow:0 20px 60px rgba(0,0,0,.3); }
+  .panel h2 { font-size:24px; color:#4e342e; margin-bottom:10px; }
+  .panel h3 { font-size:17px; color:#6d4c41; margin:14px 0 8px; }
+  #compRow { display:flex; gap:6px; min-height:76px; padding:8px; background:#f1f8e9;
+    border:2px dashed #aed581; border-radius:16px; overflow-x:auto; align-items:center; }
+  #compRow .empty { color:#8d6e63; font-size:15px; padding:0 8px; }
+  .card { position:relative; flex:0 0 auto; width:64px; height:64px; border-radius:12px;
+    background:#fff; box-shadow:0 2px 6px rgba(0,0,0,.14); cursor:pointer; }
+  .card.loco { box-shadow:0 0 0 3px #ffb300, 0 2px 6px rgba(0,0,0,.14); }
+  .card canvas { width:100%; height:100%; }
+  .card::after { content:"✕"; position:absolute; top:-6px; right:-6px; width:20px; height:20px;
+    background:#ef5350; color:#fff; border-radius:50%; font-size:12px; line-height:20px;
+    text-align:center; opacity:.85; }
+  #speedBox { display:flex; gap:14px; align-items:center; margin-top:12px; }
+  #speedInfo #kmh { font-size:34px; font-weight:800; color:#e65100; line-height:1; }
+  #speedInfo #kmhUnit { font-size:13px; color:#8d6e63; margin-top:2px; }
+  #tip { font-size:14px; color:#00695c; margin-top:8px; max-width:230px; line-height:1.5; }
+  .parts { display:flex; gap:10px; flex-wrap:wrap; }
+  .part { display:flex; flex-direction:column; align-items:center; gap:4px; cursor:pointer;
+    width:86px; padding:8px 4px 6px; border-radius:16px; background:#fafafa;
+    border:2px solid #eee; transition:transform .08s; }
+  .part:active { transform:scale(.93); }
+  .part canvas { width:56px; height:44px; }
+  .part span { font-size:13px; font-weight:600; color:#5d4037; }
+  .panelBtns { display:flex; gap:12px; margin-top:18px; }
+  .panelBtns button { flex:1; font-size:20px; padding:14px 0; border-radius:18px; color:#fff; }
+  #btnGo { background:#43a047; box-shadow:0 5px 0 #2e7032; }
+  #btnBack { background:#90a4ae; box-shadow:0 5px 0 #607d8b; }
+  .panelBtns button:active { transform:scale(.96); }
+
+  #toast { position:absolute; left:50%; bottom:96px; transform:translateX(-50%);
+    background:rgba(38,50,56,.88); color:#fff; font-size:16px; font-weight:600;
+    padding:10px 20px; border-radius:16px; opacity:0; transition:opacity .25s;
+    pointer-events:none; white-space:nowrap; max-width:92vw; }
+  #toast.show { opacity:1; }
+</style>
+</head>
+<body data-page-node-id="px1A92eFFltPPZUD3UtF7e">
+<canvas data-page-node-id="KDEYR0v37UVoVJQdWhn8oR" id="cv"></canvas>
+<div data-page-node-id="NNIEJq9rGjhEmRGit877Ld" id="ui">
+  <div data-page-node-id="GckSBbNgpyBmRSpQeFwDm6" id="topbar">
+    <button data-page-node-id="MGECRpQ6FhouTM2780RluY" class="mode active" id="btnBuild"><!--pnid:ibFPDtd9LPF2f4cAddKsnZ-->🛤️ ① 拼轨道</button>
+    <button data-page-node-id="UjF0PnnZlrwqZiQLOv7VsZ" class="mode" id="btnRun"><!--pnid:shhToNI09jyDb5alp4JmOI-->🚂 ② 开火车</button>
+    <button data-page-node-id="r0RCHByyZJZmcD0LcRbeuD" class="mini" id="btnSound" title="声音开关"><!--pnid:F0Q3maAlnoOv8qU8RO8Lfa-->🔊</button>
+  </div>
+  <div data-page-node-id="YuaRE8IPMtEq6xsxECMtKy" id="toolbar">
+    <button data-page-node-id="B23Cd0UJXTaRFrTl9bpLnO" class="tool active" data-tool="track"><!--pnid:wgxe19MaAmzUsDSfIuV09G-->🛤️<span data-page-node-id="oCNXALD8Yw8SknnRixUPR8"><!--pnid:EdrQ5fmgPHrpdu5oqAAKyK-->铺轨道</span></button>
+    <button data-page-node-id="SGOJErBVNgqTqy0sGsMzmg" class="tool" data-tool="hand"><!--pnid:QWTXeuPZYnyZYo1b3Ub89r-->✋<span data-page-node-id="0iWXwekC9TvW0PTzIU4mEF"><!--pnid:J8O4rIAnx8DivF1ZUJaMYU-->移动</span></button>
+    <button data-page-node-id="rfGMhazotjWziDE2xoThgw" class="tool" data-tool="station"><!--pnid:vPe4b5Jl33Q7TNe5sQxDBb-->🚉<span data-page-node-id="EghLDTHAI25lq0T5pCFks6"><!--pnid:Wrmd5w5wuOHQY2By35lOEv-->车站</span></button>
+    <button data-page-node-id="ZhpeO2nmuZSVLecwcODsY7" class="tool" data-tool="erase"><!--pnid:g9H2gVCqpuDzFDvDFTx9eT-->🧽<span data-page-node-id="FaX308GTFmFL2m0WXCY3JA"><!--pnid:CDRBkmc6QQgn27OrfBJYwN-->擦除</span></button>
+    <button data-page-node-id="LCbbWW3ew2397axClT71Dy" class="tool" id="btnFit"><!--pnid:7AAaRWG234fLUz3yE2cZDN-->🔍<span data-page-node-id="9FyiV5DWT3DRBGU3sCWcj5"><!--pnid:uNYBMjWtVdTsGU9HlcFhlv-->看全轨道</span></button>
+    <button data-page-node-id="FWVgo0YVlYfsK3rHdl20Ev" class="tool danger" id="btnClear"><!--pnid:ix0S7To02X9dujd0jeb837-->🧹<span data-page-node-id="ZGdPQOUeE1mxkKg6Sjv8es"><!--pnid:PCympIFBml56EMSTuBFqMA-->清空</span></button>
+  </div>
+  <button data-page-node-id="CkTtaHe7hEVESJZZKJ2Mv2" id="whistle"><!--pnid:ZO5fwLR4Tt5b1JALTzUA6U-->📢 鸣笛</button>
+  <div data-page-node-id="aL7vhQ6xwjJEg4ClDvCR0t" class="hidden" id="asm">
+    <div data-page-node-id="eI4538BGUvhgJtXEGXXfqD" class="panel">
+      <h2 data-page-node-id="T7w6WQHxbKsV993r3QcHMC"><!--pnid:eBQn2Kib40uXQnAnlz1Lzn-->🚂 组装你的小火车</h2>
+      <div data-page-node-id="sPxxg1auoc0JR8vVyAYK16" id="compRow"></div>
+      <div data-page-node-id="H2mopWms4XuxGojg5zRqbA" id="speedBox">
+        <canvas data-page-node-id="DUdkTTjpyAAFNWvUeLv6j0" height="124" id="dial" width="200"></canvas>
+        <div data-page-node-id="KRVZlQLbOy6tvxQrrzeGe7" id="speedInfo">
+          <div data-page-node-id="Lq7CRg43G3V3jVdZUVys8E" id="kmh"><!--pnid:eFKYT8PcpArDKta6d95jzh-->0</div>
+          <div data-page-node-id="GNu33cEx9cxMXaesTk5VgY" id="kmhUnit"><!--pnid:a2Vn8iBjdZwLaA9u1qHIyw-->km/h · 预计速度</div>
+          <div data-page-node-id="7tWBAkb1HXSIZQnkyDOaUO" id="tip"><!--pnid:z3VME5o8jSldrVeabfvkri-->💡 车头越多越有劲（但不是翻倍哦）；车厢越多越跑不快！</div>
+        </div>
+      </div>
+      <h3 data-page-node-id="rMolUdY2P4kKfbA1qSAIjH"><!--pnid:X2zE2vNs0YTWyNvLOCQroe-->🚂 选车头（最多 3 个）</h3>
+      <div data-page-node-id="VXFtj8GloGU1aj5PalNQWu" class="parts" id="locoRow"></div>
+      <h3 data-page-node-id="Qf9ieMNP7fYDOZDQNcfKeA"><!--pnid:QinnLK635Jfo5aFMlAUem9-->📦 选车厢</h3>
+      <div data-page-node-id="XjMqRi5K4nZClsRFl070Rx" class="parts" id="wagonRow"></div>
+      <div data-page-node-id="Fo4rPNpME4KRk72XKIcGcP" class="panelBtns">
+        <button data-page-node-id="gLQq9D1vjfH0Ye5iJwhggV" id="btnGo"><!--pnid:FkfUfYvRhbmgGhFqnKJsvt-->🚦 出发！</button>
+        <button data-page-node-id="WSLdbCzqxE7TB7Shq0mhIo" id="btnBack"><!--pnid:bEEy1v1TSuk7CUa9L9HvXC-->🛠️ 返回拼轨道</button>
+      </div>
+    </div>
+  </div>
+  <div data-page-node-id="YpCpcc6feEp4iRBzj38jmh" id="toast"></div>
+</div>
+
+<script data-page-node-id="oCA0wVB8UmK3TdQc9g4waW" data-pnid-children="eDhBLIWb37W3VmkeGLT9ju">
+"use strict";
+/* ================= 基础常量与状态 ================= */
+const CELL = 64, MW = 48, MH = 36;
+const WORLD_W = MW*CELL, WORLD_H = MH*CELL;
+const CAR_SPACING = 60;
+const SAVE_KEY = "trainGameV3";
+
+const cv = document.getElementById("cv");
+const ctx = cv.getContext("2d");
+const layer = document.createElement("canvas");
+layer.width = WORLD_W; layer.height = WORLD_H;
+const lctx = layer.getContext("2d");
+
+let dpr = 1, vw = 0, vh = 0;
+function resize(){
+  dpr = window.devicePixelRatio || 1;
+  vw = window.innerWidth; vh = window.innerHeight;
+  cv.width = vw*dpr; cv.height = vh*dpr;
+  cv.style.width = vw+"px"; cv.style.height = vh+"px";
+}
+window.addEventListener("resize", resize); resize();
+
+let mode = "build";
+let tool = "track";
+let muted = false;
+const cells = new Map();
+let comp = ["steam","greenCoach","greenCoach"];
+const cam  = { x:WORLD_W/2, y:WORLD_H/2, s:1 };
+const camT = { x:WORLD_W/2, y:WORLD_H/2, s:1 };
+
+const train = {
+  active:false, cx:0, cy:0, inDir:"E", outDir:"E", prog:0,
+  x:0, y:0, ang:0, v:0, speedMax:150,
+  lastSt:"", pendingStop:false, dwell:0,
+  bubble:"", bubbleT:0, smokeT:0, lastClickArc:0
+};
+let hist = [];
+let headArc = 0;
+let puffs = [];
+
+const DIRV = { N:{x:0,y:-1}, E:{x:1,y:0}, S:{x:0,y:1}, W:{x:-1,y:0} };
+const DIRS = ["N","E","S","W"];
+const OPP  = { N:"S", S:"N", E:"W", W:"E" };
+const key  = (x,y)=>x+","+y;
+const center = (x,y)=>({ x:(x+.5)*CELL, y:(y+.5)*CELL });
+
+/* ================= 音效（WebAudio 合成） ================= */
+let AC = null;
+function ac(){
+  if(!AC){ try{ AC = new (window.AudioContext||window.webkitAudioContext)(); }catch(e){} }
+  if(AC && AC.state==="suspended") AC.resume();
+  return AC;
+}
+function tone(f, dur, type, vol, slideTo){
+  if(muted) return;
+  const a = ac(); if(!a) return;
+  try{
+    const o = a.createOscillator(), g = a.createGain();
+    o.type = type||"sine"; o.frequency.value = f;
+    if(slideTo) o.frequency.exponentialRampToValueAtTime(slideTo, a.currentTime+dur);
+    g.gain.value = vol||.15;
+    g.gain.exponentialRampToValueAtTime(.0001, a.currentTime+dur);
+    o.connect(g); g.connect(a.destination);
+    o.start(); o.stop(a.currentTime+dur);
+  }catch(e){}
+}
+const sClick  = ()=>tone(660,.06,"square",.06);
+const sPlace  = ()=>tone(500,.09,"sine",.14,760);
+const sErase  = ()=>tone(600,.09,"sine",.12,300);
+const sChime  = ()=>{ tone(880,.18,"sine",.16); setTimeout(()=>tone(1175,.3,"sine",.16),160); };
+const sWhistle= ()=>{ tone(587,.9,"triangle",.16); tone(740,.9,"triangle",.12);
+                      setTimeout(()=>tone(587,.55,"triangle",.1),180); };
+const sKachi  = ()=>tone(170,.03,"square",.045);
+
+/* ================= 网格操作 ================= */
+function recomputeDirs(x,y){
+  const c = cells.get(key(x,y)); if(!c) return;
+  const d = [];
+  for(const dir of DIRS){
+    const v = DIRV[dir];
+    if(cells.get(key(x+v.x, y+v.y))) d.push(dir);
+  }
+  c.dirs = d.length ? d : ["E","W"];
+}
+function recomputeAround(x,y){
+  recomputeDirs(x,y);
+  for(const dir of DIRS){ const v=DIRV[dir]; if(cells.get(key(x+v.x,y+v.y))) recomputeDirs(x+v.x,y+v.y); }
+}
+function putCell(x,y,type){
+  if(x<0||y<0||x>=MW||y>=MH) return false;
+  const k = key(x,y);
+  const old = cells.get(k);
+  if(old && old.t===type) return false;
+  cells.set(k, { t:type, dirs:[] });
+  recomputeAround(x,y);
+  redrawCellArea(x,y);
+  return true;
+}
+function delCell(x,y){
+  const k = key(x,y);
+  if(!cells.has(k)) return false;
+  cells.delete(k);
+  recomputeAround(x,y);
+  redrawCellArea(x,y);
+  return true;
+}
+
+/* ================= 地图层绘制 ================= */
+function mulberry32(a){ return function(){ a|=0; a=a+0x6D2B79F5|0;
+  let t=Math.imul(a^a>>>15,1|a); t=t+Math.imul(t^t>>>7,61|t)^t;
+  return ((t^t>>>14)>>>0)/4294967296; }; }
+const trees = (()=>{
+  const rng = mulberry32(20240601), arr=[];
+  for(let y=0;y<MH;y++)for(let x=0;x<MW;x++){
+    if(rng()<0.022) arr.push({x, y, dx:10+rng()*44, dy:14+rng()*38, s:.8+rng()*.5});
+  }
+  return arr;
+})();
+
+function rr(g,x,y,w,h,r){
+  g.beginPath();
+  g.moveTo(x+r,y);
+  g.arcTo(x+w,y,x+w,y+h,r); g.arcTo(x+w,y+h,x,y+h,r);
+  g.arcTo(x,y+h,x,y,r);     g.arcTo(x,y,x+w,y,r);
+  g.closePath(); g.fill();
+}
+function grassBase(g,x,y){
+  g.fillStyle = ((x+y)&1) ? "#c8e6a5" : "#c0e09a";
+  g.fillRect(x*CELL, y*CELL, CELL, CELL);
+}
+function drawTree(g,t){
+  const cx = t.x*CELL+t.dx, cy = t.y*CELL+t.dy, s = t.s;
+  g.fillStyle="#8d6e63"; g.fillRect(cx-3*s, cy-2*s, 6*s, 12*s);
+  g.fillStyle="#66bb6a"; g.beginPath(); g.arc(cx, cy-8*s, 12*s, 0, 7); g.fill();
+  g.fillStyle="#81c784"; g.beginPath(); g.arc(cx-5*s, cy-3*s, 8*s, 0, 7); g.fill();
+}
+function arcBetween(g,cx,cy,R,d1,d2){
+  const cor = { x:cx+(d1.x+d2.x)*R, y:cy+(d1.y+d2.y)*R };
+  const a1 = Math.atan2(-d2.y,-d2.x), a2 = Math.atan2(-d1.y,-d1.x);
+  let diff = a2-a1;
+  while(diff> Math.PI) diff -= 2*Math.PI;
+  while(diff<-Math.PI) diff += 2*Math.PI;
+  g.arc(cor.x, cor.y, R, a1, a1+diff, diff<0);
+}
+function trackPath(g,x,y,dirs){
+  const c = center(x,y), R = CELL/2;
+  g.beginPath();
+  if(dirs.length===2){
+    const [a,b] = dirs;
+    if(OPP[a]===b){
+      g.moveTo(c.x+DIRV[a].x*R, c.y+DIRV[a].y*R);
+      g.lineTo(c.x+DIRV[b].x*R, c.y+DIRV[b].y*R);
+    }else{
+      arcBetween(g,c.x,c.y,R,DIRV[a],DIRV[b]);
+    }
+  }else{
+    for(const d of dirs){
+      const v = DIRV[d];
+      g.moveTo(c.x, c.y);
+      g.lineTo(c.x+v.x*R, c.y+v.y*R);
+    }
+    if(dirs.length===0){ g.moveTo(c.x-R,c.y); g.lineTo(c.x+R,c.y); }
+  }
+}
+function drawTrackCell(g,x,y,dirs){
+  const c = center(x,y);
+  if(dirs.length===2 && OPP[dirs[0]]===dirs[1]){
+    const h = dirs.includes("E");
+    g.strokeStyle="#8d6e63"; g.lineWidth=6; g.lineCap="round";
+    for(let i=-2;i<=2;i++){
+      const t = i*12;
+      g.beginPath();
+      if(h){ g.moveTo(c.x+t, c.y-19); g.lineTo(c.x+t, c.y+19); }
+      else { g.moveTo(c.x-19, c.y+t); g.lineTo(c.x+19, c.y+t); }
+      g.stroke();
+    }
+  }else if(dirs.length>=3){
+    g.fillStyle="#ffb300"; g.beginPath(); g.arc(c.x,c.y,5,0,7); g.fill();
+  }
+  const pass=(w,col)=>{ g.lineWidth=w; g.strokeStyle=col; g.lineCap="round";
+    g.beginPath(); trackPath(g,x,y,dirs); g.stroke(); };
+  pass(13,"#455a64"); pass(8,"#90a4ae"); pass(3,"#eceff1");
+}
+function drawStationDeco(g,x,y){
+  const px = x*CELL, py = y*CELL;
+  g.globalAlpha = .55;
+  g.fillStyle="#ffe0b2"; rr(g,px+4,py+4,CELL-8,CELL-8,10);
+  g.globalAlpha = 1;
+  g.fillStyle="#fff8e1"; rr(g,px+12,py+10,26,16,3);
+  g.fillStyle="#ef5350";
+  g.beginPath(); g.moveTo(px+9,py+11); g.lineTo(px+25,py+1); g.lineTo(px+41,py+11); g.closePath(); g.fill();
+  g.fillStyle="#90caf9"; g.fillRect(px+17,py+14,6,6); g.fillRect(px+27,py+14,6,6);
+  g.fillStyle="#ffcc80"; g.beginPath(); g.arc(px+47,py+34,3.4,0,7); g.fill();
+  g.fillStyle="#42a5f5"; rr(g,px+44,py+37,7,9,3);
+}
+function drawOneCell(g,x,y){
+  grassBase(g,x,y);
+  const t = trees.find(t=>t.x===x&&t.y===y);
+  if(t && !cells.has(key(x,y))) drawTree(g,t);
+  const c = cells.get(key(x,y));
+  if(!c) return;
+  drawTrackCell(g,x,y,c.dirs);
+  if(c.t==="station") drawStationDeco(g,x,y);
+}
+function redrawCellArea(x,y){
+  for(let dy=-1;dy<=1;dy++)for(let dx=-1;dx<=1;dx++){
+    const nx=x+dx, ny=y+dy;
+    if(nx<0||ny<0||nx>=MW||ny>=MH) continue;
+    drawOneCell(lctx,nx,ny);
+  }
+}
+function redrawAllLayer(){
+  lctx.clearRect(0,0,WORLD_W,WORLD_H);
+  for(let y=0;y<MH;y++)for(let x=0;x<MW;x++) drawOneCell(lctx,x,y);
+}
+
+/* ================= 车辆绘制 ================= */
+function wheels(g,xs,r,col){
+  for(const wx of xs){
+    g.fillStyle=col||"#263238"; g.beginPath(); g.arc(wx,13,r,0,7); g.fill();
+    g.fillStyle="#90a4ae"; g.beginPath(); g.arc(wx,13,r*.45,0,7); g.fill();
+  }
+}
+function drawVehicle(g,kind){
+  switch(kind){
+    case "steam":{
+      g.fillStyle="#1565c0"; rr(g,-27,-13,22,26,4);
+      g.fillStyle="#0d47a1"; rr(g,-29,-15,26,6,3);
+      g.fillStyle="#fff9c4"; rr(g,-23,-8,9,9,2);
+      g.fillStyle="#42a5f5"; rr(g,-6,-11,29,22,10);
+      g.fillStyle="#1e88e5"; rr(g,6,-11,6,22,3);
+      g.fillStyle="#263238"; g.fillRect(13,-6,7,12); g.fillRect(10.5,-8.5,12,5);
+      g.fillStyle="#ffd54f"; g.beginPath(); g.arc(23,0,3.5,0,7); g.fill();
+      g.fillStyle="#c62828"; g.beginPath(); g.moveTo(24,-9); g.lineTo(30,0); g.lineTo(24,9); g.closePath(); g.fill();
+      g.fillStyle="#37474f"; rr(g,-27,4,54,6,3);
+      wheels(g,[-19,-5,10],6,"#c62828");
+      break; }
+    case "green":{
+      g.fillStyle="#37474f"; rr(g,-27,-10,54,20,5);
+      g.fillStyle="#2e9e5b"; rr(g,-27,-13,48,26,7);
+      g.fillStyle="#f6b93b";
+      g.beginPath(); g.moveTo(21,-13); g.lineTo(28,-5); g.lineTo(28,5); g.lineTo(21,13); g.closePath(); g.fill();
+      g.fillStyle="#e3f2fd"; rr(g,-20,-7,9,8,2); rr(g,-6,-7,9,8,2);
+      g.fillStyle="#1b5e20"; rr(g,-25,-16,14,5,2);
+      wheels(g,[-18,-2,14],5);
+      break; }
+    case "dtrain":{
+      g.fillStyle="#f5f7fa";
+      g.beginPath();
+      g.moveTo(-27,-10); g.lineTo(6,-10);
+      g.quadraticCurveTo(24,-9,29,-2); g.quadraticCurveTo(30,0,29,2);
+      g.quadraticCurveTo(24,9,6,10); g.lineTo(-27,10);
+      g.quadraticCurveTo(-29,0,-27,-10); g.closePath(); g.fill();
+      g.fillStyle="#2f7fd0"; g.fillRect(-27,4,54,4);
+      g.fillStyle="#263238";
+      g.beginPath(); g.moveTo(19,-7); g.quadraticCurveTo(25,-5,27,-1); g.lineTo(19,-1); g.closePath(); g.fill();
+      g.fillStyle="#b9d9ee";
+      for(let x=-22;x<=4;x+=9) rr(g,x,-8,6,6,1.5);
+      wheels(g,[-18,14],4.5);
+      break; }
+    case "hst":{
+      g.fillStyle="#f5f7fa";
+      g.beginPath();
+      g.moveTo(-28,-10); g.lineTo(4,-10);
+      g.quadraticCurveTo(26,-8,30,0); g.quadraticCurveTo(26,8,4,10);
+      g.lineTo(-28,10); g.quadraticCurveTo(-30,0,-28,-10); g.closePath(); g.fill();
+      g.fillStyle="#d9a441"; g.fillRect(-28,3,56,3.4);
+      g.fillStyle="#c62828"; g.fillRect(-28,7.4,56,2.6);
+      g.fillStyle="#263238";
+      g.beginPath(); g.moveTo(20,-7); g.quadraticCurveTo(27,-4,28,0); g.lineTo(20,0); g.closePath(); g.fill();
+      g.fillStyle="#b9d9ee";
+      for(let x=-24;x<=2;x+=9) rr(g,x,-8,6,6,1.5);
+      wheels(g,[-19,15],4.5);
+      break; }
+    case "hstCoach":{
+      g.fillStyle="#f5f7fa"; rr(g,-24,-11,48,22,8);
+      g.fillStyle="#2f7fd0"; g.fillRect(-24,5,48,4);
+      g.fillStyle="#b9d9ee";
+      for(let x=-19;x<=12;x+=10) rr(g,x,-8,7,7,2);
+      g.strokeStyle="#b0bec5"; g.lineWidth=1.5;
+      g.beginPath(); g.moveTo(-24,-11); g.lineTo(-24,11); g.moveTo(24,-11); g.lineTo(24,11); g.stroke();
+      wheels(g,[-14,14],4.5);
+      break; }
+    case "greenCoach":{
+      g.fillStyle="#2e9e5b"; rr(g,-24,-11,48,22,6);
+      g.fillStyle="#f6b93b"; g.fillRect(-24,6,48,3);
+      g.fillStyle="#e3f2fd";
+      for(let x=-19;x<=12;x+=10) rr(g,x,-7,7,7,1.5);
+      g.fillStyle="#1b5e20"; rr(g,-24,-13,48,3.5,1.5);
+      wheels(g,[-14,14],4.5);
+      break; }
+    case "freight":{
+      g.fillStyle="#37474f"; rr(g,-24,-8,48,16,3);
+      g.fillStyle="#8d6e63"; rr(g,-24,-12,48,15,3);
+      g.fillStyle="#263238";
+      g.beginPath(); g.arc(-12,-12,7,Math.PI,0); g.arc(0,-14,8,Math.PI,0); g.arc(12,-12,7,Math.PI,0); g.fill();
+      g.fillStyle="#f6b93b"; g.fillRect(-24,-2,48,2);
+      wheels(g,[-14,14],4.5);
+      break; }
+    case "tank":{
+      g.fillStyle="#455a64"; rr(g,-24,-6,48,12,3);
+      g.fillStyle="#cfd6dc"; rr(g,-22,-14,44,23,11);
+      g.fillStyle="#90a4ae"; g.fillRect(-10,-14,4,23); g.fillRect(7,-14,4,23);
+      g.fillStyle="#78909c"; rr(g,-4,-17,8,5,2);
+      wheels(g,[-14,14],4.5);
+      break; }
+  }
+}
+
+/* ================= 火车运动 ================= */
+const LOCO_SET = new Set(["steam","green","dtrain","hst"]);
+function calcSpeedPx(){
+  const heads = comp.filter(k=>LOCO_SET.has(k)).length || 1;
+  const wag   = comp.length - heads;
+  const P = [1,1,1.8,2.45][heads] || 2.45;
+  return 150 * P / (1 + 0.09*wag);
+}
+const calcKmh = ()=>Math.round(calcSpeedPx()*0.85);
+
+function chooseOut(dirs, inDir){
+  const cand = dirs.filter(d=>d!==OPP[inDir]);
+  if(cand.includes(inDir)) return inDir;
+  if(!cand.length) return OPP[inDir];
+  return cand[Math.floor(Math.random()*cand.length)];
+}
+function bezPos(x,y,inDir,outDir,t){
+  const c = center(x,y);
+  const vi = DIRV[inDir], vo = DIRV[outDir];
+  const p0x = c.x - vi.x*CELL/2, p0y = c.y - vi.y*CELL/2;
+  const p2x = c.x + vo.x*CELL/2, p2y = c.y + vo.y*CELL/2;
+  const u = 1-t;
+  const dx = 2*u*(c.x-p0x) + 2*t*(p2x-c.x);
+  const dy = 2*u*(c.y-p0y) + 2*t*(p2y-c.y);
+  return { x: u*u*p0x + 2*u*t*c.x + t*t*p2x,
+           y: u*u*p0y + 2*u*t*c.y + t*t*p2y,
+           ang: Math.atan2(dy,dx) };
+}
+function pushHist(x,y){
+  const last = hist[hist.length-1];
+  if(last){
+    const d = Math.hypot(x-last.x, y-last.y);
+    if(d < 2.5) return;
+    headArc += d;
+    if(headArc - train.lastClickArc > 85 && train.v > 45){
+      train.lastClickArc = headArc; sKachi();
+    }
+  }
+  hist.push({x,y,arc:headArc});
+  const need = comp.length*CAR_SPACING + 280;
+  while(hist.length>2 && headArc - hist[0].arc > need) hist.shift();
+}
+function samplePos(target){
+  for(let i=hist.length-1;i>0;i--){
+    const a = hist[i], b = hist[i-1];
+    if(b.arc <= target && target <= a.arc){
+      const t = (target-b.arc)/Math.max(1e-6, a.arc-b.arc);
+      return { x:b.x+(a.x-b.x)*t, y:b.y+(a.y-b.y)*t, ang:Math.atan2(a.y-b.y,a.x-b.x) };
+    }
+  }
+  const o = hist[0], n = hist[1]||hist[0];
+  return { x:o.x, y:o.y, ang:Math.atan2(n.y-o.y,n.x-o.x)||0 };
+}
+function angLerp(a,b,t){
+  let d = (b-a)%(Math.PI*2);
+  if(d> Math.PI) d -= 2*Math.PI;
+  if(d<-Math.PI) d += 2*Math.PI;
+  return a + d*t;
+}
+function placeTrain(){
+  let startKey = null;
+  for(const [k,c] of cells){ if(c.t==="station"){ startKey=k; break; } }
+  if(!startKey) startKey = cells.keys().next().value;
+  const parts = startKey.split(",");
+  const sx = +parts[0], sy = +parts[1];
+  const c = cells.get(startKey);
+  train.cx=sx; train.cy=sy;
+  train.inDir = c.dirs[0] || "E";
+  train.outDir = chooseOut(c.dirs, train.inDir);
+  train.prog=0; train.v=0; train.dwell=0; train.pendingStop=false; train.lastSt="";
+  train.speedMax = calcSpeedPx();
+  const p = bezPos(sx,sy,train.inDir,train.outDir,0);
+  train.x=p.x; train.y=p.y; train.ang=p.ang;
+  hist=[]; headArc=0; train.lastClickArc=0;
+  pushHist(p.x,p.y);
+  train.active = true;
+  train.bubble="出发咯！"; train.bubbleT=2.2;
+}
+function bubble(text){ train.bubble=text; train.bubbleT=2.0; }
+
+function updateTrain(dt){
+  if(!train.active) return;
+  let target = train.speedMax;
+  const cur = cells.get(key(train.cx,train.cy));
+  if(train.dwell>0){ target=0; train.dwell-=dt; }
+  else if(train.pendingStop && train.prog>0.5){ train.dwell=1.3; train.pendingStop=false; }
+  else if(cur && cur.t==="station" && train.prog>0.3 && train.prog<0.92){ target=Math.min(target,34); }
+  train.v += (target-train.v)*Math.min(1, dt*1.7);
+  train.prog += train.v*dt/CELL;
+  while(train.prog>=1){
+    train.prog -= 1;
+    const nv = DIRV[train.outDir];
+    train.cx += nv.x; train.cy += nv.y;
+    train.inDir = train.outDir;
+    const c = cells.get(key(train.cx,train.cy));
+    if(!c){ train.prog=0; train.v=0; break; }
+    train.outDir = chooseOut(c.dirs, train.inDir);
+    if(c.t==="station" && train.lastSt!==key(train.cx,train.cy)){
+      train.lastSt = key(train.cx,train.cy);
+      train.pendingStop = true; bubble("到站啦！"); sChime();
+    }
+  }
+  const p = bezPos(train.cx,train.cy,train.inDir,train.outDir,train.prog);
+  train.x=p.x; train.y=p.y;
+  train.ang = angLerp(train.ang, p.ang, Math.min(1,dt*10));
+  pushHist(p.x,p.y);
+  if(comp[0]==="steam" && train.v>25){
+    train.smokeT += dt;
+    if(train.smokeT>0.13){
+      train.smokeT=0;
+      const ca=Math.cos(train.ang), sa=Math.sin(train.ang);
+      puffs.push({ x:train.x+ca*18-sa*(-9), y:train.y+sa*18+ca*(-9),
+                   vx:(Math.random()-.5)*8, vy:-26-Math.random()*10,
+                   r:3.5+Math.random()*2, age:0 });
+    }
+  }
+  if(train.bubbleT>0) train.bubbleT-=dt;
+}
+function updatePuffs(dt){
+  for(const p of puffs){ p.age+=dt; p.x+=p.vx*dt; p.y+=p.vy*dt; p.vy-=8*dt; p.r+=7*dt; }
+  puffs = puffs.filter(p=>p.age<1.7);
+}
+
+/* ================= 主渲染 ================= */
+function rrStroke(g,x,y,w,h,r){
+  g.beginPath();
+  g.moveTo(x+r,y);
+  g.arcTo(x+w,y,x+w,y+h,r); g.arcTo(x+w,y+h,x,y+h,r);
+  g.arcTo(x,y+h,x,y,r);     g.arcTo(x,y,x+w,y,r);
+  g.closePath(); g.fill(); g.stroke();
+}
+function render(){
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+  ctx.fillStyle="#9fce7e"; ctx.fillRect(0,0,vw,vh);
+  const s = cam.s;
+  ctx.setTransform(dpr*s,0,0,dpr*s, dpr*(vw/2-cam.x*s), dpr*(vh/2-cam.y*s));
+  ctx.drawImage(layer,0,0);
+  for(const p of puffs){
+    ctx.globalAlpha = Math.max(0, 1-p.age/1.7)*.75;
+    ctx.fillStyle="#eceff1";
+    ctx.beginPath(); ctx.arc(p.x,p.y,p.r,0,7); ctx.fill();
+  }
+  ctx.globalAlpha=1;
+  if(train.active){
+    for(let i=comp.length-1;i>=0;i--){
+      const p = i===0 ? {x:train.x,y:train.y,ang:train.ang} : samplePos(headArc - i*CAR_SPACING);
+      ctx.save();
+      ctx.translate(p.x,p.y); ctx.rotate(p.ang);
+      drawVehicle(ctx,comp[i]);
+      ctx.restore();
+    }
+    if(train.bubbleT>0){
+      ctx.font="bold 17px sans-serif"; ctx.textAlign="center"; ctx.textBaseline="middle";
+      const w = ctx.measureText(train.bubble).width+26;
+      const bx=train.x, by=train.y-44;
+      ctx.fillStyle="rgba(255,255,255,.95)";
+      ctx.strokeStyle="#ffb300"; ctx.lineWidth=3;
+      rrStroke(ctx,bx-w/2,by-16,w,32,12);
+      ctx.beginPath(); ctx.moveTo(bx-7,by+15); ctx.lineTo(bx+7,by+15); ctx.lineTo(bx,by+24); ctx.closePath();
+      ctx.fillStyle="rgba(255,255,255,.95)"; ctx.fill();
+      ctx.strokeStyle="#ffb300"; ctx.stroke();
+      ctx.fillStyle="#4e342e"; ctx.fillText(train.bubble,bx,by+1);
+    }
+  }
+  ctx.setTransform(1,0,0,1,0,0);
+}
+
+/* ================= 速度表盘 ================= */
+const dialCv = document.getElementById("dial");
+const dialCtx = dialCv.getContext("2d");
+let dialCur = 0, dialTarget = 0;
+function drawDial(kmh){
+  const g = dialCtx, cx=100, cy=95, R=84;
+  g.clearRect(0,0,200,124);
+  const a = v => (-200 + 220*Math.min(v,350)/350) * Math.PI/180;
+  const band=(v1,v2,col)=>{ g.strokeStyle=col; g.lineWidth=15; g.lineCap="butt";
+    g.beginPath(); g.arc(cx,cy,R,a(v1),a(v2)); g.stroke(); };
+  band(0,140,"#a5d6a7"); band(140,250,"#ffe082"); band(250,350,"#ef9a9a");
+  g.fillStyle="#6d4c41"; g.font="bold 13px sans-serif"; g.textAlign="center";
+  g.fillText("0",  cx+R*Math.cos(a(0)),   cy+R*Math.sin(a(0))+4);
+  g.fillText("175",cx+R*Math.cos(a(175)), cy+R*Math.sin(a(175))+4);
+  g.fillText("350",cx+R*Math.cos(a(350)), cy+R*Math.sin(a(350))+4);
+  const na = a(kmh);
+  g.strokeStyle="#e65100"; g.lineWidth=5; g.lineCap="round";
+  g.beginPath(); g.moveTo(cx,cy); g.lineTo(cx+72*Math.cos(na), cy+72*Math.sin(na)); g.stroke();
+  g.fillStyle="#37474f"; g.beginPath(); g.arc(cx,cy,8,0,7); g.fill();
+}
+
+/* ================= 主循环 ================= */
+let lastT = performance.now();
+function loop(now){
+  const dt = Math.min(0.05, (now-lastT)/1000); lastT = now;
+  // 相机平滑
+  if(mode==="run" && train.active){ camT.x=train.x; camT.y=train.y; }
+  const cl = Math.min(1, dt*6);
+  cam.x += (camT.x-cam.x)*cl; cam.y += (camT.y-cam.y)*cl; cam.s += (camT.s-cam.s)*cl;
+  updateTrain(dt);
+  updatePuffs(dt);
+  // 表盘动画
+  if(!asmEl.classList.contains("hidden")){
+    dialCur += (dialTarget-dialCur)*Math.min(1,dt*8);
+    drawDial(dialCur);
+    kmhEl.textContent = Math.round(dialCur);
+  }
+  render();
+  requestAnimationFrame(loop);
+}
+
+/* ================= 输入：铺轨道 / 拖动 ================= */
+let painting = false, lastPaintKey = "";
+let dragging = false, dragPX = 0, dragPY = 0;
+function screenToWorld(px,py){
+  return { x:(px-vw/2)/cam.s + cam.x, y:(py-vh/2)/cam.s + cam.y };
+}
+function applyTool(px,py){
+  const w = screenToWorld(px,py);
+  const gx = Math.floor(w.x/CELL), gy = Math.floor(w.y/CELL);
+  const k = key(gx,gy);
+  if(k===lastPaintKey) return;
+  lastPaintKey = k;
+  let changed = false;
+  if(tool==="track")  changed = putCell(gx,gy,"track");
+  if(tool==="station")changed = putCell(gx,gy,"station");
+  if(tool==="erase")  changed = delCell(gx,gy);
+  if(changed){
+    if(tool==="erase") sErase(); else sPlace();
+    // 放置点靠近屏幕边缘 → 视角自动朝那边移动（轨道可以一直往外拼）
+    if(px<80)        camT.x -= 110;
+    else if(px>vw-80)camT.x += 110;
+    if(py<80)        camT.y -= 110;
+    else if(py>vh-80)camT.y += 110;
+    clampCam();
+    saveSoon();
+  }
+}
+function clampCam(){
+  camT.x = Math.max(0, Math.min(WORLD_W, camT.x));
+  camT.y = Math.max(0, Math.min(WORLD_H, camT.y));
+}
+cv.addEventListener("pointerdown", e=>{
+  ac();
+  if(mode!=="build") return;
+  cv.setPointerCapture(e.pointerId);
+  if(tool==="hand"){
+    dragging = true; dragPX=e.clientX; dragPY=e.clientY;
+  }else{
+    painting = true; lastPaintKey="";
+    applyTool(e.clientX, e.clientY);
+  }
+});
+cv.addEventListener("pointermove", e=>{
+  if(mode!=="build") return;
+  if(dragging){
+    camT.x -= (e.clientX-dragPX)/cam.s;
+    camT.y -= (e.clientY-dragPY)/cam.s;
+    dragPX=e.clientX; dragPY=e.clientY;
+    clampCam();
+  }else if(painting){
+    applyTool(e.clientX, e.clientY);
+  }
+});
+const stopPaint = ()=>{ painting=false; dragging=false; };
+cv.addEventListener("pointerup", stopPaint);
+cv.addEventListener("pointercancel", stopPaint);
+
+/* ================= UI：模式切换 / 工具栏 ================= */
+const $ = id=>document.getElementById(id);
+const asmEl = $("asm"), kmhEl = $("kmh");
+const toolbarEl = $("toolbar"), whistleEl = $("whistle");
+const btnBuild = $("btnBuild"), btnRun = $("btnRun");
+
+let toastTimer = 0;
+function toast(msg, dur){
+  const t = $("toast");
+  t.textContent = msg; t.classList.add("show");
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(()=>t.classList.remove("show"), dur||2200);
+}
+
+function setMode(m){
+  mode = m;
+  btnBuild.classList.toggle("active", m==="build");
+  btnRun.classList.toggle("active", m==="run");
+  toolbarEl.style.display = m==="build" ? "flex" : "none";
+  whistleEl.style.display = m==="run" ? "block" : "none";
+  if(m==="build"){
+    train.active = false; puffs = [];
+    toast("点一点，铺轨道！轨道会自动转弯哦 🛤️");
+  }else{
+    if(cells.size < 2){
+      toast("轨道太短啦！先去拼一点轨道吧 🛤️");
+      setMode("build"); return;
+    }
+    openAssembly();
+  }
+}
+btnBuild.addEventListener("click", ()=>{ sClick(); setMode("build"); });
+btnRun.addEventListener("click", ()=>{ sClick(); setMode("run"); });
+
+document.querySelectorAll(".tool[data-tool]").forEach(b=>{
+  b.addEventListener("click", ()=>{
+    sClick(); tool = b.dataset.tool;
+    document.querySelectorAll(".tool[data-tool]").forEach(x=>x.classList.toggle("active", x===b));
+    toast(b.dataset.tool==="hand" ? "按住拖动，可以移动地图 👋"
+        : b.dataset.tool==="station" ? "点一格放一个车站 🚉，火车会停站哦"
+        : b.dataset.tool==="erase" ? "点一点，擦掉轨道 🧽"
+        : "点一点，铺轨道！按住可以连续铺 🛤️");
+  });
+});
+$("btnSound").addEventListener("click", function(){
+  muted = !muted;
+  this.textContent = muted ? "🔇" : "🔊";
+  if(!muted) sClick();
+});
+$("btnFit").addEventListener("click", fitView);
+function fitView(){
+  if(!cells.size){ camT.x=WORLD_W/2; camT.y=WORLD_H/2; camT.s=1; return; }
+  let x0=1e9,y0=1e9,x1=-1e9,y1=-1e9;
+  for(const k of cells.keys()){
+    const [x,y]=k.split(",").map(Number);
+    x0=Math.min(x0,x); y0=Math.min(y0,y); x1=Math.max(x1,x); y1=Math.max(y1,y);
+  }
+  const w=(x1-x0+2)*CELL, h=(y1-y0+2)*CELL;
+  camT.s = Math.max(0.32, Math.min(1.25, Math.min((vw-90)/w,(vh-190)/h)));
+  camT.x = (x0+x1+1)*CELL/2; camT.y = (y0+y1+1)*CELL/2;
+}
+let clearArm = 0;
+$("btnClear").addEventListener("click", function(){
+  if(Date.now()-clearArm < 2600){
+    cells.clear(); redrawAllLayer(); saveSoon();
+    this.innerHTML = "🧹<span>清空</span>"; clearArm=0;
+    toast("已清空，重新拼吧！🧹");
+  }else{
+    clearArm = Date.now();
+    this.innerHTML = "❓<span>再点一次确认</span>";
+    setTimeout(()=>{ if(Date.now()-clearArm>=2600) this.innerHTML="🧹<span>清空</span>"; }, 2700);
+  }
+});
+whistleEl.addEventListener("click", ()=>{ sWhistle(); bubble("呜——！"); });
+
+/* ================= 组装面板 ================= */
+const KIND_NAME = {
+  steam:"蒸汽小火车", green:"绿皮火车头", dtrain:"动车头", hst:"高铁头",
+  hstCoach:"高铁车厢", greenCoach:"绿皮车厢", freight:"货车车厢", tank:"油罐车厢"
+};
+const LOCOS  = ["steam","green","dtrain","hst"];
+const WAGONS = ["hstCoach","greenCoach","freight","tank"];
+
+function drawIcon(canvas, kind, scale){
+  // 面板隐藏时 clientWidth 为 0，等显示后自动重画
+  if(canvas.clientWidth < 2){ requestAnimationFrame(()=>drawIcon(canvas,kind,scale)); return; }
+  const g = canvas.getContext("2d");
+  const dprI = window.devicePixelRatio||1;
+  canvas.width = canvas.clientWidth*dprI; canvas.height = canvas.clientHeight*dprI;
+  g.setTransform(dprI,0,0,dprI,0,0);
+  const w = canvas.clientWidth, h = canvas.clientHeight;
+  g.clearRect(0,0,w,h);
+  g.translate(w/2, h/2); g.scale(scale, scale);
+  drawVehicle(g, kind);
+}
+function buildParts(){
+  const mk = (row, kinds, isLoco)=>{
+    row.innerHTML = "";
+    for(const kind of kinds){
+      const d = document.createElement("div");
+      d.className = "part";
+      const c = document.createElement("canvas");
+      const s = document.createElement("span");
+      s.textContent = KIND_NAME[kind];
+      d.appendChild(c); d.appendChild(s);
+      row.appendChild(d);
+      requestAnimationFrame(()=>drawIcon(c, kind, isLoco?0.72:0.78));
+      d.addEventListener("click", ()=>addPart(kind, isLoco));
+    }
+  };
+  mk($("locoRow"), LOCOS, true);
+  mk($("wagonRow"), WAGONS, false);
+}
+function addPart(kind, isLoco){
+  const heads = comp.filter(k=>LOCO_SET.has(k)).length;
+  const wags  = comp.length - heads;
+  if(isLoco && heads>=3){ toast("车头最多 3 个哦！🚂"); sErase(); return; }
+  if(!isLoco && wags>=8){ toast("车厢最多 8 节哦！📦"); sErase(); return; }
+  comp.push(kind);
+  sPlace(); renderComp();
+}
+function renderComp(){
+  const row = $("compRow");
+  row.innerHTML = "";
+  if(!comp.length){
+    row.innerHTML = '<div class="empty">先选一个车头哦 🚂</div>';
+  }
+  comp.forEach((kind,i)=>{
+    const d = document.createElement("div");
+    d.className = "card" + (LOCO_SET.has(kind)?" loco":"");
+    d.title = KIND_NAME[kind] + "（点击移除）";
+    const c = document.createElement("canvas");
+    d.appendChild(c); row.appendChild(d);
+    requestAnimationFrame(()=>drawIcon(c, kind, LOCO_SET.has(kind)?0.72:0.8));
+    d.addEventListener("click", ()=>{ comp.splice(i,1); sErase(); renderComp(); });
+  });
+  dialTarget = calcKmh();
+  const heads = comp.filter(k=>LOCO_SET.has(k)).length;
+  $("tip").textContent = !heads ? "💡 先选一个车头，火车才有动力！"
+    : heads>=3 ? "💡 3 个车头超级有劲！但车厢太重也跑不快哦"
+    : "💡 车头越多越有劲（不是翻倍哦）；车厢越多越跑不快！";
+}
+function openAssembly(){
+  asmEl.classList.remove("hidden");   // 先显示面板，再画图标（否则取不到宽度）
+  renderComp();
+  dialCur = 0; dialTarget = calcKmh();
+}
+$("btnBack").addEventListener("click", ()=>{
+  sClick(); asmEl.classList.add("hidden"); setMode("build");
+});
+$("btnGo").addEventListener("click", ()=>{
+  if(!comp.some(k=>LOCO_SET.has(k))){ toast("先选一个车头哦！🚂"); return; }
+  if(cells.size<2){ toast("轨道太短啦，先去拼轨道！🛤️"); return; }
+  saveSoon();
+  asmEl.classList.add("hidden");
+  placeTrain();
+  sWhistle();
+  toast("火车开动啦！点 📢 可以鸣笛 📢");
+});
+
+/* ================= 存档 ================= */
+let saveTimer = 0;
+function saveSoon(){
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(()=>{
+    try{
+      const arr = [];
+      for(const [k,c] of cells){ const [x,y]=k.split(","); arr.push([+x,+y,c.t]); }
+      localStorage.setItem(SAVE_KEY, JSON.stringify({
+        cells:arr, comp, cam:{x:camT.x,y:camT.y,s:camT.s}, muted
+      }));
+    }catch(e){}
+  }, 500);
+}
+function loadSave(){
+  try{
+    const raw = localStorage.getItem(SAVE_KEY);
+    if(!raw) return false;
+    const d = JSON.parse(raw);
+    if(!d || !Array.isArray(d.cells)) return false;
+    cells.clear();
+    for(const [x,y,t] of d.cells) cells.set(key(x,y), {t:t||"track", dirs:[]});
+    for(const k of cells.keys()){ const [x,y]=k.split(",").map(Number); recomputeDirs(x,y); }
+    for(const k of cells.keys()){ const [x,y]=k.split(",").map(Number); recomputeDirs(x,y); }
+    if(Array.isArray(d.comp) && d.comp.length) comp = d.comp;
+    if(d.cam){ camT.x=d.cam.x||WORLD_W/2; camT.y=d.cam.y||WORLD_H/2; camT.s=d.cam.s||1; }
+    if(d.muted){ muted=true; $("btnSound").textContent="🔇"; }
+    return true;
+  }catch(e){ return false; }
+}
+
+/* ================= 初始化 ================= */
+function seedDefault(){
+  // 预置一个小环线 + 一个车站，一进来就能开火车
+  const ring = [];
+  for(let x=22;x<=26;x++){ ring.push([x,17]); ring.push([x,19]); }
+  for(let y=17;y<=19;y++){ ring.push([22,y]); ring.push([26,y]); }
+  for(const [x,y] of ring) cells.set(key(x,y), { t:(x===24&&y===17)?"station":"track", dirs:[] });
+  for(const [x,y] of ring) recomputeDirs(x,y);
+}
+(function init(){
+  if(!loadSave()) seedDefault();
+  redrawAllLayer();
+  Object.assign(cam, {x:camT.x, y:camT.y, s:camT.s});
+  buildParts();
+  renderComp();
+  drawDial(0);
+  setMode("build");
+  requestAnimationFrame(loop);
+})();
+</script>
+</body>
+</html>

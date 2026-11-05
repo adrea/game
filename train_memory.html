@@ -1,0 +1,1571 @@
+<!DOCTYPE html>
+<html data-page-node-id="XcP8ncjBeYkMRjGiC3vl8t" lang="zh-CN">
+<head data-page-node-id="Y6UM2s6pkKIID0WQyEBo6J">
+<script data-page-node-id="tk6fu5KbeRKB19v0WXMCom" src="/page/page_comm/inject.js"></script>
+<meta data-page-node-id="jtvBL9VfKYkG6FWINHzS9M" charset="utf-8">
+<meta data-page-node-id="dHJrBTBFdRAefpfxkxkJcn" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" name="viewport">
+<meta data-page-node-id="q2BaNW6y3u1xDo9ubFSPaL" content="yes" name="apple-mobile-web-app-capable">
+<meta data-page-node-id="ppUlxecLpg7Ypnz8wCT7ZG" content="#bfe9ff" name="theme-color">
+<title data-page-node-id="2SSBYosQ9d7tjBQEIxHwhD" data-pnid-children="sAmKySPfA1FyTVvgGNUFmS">小火车回家记</title>
+<style data-page-node-id="9xFYEg6iz2E0WmGps1Gwzy" data-pnid-children="aQBWXDqt06OXk4kxC49V53">
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  html,body{margin:0;height:100%;overflow:hidden;}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Sans GB","Microsoft YaHei","Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif;
+    color:#2f3b45;background:#bfe9ff;user-select:none;-webkit-user-select:none;touch-action:manipulation;
+  }
+  #app{position:relative;height:100vh;height:100dvh;display:flex;flex-direction:column;overflow:hidden;}
+
+  /* ---------- 顶部进度 ---------- */
+  .topbar{display:flex;align-items:center;gap:12px;padding:12px 16px 6px;position:relative;z-index:7;}
+  .topbar.hidden{display:none;}
+  .progress{position:relative;flex:1;height:14px;background:rgba(255,255,255,.75);border-radius:99px;box-shadow:inset 0 2px 5px rgba(60,90,110,.12);}
+  .progress-fill{height:100%;width:0;border-radius:99px;background:linear-gradient(90deg,#f7c948,#e8503a);transition:width .6s cubic-bezier(.34,1.3,.64,1);}
+  .stops{position:absolute;inset:0;}
+  .stop{position:absolute;top:50%;width:9px;height:9px;border-radius:50%;background:#fff;border:2px solid #c9d8e2;transform:translate(-50%,-50%);transition:.25s;}
+  .stop.done{background:#e8503a;border-color:#e8503a;transform:translate(-50%,-50%) scale(1.15);}
+  .icon-btn{width:40px;height:40px;flex:none;border:none;border-radius:14px;background:rgba(255,255,255,.9);font-size:18px;line-height:1;box-shadow:0 3px 0 rgba(60,90,110,.15);cursor:pointer;}
+  .icon-btn:active{transform:translateY(2px);box-shadow:0 1px 0 rgba(60,90,110,.15);}
+  .icon-btn.off{opacity:.45;}
+  .topbar{transition:opacity .25s;}
+  body.riding .topbar{opacity:.22;}
+
+  /* ---------- 场景 ---------- */
+  #scene{position:relative;flex:1;overflow:hidden;}
+  .bg{position:absolute;inset:0;width:100%;height:100%;display:block;}
+  .railway{position:absolute;left:0;right:0;bottom:10px;height:56px;pointer-events:none;z-index:2;}
+  .railway::before{content:"";position:absolute;left:0;right:0;bottom:6px;height:10px;background:repeating-linear-gradient(90deg,#b98a5e 0 10px,transparent 10px 21px);border-radius:3px;opacity:.85;}
+  .railway::after{content:"";position:absolute;left:0;right:0;bottom:14px;height:4px;background:#8c6a4a;border-radius:2px;box-shadow:0 22px 0 -9px rgba(0,0,0,0);}
+  .train-big{position:absolute;bottom:22px;left:12%;width:clamp(84px,13vh,116px);transition:left .8s cubic-bezier(.34,1.3,.64,1);}
+  .puff{animation:puff 1.6s infinite ease-out;transform-origin:center;}
+
+  @keyframes puff{0%{opacity:.8;transform:translate(0,0) scale(.6)}100%{opacity:0;transform:translate(6px,-22px) scale(1.5)}}
+  @keyframes rise{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
+  @keyframes shake{0%,100%{transform:translateX(0)}20%{transform:translateX(-8px)}40%{transform:translateX(8px)}60%{transform:translateX(-5px)}80%{transform:translateX(5px)}}
+  .shake{animation:shake .42s;}
+
+  /* 行进动画层 */
+  #ride{position:absolute;inset:0;z-index:5;overflow:hidden;opacity:0;visibility:hidden;
+        --tw:clamp(130px,27vh,200px);
+        transition:opacity .2s linear,visibility .2s;}
+  #ride.show{opacity:1;visibility:visible;}
+  .r-sky{position:absolute;inset:0;background:linear-gradient(180deg,#a8ddff 0%,#cfeefd 46%,#eafaff 62%);}
+  .r-cloud{position:absolute;left:0;right:0;top:6%;height:22%;background-repeat:repeat-x;
+           background-position:0 0;background-size:auto 100%;opacity:.9;}
+  .r-hill{position:absolute;left:0;right:0;bottom:40%;height:24%;background-repeat:repeat-x;
+          background-position:0 100%;background-size:auto 100%;}
+  .r-tree{position:absolute;left:0;right:0;bottom:40%;height:15%;background-repeat:repeat-x;
+          background-position:0 100%;background-size:auto 100%;}
+  .r-pole{position:absolute;left:0;right:0;bottom:40%;height:19%;background-repeat:repeat-x;
+          background-position:0 100%;background-size:auto 100%;opacity:.75;}
+  .r-ground{position:absolute;left:0;right:0;bottom:0;height:40%;
+            background:linear-gradient(180deg,#93da6f 0%,#78c455 60%,#6cbb4d 100%);}
+  .r-grass{position:absolute;left:0;right:0;bottom:0;height:40%;background-repeat:repeat-x;
+           background-position:0 100%;background-size:auto 28px;opacity:.75;}
+  .r-flower{position:absolute;left:0;right:0;bottom:14%;height:40px;background-repeat:repeat-x;
+            background-position:0 100%;background-size:180px 40px;opacity:.9;}
+  .r-rail{position:absolute;left:0;right:0;bottom:6%;height:30px;
+          background-repeat:repeat-x;background-position:0 100%;background-size:44px 30px;}
+  .r-rail i{position:absolute;left:0;right:0;height:4px;border-radius:2px;background:#8c6a4a;}
+  .r-rail .rail2{bottom:-2px;}
+  .r-rail .rail1{bottom:7px;opacity:.85;}
+  .r-train{position:absolute;left:50%;bottom:calc(6% + 8px);width:var(--tw);
+           margin-left:calc(var(--tw) / -2);
+           animation:bob .32s infinite alternate ease-in-out;}
+  /* 车头朝右开(原图车头在左),整车镜像一下 */
+  .train-big svg,.r-train svg{transform:scaleX(-1);}
+  .r-train-in{display:block;transform-origin:50% 92%;}
+  .r-train-in.push{animation:lunge .58s cubic-bezier(.3,1.3,.5,1);}
+  @keyframes lunge{0%{transform:translateX(0)}28%{transform:translateX(17px) rotate(-1.5deg)}
+                   62%{transform:translateX(11px)}100%{transform:translateX(0)}}
+  @keyframes bob{from{transform:translateY(0)}to{transform:translateY(-3px)}}
+  .whl{animation:whl .62s linear infinite;}
+  @keyframes whl{from{transform:rotate(0)}to{transform:rotate(360deg)}}
+  .r-puff{position:absolute;left:50%;margin-left:calc(var(--tw) * .292 - 8px);
+          bottom:calc(6% + 118px);width:80px;height:70px;pointer-events:none;}
+  .r-puff span{position:absolute;bottom:0;left:0;width:20px;height:20px;border-radius:50%;
+               background:rgba(255,255,255,.9);animation:smoke 1.4s infinite ease-out;}
+  @keyframes smoke{0%{opacity:.85;transform:translate(0,0) scale(.5)}
+                   100%{opacity:0;transform:translate(-46px,-58px) scale(2.1)}}
+
+  /* ---------- 路障:红白栅栏,挡在轨道上 ---------- */
+  .barrier{position:absolute;left:calc(50% + var(--tw) * .45 - 2px);bottom:calc(6% + 8px);
+           width:100px;height:112px;pointer-events:none;will-change:transform;
+           transform:translateX(110vw);}
+  .bfr{position:absolute;transition:transform .74s cubic-bezier(.16,.74,.28,1),opacity .32s linear .42s;}
+  .bpost{width:10px;border-radius:3px;background:linear-gradient(90deg,#c1926a,#96703f 62%,#7a5931);
+         box-shadow:0 2px 3px rgba(40,80,110,.18);}
+  .bp1{left:4px;bottom:0;height:88px;}
+  .bp2{left:72px;bottom:0;height:104px;}
+  .bplank{height:18px;background:repeating-linear-gradient(45deg,#e8503a 0 8px,#fff 8px 16px);
+          box-shadow:inset 0 -2px 0 rgba(120,40,25,.16),0 1px 2px rgba(40,80,110,.18);}
+  .bk1{left:0;bottom:62px;width:51px;border-radius:4px 2px 2px 4px;}
+  .bk2{left:49px;bottom:62px;width:51px;border-radius:2px 4px 4px 2px;}
+  .bk3{left:0;bottom:34px;width:51px;height:16px;border-radius:4px 2px 2px 4px;}
+  .bk4{left:49px;bottom:34px;width:51px;height:16px;border-radius:2px 4px 4px 2px;}
+  .blamp{left:-1px;bottom:80px;width:14px;height:14px;border-radius:50%;
+         background:radial-gradient(circle at 34% 30%,#fffbe0,#f7c948 55%,#d99b00);
+         box-shadow:0 0 10px 2px rgba(247,201,72,.75);animation:lampBlink .95s infinite;}
+  @keyframes lampBlink{0%,100%{opacity:1}50%{opacity:.32}}
+  .barrier.hit .bp1{transform:translate(-12px,-72px) rotate(-44deg);opacity:0;}
+  .barrier.hit .bp2{transform:translate(38px,-46px) rotate(56deg);opacity:0;}
+  .barrier.hit .bk1{transform:translate(-4px,-98px) rotate(-28deg);opacity:0;}
+  .barrier.hit .bk2{transform:translate(34px,-92px) rotate(38deg);opacity:0;}
+  .barrier.hit .bk3{transform:translate(-16px,-58px) rotate(-62deg);opacity:0;}
+  .barrier.hit .bk4{transform:translate(42px,-62px) rotate(68deg);opacity:0;}
+  .barrier.hit .blamp{transform:translate(-30px,-104px) rotate(220deg) scale(.5);opacity:0;}
+  .barrier.noanim .bfr{transition:none;}
+
+  .dust{position:absolute;border-radius:50%;pointer-events:none;}
+  .r-shine{position:absolute;left:calc(50% + var(--tw) * .45);bottom:calc(6% + 6px);
+           width:190px;height:190px;margin-left:-95px;border-radius:50%;pointer-events:none;opacity:0;
+           background:radial-gradient(circle,rgba(255,255,255,.95) 0%,rgba(255,246,200,.6) 40%,rgba(255,255,255,0) 70%);}
+  .r-shine.on{animation:shine .52s ease-out;}
+  @keyframes shine{0%{opacity:0;transform:scale(.3)}22%{opacity:1;transform:scale(1.02)}
+                   100%{opacity:0;transform:scale(1.6)}}
+  #ride.hit{animation:rideShake .46s ease-out;}
+  @keyframes rideShake{0%,100%{transform:translate(0,0)}
+    14%{transform:translate(-7px,4px)}30%{transform:translate(6px,-3px)}
+    46%{transform:translate(-5px,-2px)}62%{transform:translate(4px,3px)}80%{transform:translate(-2px,1px)}}
+
+  #stageArea{position:absolute;inset:0;display:flex;flex-direction:column;padding:14px 16px 102px;overflow-y:auto;z-index:6;
+             transition:opacity .28s ease,transform .28s ease;}
+  #stageArea.waiting{opacity:0;pointer-events:none;transform:translateY(14px);}
+  #stageArea.noanim{transition:none;}
+  #stageArea::-webkit-scrollbar{width:0;}
+
+  .stage{width:100%;max-width:470px;margin:auto;display:flex;flex-direction:column;gap:10px;animation:rise .24s ease both;
+         background:rgba(255,255,255,.74);border:1px solid rgba(255,255,255,.85);border-radius:28px;
+         padding:16px 14px 14px;box-shadow:0 10px 28px rgba(40,80,110,.12);backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px);}
+
+  .head{text-align:center;}
+  .badge{display:inline-block;background:rgba(255,255,255,.9);border-radius:99px;padding:3px 11px;font-size:12px;font-weight:800;color:#7b8b99;letter-spacing:.5px;}
+  .head h2{margin:7px 0 3px;font-size:clamp(19px,3.2vh,26px);letter-spacing:.5px;}
+  .head p{margin:0;font-size:clamp(13px,1.9vh,15px);color:#5d6f7d;font-weight:600;}
+
+  /* 输入格 */
+  .slots{display:flex;justify-content:center;gap:9px;padding:2px 0;}
+  .slot{width:clamp(38px,6vh,54px);height:clamp(48px,7.6vh,66px);border-radius:14px;background:rgba(255,255,255,.92);
+        display:flex;align-items:center;justify-content:center;font-size:clamp(22px,4.2vh,32px);font-weight:800;
+        box-shadow:0 3px 0 rgba(60,90,110,.1);border:2px dashed rgba(110,145,168,.4);transition:.15s;}
+  .slot.filled{border:2px solid #f7c948;background:#fff;transform:translateY(-2px);}
+  .slot.hintfirst{border-color:#7ec8e3;border-style:dashed;background:#eaf8ff;color:#2b7fa8;}
+
+  /* 键盘 */
+  .keypad{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;}
+  .key{height:clamp(44px,6.4vh,64px);border:none;border-radius:16px;background:#fff;color:#2f3b45;
+        font-family:inherit;font-size:clamp(19px,3.2vh,27px);font-weight:800;box-shadow:0 4px 0 #cfdde7;cursor:pointer;
+        display:flex;align-items:center;justify-content:center;transition:transform .08s,box-shadow .08s;}
+  .key:active{transform:translateY(3px);box-shadow:0 1px 0 #cfdde7;}
+  .key-fn{background:#eef6fb;font-size:clamp(17px,2.8vh,23px);}
+
+  .feedback{text-align:center;font-weight:800;font-size:clamp(14px,2vh,17px);min-height:22px;color:#2f9e44;opacity:0;transition:opacity .18s;}
+  .feedback.show{opacity:1;}
+  .feedback.bad{color:#e8503a;}
+
+  /* 道岔场:左边一条主线,五条岔路各挂一块号码牌 */
+  .yard{position:relative;padding-left:50px;padding-bottom:30px;margin:2px 0 0;}
+  .yard-main{position:absolute;left:11px;top:10px;bottom:10px;width:9px;border-radius:4px;overflow:hidden;}
+  .yard-main::before{content:"";position:absolute;inset:0;
+    background:repeating-linear-gradient(180deg,#c8a077 0 9px,rgba(0,0,0,0) 9px 21px);}
+  .yard-main::after{content:"";position:absolute;left:0;right:0;top:0;bottom:0;
+    background:linear-gradient(90deg,#95a5ae 0 2px,rgba(0,0,0,0) 2px 7px,#95a5ae 7px 9px);}
+  .switch-list{display:flex;flex-direction:column;gap:5px;}
+  .switch{position:relative;display:flex;align-items:center;width:100%;padding:0;border:none;background:none;
+          height:clamp(46px,6.4vh,56px);font-family:inherit;cursor:pointer;text-align:left;}
+  .switch .rail{position:absolute;left:-39px;top:calc(50% + 5px);width:41px;height:6px;border-radius:3px;
+                transform-origin:left center;transform:rotate(-19deg);
+                background:linear-gradient(180deg,#c8a077,#a8804f);
+                transition:background .2s,box-shadow .2s;}
+  .switch .rail::before{content:"";position:absolute;left:-1px;top:-3px;width:8px;height:12px;border-radius:50%;
+                background:#8d99a1;transition:background .2s;}
+  .switch .plate{flex:1;display:flex;align-items:center;gap:9px;height:100%;padding:0 13px;background:#fff;
+                 border:2px solid #d9e6ee;border-radius:13px;box-shadow:0 3px 0 #e4edf3;color:#2f3b45;
+                 font-weight:800;font-size:clamp(14px,2.05vh,17px);font-variant-numeric:tabular-nums;letter-spacing:.4px;
+                 transition:border-color .18s,background .18s,color .18s,transform .1s;}
+  .switch .plate::before{content:"";width:9px;height:9px;flex:none;border-radius:50%;background:#cfdde7;
+                 transition:background .2s,box-shadow .2s;}
+  .switch:active .plate{transform:translateY(2px);box-shadow:0 1px 0 #e4edf3;}
+  .switch.on .plate{border-color:#f7c948;background:#fffaf0;box-shadow:0 3px 0 #f0d489;}
+  .switch.on .plate::before{background:#f7c948;box-shadow:0 0 0 3px rgba(247,201,72,.28);}
+  .switch.on .rail{background:linear-gradient(180deg,#ffd75e,#f0b429);box-shadow:0 0 8px rgba(247,201,72,.7);}
+  .switch.ok .plate{border-color:#4aa85c;background:#eefaf0;color:#2b7a3a;box-shadow:0 3px 0 #b9e3c1;}
+  .switch.ok .plate::before{background:#4aa85c;box-shadow:0 0 0 3px rgba(74,168,92,.25);}
+  .switch.ok .rail{background:linear-gradient(180deg,#8ede9a,#4aa85c);box-shadow:0 0 8px rgba(74,168,92,.65);}
+  .switch.bad .plate{border-color:#e05a44;background:#fdeeeb;color:#c23a24;box-shadow:0 3px 0 #f4c3ba;
+                     animation:shakeX .42s;}
+  .switch.bad .rail{background:linear-gradient(180deg,#f0947f,#d9503a);}
+  .switch.hint .plate{animation:platePulse 1.6s ease-in-out infinite;}
+  @keyframes platePulse{0%,100%{border-color:#d9e6ee}50%{border-color:#f7c948;background:#fffaf0}}
+  @keyframes shakeX{0%,100%{transform:translateX(0)}25%{transform:translateX(-5px)}75%{transform:translateX(5px)}}
+  .yard-train{position:absolute;left:-5px;top:0;width:32px;z-index:4;pointer-events:none;
+              transition:top .55s cubic-bezier(.36,.05,.2,1),transform .3s ease;
+              filter:drop-shadow(0 3px 4px rgba(40,80,110,.22));}
+  .yard-train svg{display:block;width:100%;height:auto;}
+
+  /* 听音选项:卡片上只有喇叭和序号,不放字 */
+  .ears{display:grid;grid-template-columns:1fr 1fr;gap:11px;}
+  .ear{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;
+       min-height:clamp(100px,15vh,132px);padding:12px 8px;border:2px solid #d9e6ee;border-radius:20px;background:#fff;
+       box-shadow:0 4px 0 #e4edf3;font-family:inherit;cursor:pointer;
+       transition:transform .1s,border-color .18s,background .18s,box-shadow .18s;}
+  .ear:active{transform:translateY(3px);box-shadow:0 1px 0 #e4edf3;}
+  .ear .spk{display:flex;align-items:center;justify-content:center;}
+  .ear .spk svg{width:38px;height:38px;stroke:#2f8fd0;}
+  .ear .idx{font-size:17px;font-weight:800;color:#98a8b4;letter-spacing:2px;}
+  .ear .tip{font-size:11px;font-weight:700;color:#b3c1cb;}
+  .ear.heard{border-color:#f7c948;background:#fffaf0;box-shadow:0 4px 0 #f0d489;}
+  .ear.heard .spk svg{stroke:#c98a00;}
+  .ear.heard .idx{color:#a9770b;}
+  .ear.heard .tip{color:#c08a12;}
+  .ear .again{display:none;align-items:center;}
+  .ear .again svg{width:30px;height:30px;stroke:#b07a00;margin-top:1px;}
+  .ear.heard .again{display:flex;animation:tapPulse .9s ease-in-out infinite;}
+  .ear.heard .tip{display:none;}
+  @keyframes tapPulse{0%,100%{transform:translateY(0)}50%{transform:translateY(-4px)}}
+  .ear.playing .spk{animation:spk .5s ease-in-out 2;}
+  @keyframes spk{0%,100%{transform:scale(1)}50%{transform:scale(1.18)}}
+  .ear.correct{border-color:#4aa85c;background:#eefaf0;box-shadow:0 4px 0 #b9e3c1;}
+  .ear.correct .spk svg{stroke:#2b7a3a;}
+  .ear.wrong{border-color:#e05a44;background:#fdeeeb;box-shadow:0 4px 0 #f4c3ba;animation:shakeX .42s;}
+
+  /* 选项 */
+  .picks{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+  .pick{min-height:clamp(62px,8.6vh,84px);padding:8px 6px;border:none;border-radius:18px;background:#fff;color:#2f3b45;
+        font-family:inherit;font-weight:800;font-size:clamp(15px,2.4vh,20px);line-height:1.25;
+        box-shadow:0 4px 0 #cfdde7;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;
+        transition:transform .08s;}
+  .pick:active{transform:translateY(3px);box-shadow:0 1px 0 #cfdde7;}
+  .pick .ico{display:flex;align-items:center;}
+  .pick .ico svg{width:clamp(20px,2.8vh,24px);height:auto;}
+  .pick.correct{background:#e6f7e9;box-shadow:0 4px 0 #a8d9b2;}
+  .pick.wrong{background:#ffe9e5;box-shadow:0 4px 0 #f0b3a8;}
+
+  /* 面板 */
+  .panel{width:100%;max-width:430px;margin:auto;background:rgba(255,255,255,.96);border-radius:26px;padding:20px 18px;
+         box-shadow:0 12px 32px rgba(40,80,110,.16);animation:rise .24s ease both;}
+  .panel h1{margin:0 0 6px;font-size:clamp(21px,3.6vh,28px);text-align:center;}
+  .panel p{margin:0 0 14px;font-size:14px;line-height:1.6;color:#5d6f7d;text-align:center;font-weight:600;}
+  .panel .hero{display:flex;justify-content:center;align-items:flex-end;margin:-4px 0 8px;min-height:clamp(64px,11vh,96px);}
+  .panel .hero svg{width:clamp(120px,20vh,168px);height:auto;}
+  .panel .hero .basebar{display:none;}
+
+  .field{margin-bottom:9px;}
+  .field label{display:block;font-size:13px;font-weight:800;color:#5d6f7d;margin-bottom:5px;}
+  .field input{width:100%;height:46px;border-radius:14px;border:2px solid #dbe7ef;padding:0 13px;
+               font-size:17px;font-family:inherit;background:#f8fbfd;outline:none;color:#2f3b45;-webkit-appearance:none;}
+  .field input:focus{border-color:#f7c948;background:#fff;}
+  .field .tip{font-size:11px;color:#93a5b2;margin-top:4px;}
+  .field input::placeholder{color:#c2d0d9;}
+  .who-row{display:flex;gap:8px;}
+  .who-btn{flex:1;height:44px;border:2px solid #dbe7ef;background:#f8fbfd;border-radius:13px;
+           font-family:inherit;font-weight:800;font-size:15px;color:#5d6f7d;cursor:pointer;}
+  .who-btn.on{background:#fff3d6;border-color:#f7c948;color:#a9770b;}
+
+  .btn{display:block;width:100%;height:52px;border:none;border-radius:16px;background:#e8503a;color:#fff;
+       font-family:inherit;font-size:18px;font-weight:800;box-shadow:0 5px 0 #c23c29;cursor:pointer;transition:transform .08s;}
+  .btn:active{transform:translateY(3px);box-shadow:0 2px 0 #c23c29;}
+  .btn.ghost{background:#eef6fb;color:#3d4a55;box-shadow:0 5px 0 #cfdde7;margin-top:14px;}
+  .btn.ghost:active{box-shadow:0 2px 0 #cfdde7;}
+  .link-btn{background:none;border:none;color:#7b8b99;font-family:inherit;font-size:13px;font-weight:700;
+            text-decoration:underline;cursor:pointer;display:block;margin:14px auto 0;padding:6px;}
+
+  .info-card{background:#f5fbfe;border-radius:16px;padding:14px;text-align:center;margin-bottom:14px;}
+  .info-card .phone{font-size:clamp(20px,3.4vh,26px);font-weight:800;letter-spacing:1.5px;color:#e8503a;}
+  .info-card .addr{margin-top:6px;font-size:14px;font-weight:700;color:#5d6f7d;}
+  .medals{display:flex;gap:8px;justify-content:center;margin:4px 0 14px;flex-wrap:wrap;}
+  .medal{background:#fff8e1;border:2px solid #ffe08a;border-radius:14px;padding:8px 12px;font-size:13px;font-weight:800;color:#a9770b;}
+  .diag{font-size:11px;line-height:1.6;color:#93a5b2;margin-top:10px;word-break:break-all;}
+  .diag b{color:#5d6f7d;}
+  .warn{font-size:12px;line-height:1.5;color:#e8503a;min-height:16px;font-weight:700;margin:2px 0 10px;}
+</style>
+</head>
+<body data-page-node-id="duDGp7Q5ONyK86ZdGymuYA">
+<div data-page-node-id="6cX8bewhzQFaQ7SLJ45bLw" id="app">
+  <div data-page-node-id="9OSw5FJZpppV0dCF4bhX6N" class="topbar hidden" id="topbar">
+    <div data-page-node-id="eu3ZEC9L43NoVQpktWEQtX" class="progress"><div data-page-node-id="yvgLkXxyCeFsZWQ5XrA3J6" class="progress-fill" id="progressFill"></div><div data-page-node-id="AIkXlZRPo0mOpo1lJtewcY" class="stops" id="stops"></div></div>
+    <button data-page-node-id="MC7ZhndsGjDZthPnl4HFgQ" aria-label="声音开关" class="icon-btn" id="btnSound"></button>
+  </div>
+
+  <div data-page-node-id="NB2yHWgLiUyntNZGICKWGM" id="scene">
+    <!--pnid:a8X8NGtfNE7va4gXA5fFpX--><!-- 背景 -->
+    <svg data-page-node-id="uYvYJgYS0XLvbqVUUkSZA3" aria-hidden="true" class="bg" preserveAspectRatio="xMidYMid slice" viewBox="0 0 400 700">
+      <defs data-page-node-id="ybtty9xjW2wh0pbx7Bu2bu">
+        <linearGradient data-page-node-id="0Gnx6HXCL72dJ4YXSwnpb5" id="sky" x1="0" x2="0" y1="0" y2="1">
+          <stop data-page-node-id="zUQ0flWm3qSXV9osXD8fPX" offset="0" stop-color="#a8ddff"/><stop data-page-node-id="jEehjri7S4XLyfjNscpa8c" offset="0.55" stop-color="#d6f0ff"/><stop data-page-node-id="rOtu6v3qaAYnWXBgm6PPJQ" offset="1" stop-color="#f2fbff"/>
+        </linearGradient>
+        <linearGradient data-page-node-id="6n0HTQEWvZhMJ3aOF45cW2" id="grass" x1="0" x2="0" y1="0" y2="1">
+          <stop data-page-node-id="35JA24o6UroKWZVzFwj1Yf" offset="0" stop-color="#8fd66c"/><stop data-page-node-id="214eWgKIR8OOrfb3OBHuMH" offset="1" stop-color="#6cbb4d"/>
+        </linearGradient>
+      </defs>
+      <rect data-page-node-id="v8qS7fTIOuztfhenUj6sGq" fill="url(#sky)" height="700" width="400"/>
+      <circle data-page-node-id="DHjnYq9WLT8FmvNuwNBKH9" cx="332" cy="78" fill="#ffe9a8" r="30"/>
+      <circle data-page-node-id="ky1WHLIg24Zqpvxy5nDE3M" cx="332" cy="78" fill="#ffe9a8" opacity=".28" r="44"/>
+      <g data-page-node-id="Vsm8grkfU3OyPynwSxQC7z" fill="#f7fdff" opacity=".8" transform="translate(0,-64)">
+        <ellipse data-page-node-id="wvl5qdWCVulxPnSZAlfEeV" cx="78" cy="112" rx="40" ry="19"/><ellipse data-page-node-id="7zXzWqvYNJ2AXoQ7BRnNQp" cx="108" cy="101" rx="27" ry="16"/><ellipse data-page-node-id="VPLnzsq6ikvJjdEMNM617u" cx="55" cy="103" rx="22" ry="13"/>
+        <ellipse data-page-node-id="eQ7x6BT6kpYKgjHWdxKbCA" cx="300" cy="180" rx="34" ry="15"/><ellipse data-page-node-id="XWo7r6BKWzUxfMqpTMxfYk" cx="326" cy="172" rx="24" ry="13"/>
+      </g>
+      <path data-page-node-id="eAz3GBact5m2yFdpkNFksl" d="M0 452 L72 356 L140 434 L210 348 L286 432 L400 366 L400 700 L0 700Z" fill="#a9dcc0" opacity=".55"/>
+      <path data-page-node-id="x7cTl40xLnne60KyeHrvpB" d="M0 486 L92 414 L170 480 L252 410 L340 478 L400 440 L400 700 L0 700Z" fill="#8ecfa8" opacity=".45"/>
+      <rect data-page-node-id="nI0RsCLt9GYmvMnRoy0L2c" fill="url(#grass)" height="188" width="400" y="512"/>
+      <rect data-page-node-id="QGpfssu4jQkWljHqbCvihS" fill="#7cc45a" height="14" opacity=".55" width="400" y="512"/>
+      <g data-page-node-id="g27EDqTEpHV6darTabNJiX" fill="#4f9e46" opacity=".85">
+        <path data-page-node-id="Wf2y5EdVCzXA8VgqqLNIgy" d="M40 512 l13 -30 l13 30z"/><path data-page-node-id="o2AyOcbWKt7J09D92TaldR" d="M46 496 l7 -18 l7 18z"/>
+        <path data-page-node-id="0MBehLvUjrgU5nPYeGrFsi" d="M340 512 l11 -26 l11 26z"/><path data-page-node-id="NO74SCj8SL5uknpzlVGOrZ" d="M345 500 l6 -16 l6 16z"/>
+      </g>
+      <g data-page-node-id="03qjmZ1auxjPR1b4xIwI8S" fill="#4f9e46" opacity=".6">
+        <path data-page-node-id="z8pTrQZeujr5U7XhpNtePs" d="M150 520 l9 -22 l9 22z"/><path data-page-node-id="zyJBOf4s7WtAo77KSHHivx" d="M250 518 l9 -22 l9 22z"/>
+      </g>
+    </svg>
+
+    <!--pnid:Y0CpScx38ByPNXIKNcVz5v--><!-- 轨道 + 小火车 -->
+    <div data-page-node-id="X6hTPG9a6amHClQBjjBB0J" class="railway">
+      <div data-page-node-id="lwXKamKAJBmSdajwx4IlLj" class="train-big" id="bigTrain"></div>
+    </div>
+
+    <!--pnid:dLvdKeyVqQvbSJybSqUhuE--><!-- 关卡之间的行进动画 -->
+    <div data-page-node-id="KlpRrgBQ3xTcD22bxWCBgQ" aria-hidden="true" id="ride">
+      <div data-page-node-id="Y9Tmp0s7V054cmMjJ2MxaF" class="r-sky"></div>
+      <div data-page-node-id="0YDds4eBUBdkaZ5UC2u6i1" class="r-cloud" id="rCloud"></div>
+      <div data-page-node-id="KhUkR2p9vXcz4zLgyK0VYl" class="r-hill" id="rHill"></div>
+      <div data-page-node-id="eU4AyuRnEdDBZ8ktHueJMe" class="r-tree" id="rTree"></div>
+      <div data-page-node-id="xvDi2FVE6vTtHao1jlQZJT" class="r-pole" id="rPole"></div>
+      <div data-page-node-id="8hlYZKLzNSnpRhPZsIV5KO" class="r-ground"></div>
+      <div data-page-node-id="AlyHMS0VKN8JexmgX5ZHum" class="r-grass" id="rGrass"></div>
+      <div data-page-node-id="2KW84IZa2AVzlJd87iKws9" class="r-flower" id="rFlower"></div>
+      <div data-page-node-id="64PGxyR1wjnSh22NbQXwJY" class="r-rail" id="rRail"><i data-page-node-id="uFPd5XMp3FZgisn2gy7QBI" class="rail1"></i><i data-page-node-id="PmhtP8DsllGpDChoC4Noei" class="rail2"></i></div>
+      <div data-page-node-id="H9oLcI86lhZgBSSL4R0BGE" class="r-train" id="rTrain"><div data-page-node-id="2HR231WyfDmP53IDJn3HXy" class="r-train-in" id="rTrainIn"></div></div>
+      <div data-page-node-id="d7HleSy0BKtj9pD7sHm8mo" class="r-puff" id="rPuff"></div>
+      <div data-page-node-id="CCVXexJn5VRXedMFFsrixq" class="barrier" id="barrier">
+        <span data-page-node-id="kjHCQ8JUqlBWRyv2ZgIXTH" class="bfr bpost bp1"></span>
+        <span data-page-node-id="z3SUFY4A5qum3zQHtaBCQm" class="bfr bpost bp2"></span>
+        <span data-page-node-id="vSPtMgEaNo5jAuEaHrGcKv" class="bfr bplank bk1"></span>
+        <span data-page-node-id="LLTnpVAcz3qYJkL7uzfYg1" class="bfr bplank bk2"></span>
+        <span data-page-node-id="pyHn1wdfSZsGj0ih9vUPsw" class="bfr bplank bk3"></span>
+        <span data-page-node-id="SyDtAQBTDragEiXLXqFTBv" class="bfr bplank bk4"></span>
+        <span data-page-node-id="D1kduqTaXiENFWPuiXljpa" class="bfr blamp"></span>
+      </div>
+      <div data-page-node-id="rYXUpJZzv7KiUTAxY2giVu" class="r-shine" id="rShine"></div>
+    </div>
+
+    <div data-page-node-id="EtKv7oRidj0WzMlJSAoTZz" id="stageArea"></div>
+  </div>
+</div>
+
+<script data-page-node-id="aHbEoFInoKwDfmeeDMvq3B" data-pnid-children="yrMMjBGB6uOQQwI2wGjA7J">
+(function(){
+"use strict";
+
+/* =========================================================
+   基础工具
+   ========================================================= */
+const $ = s => document.querySelector(s);
+const CFG_KEY = "trainHomeCfg_v1";
+const REC_KEY = "trainHomeRec_v1";
+const CN = ["零","一","二","三","四","五","六","七","八","九"];
+
+/* 全部图标用内联 SVG,不依赖系统 emoji 字体 */
+const TRAIN_SVG = `<svg viewBox="0 0 120 78" width="100%" xmlns="http://www.w3.org/2000/svg">
+  <g class="puff" fill="#ffffff" opacity=".85"><circle cx="30" cy="14" r="7"/><circle cx="42" cy="6" r="5"/></g>
+  <rect x="66" y="30" width="46" height="26" rx="6" fill="#5fb3e0"/>
+  <rect x="72" y="35" width="12" height="11" rx="3" fill="#eaf7ff"/>
+  <rect x="88" y="35" width="12" height="11" rx="3" fill="#eaf7ff"/>
+  <rect x="14" y="26" width="52" height="30" rx="7" fill="#e8503a"/>
+  <rect x="50" y="12" width="18" height="20" rx="5" fill="#f7c948"/>
+  <rect x="54" y="16" width="10" height="9" rx="2.5" fill="#bfe9ff"/>
+  <rect x="20" y="8" width="10" height="20" rx="4" fill="#e8503a"/>
+  <rect x="18" y="4" width="14" height="6" rx="3" fill="#c23c29"/>
+  <circle cx="30" cy="38" r="4.5" fill="#fff"/><circle cx="30" cy="38" r="2.2" fill="#2f3b45"/>
+  <circle cx="42" cy="38" r="4.5" fill="#fff"/><circle cx="42" cy="38" r="2.2" fill="#2f3b45"/>
+  <path d="M29 46 q6 5 12 0" stroke="#8f2620" stroke-width="2.2" fill="none" stroke-linecap="round"/>
+  <circle cx="63" cy="32" r="3.4" fill="#fff2b0"/>
+  <g class="whl" style="transform-origin:26px 58px"><circle cx="26" cy="58" r="8" fill="#3b3b3b"/><path d="M26 51.5v13M19.5 58h13" stroke="#8b8b8b" stroke-width="1.8"/><circle cx="26" cy="58" r="2.4" fill="#cfcfcf"/></g>
+  <g class="whl" style="transform-origin:48px 58px"><circle cx="48" cy="58" r="8" fill="#3b3b3b"/><path d="M48 51.5v13M41.5 58h13" stroke="#8b8b8b" stroke-width="1.8"/><circle cx="48" cy="58" r="2.4" fill="#cfcfcf"/></g>
+  <g class="whl" style="transform-origin:82px 58px"><circle cx="82" cy="58" r="7" fill="#3b3b3b"/><path d="M82 52v12M76 58h12" stroke="#8b8b8b" stroke-width="1.6"/><circle cx="82" cy="58" r="2.1" fill="#cfcfcf"/></g>
+  <g class="whl" style="transform-origin:102px 58px"><circle cx="102" cy="58" r="7" fill="#3b3b3b"/><path d="M102 52v12M96 58h12" stroke="#8b8b8b" stroke-width="1.6"/><circle cx="102" cy="58" r="2.1" fill="#cfcfcf"/></g>
+  <rect class="basebar" x="-6" y="56" width="132" height="3" rx="1.5" fill="#8c6a4a"/>
+</svg>`;
+
+/* 道岔场里用的是"从上看"的车头,走在竖直的主线上才不别扭 */
+const TRAIN_TOP = `<svg viewBox="0 0 32 46" xmlns="http://www.w3.org/2000/svg">
+  <circle cx="16" cy="42" r="3.2" fill="#ffffff" opacity=".85"/>
+  <rect x="6" y="26" width="20" height="14" rx="6" fill="#c93f22"/>
+  <rect x="5" y="8" width="22" height="30" rx="9" fill="#e8503a"/>
+  <rect x="8" y="9" width="16" height="6" rx="3" fill="#f7c948"/>
+  <rect x="1.6" y="16" width="4.2" height="11" rx="2.1" fill="#3b3b3b"/>
+  <rect x="26.2" y="16" width="4.2" height="11" rx="2.1" fill="#3b3b3b"/>
+  <rect x="8" y="3" width="16" height="8" rx="4" fill="#3b3b3b"/>
+  <circle cx="10.4" cy="7" r="2.1" fill="#ffe08a"/>
+  <circle cx="21.6" cy="7" r="2.1" fill="#ffe08a"/>
+  <rect x="11" y="24" width="10" height="7" rx="3" fill="#ffffff" opacity=".22"/>
+</svg>`;
+
+const ICON = {
+  svg: (inner, size) => `<svg viewBox="0 0 24 24" width="${size||22}" height="${size||22}" fill="none"
+     stroke="#3d4a55" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">${inner}</svg>`,
+  get sound(){ return this.svg(`<path d="M11 5 6 9H3v6h3l5 4V5z" fill="#3d4a55" stroke="none"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/><path d="M18.5 6a8.5 8.5 0 0 1 0 12"/>`); },
+  get mute(){ return this.svg(`<path d="M11 5 6 9H3v6h3l5 4V5z" fill="#3d4a55" stroke="none"/><path d="M16 9.5l5 5M21 9.5l-5 5"/>`); },
+  get del(){ return this.svg(`<path d="M21 6H9l-6 6 6 6h12a1 1 0 0 0 1-1V7a1 1 0 0 0-1-1z"/><path d="M14 10l4 4M18 10l-4 4"/>`, 24); },
+  get house(){ return this.svg(`<path d="M3 11l9-7 9 7"/><path d="M6 9.5V20h12V9.5"/><rect x="10" y="14" width="4" height="6" rx="1"/>`); },
+  get building(){ return this.svg(`<path d="M5 20V5a1 1 0 0 1 1-1h12a1 1 0 0 1 1 1v15"/><path d="M3 20h18"/><path d="M9 8h1.5M13.5 8H15M9 11.5h1.5M13.5 11.5H15M9 15h1.5M13.5 15H15"/>`); },
+  get tap(){ return this.svg(`<path d="M9.4 11.6V5.9a1.7 1.7 0 0 1 3.4 0v5.7"/><path d="M12.8 11.6V7.3a1.7 1.7 0 0 1 3.4 0v4.3"/><path d="M16.2 11.6V8.9a1.7 1.7 0 0 1 3.4 0v5.3a6.2 6.2 0 0 1-6.2 6.2h-1.1a4.6 4.6 0 0 1-3.6-1.8l-3.2-4.2a1.7 1.7 0 0 1 2.6-2.1l1.6 1.7"/>`, 26); },
+  get door(){ return this.svg(`<path d="M6 20V4h12v16"/><path d="M3 20h18"/><circle cx="14.5" cy="12" r="1.1" fill="#3d4a55"/>`); },
+  get home(){ return `<svg viewBox="0 0 120 78" width="100%">
+      <path d="M14 46 L60 14 L106 46" fill="none" stroke="#e8503a" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
+      <rect x="24" y="44" width="72" height="40" rx="6" fill="#fdf3e0" stroke="#e8503a" stroke-width="5"/>
+      <rect x="52" y="58" width="16" height="26" rx="3" fill="#8f5a33"/>
+      <rect x="34" y="52" width="12" height="12" rx="2.5" fill="#bfe9ff" stroke="#e8503a" stroke-width="3"/>
+      <rect x="74" y="52" width="12" height="12" rx="2.5" fill="#bfe9ff" stroke="#e8503a" stroke-width="3"/>
+      <circle cx="64" cy="10" r="5" fill="#f7c948"/>
+    </svg>`; }
+};
+
+function shuffle(a){
+  const r = a.slice();
+  for(let i=r.length-1;i>0;i--){ const j = Math.floor(Math.random()*(i+1)); [r[i],r[j]]=[r[j],r[i]]; }
+  return r;
+}
+function sayDigits(s){ return String(s).split("").map(c=>CN[+c]||c).join("、"); }
+/* 听觉关卡的念法:门牌号逐位念(501 → 五、零、一),其他按原文 */
+function sayOption(t){
+  const v = String(t);
+  if(/^\d+$/.test(v)) return sayDigits(v);
+  return v;
+}
+function fmtPhone(p){
+  p = String(p).replace(/\D/g,"");
+  return p.length === 11 ? p.slice(0,3)+" "+p.slice(3,7)+" "+p.slice(7) : p;
+}
+function escapeHTML(s){
+  return String(s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+}
+function lsGet(k){ try{ return JSON.parse(localStorage.getItem(k)||"null"); }catch(e){ return null; } }
+function lsSet(k,v){ try{ localStorage.setItem(k, JSON.stringify(v)); }catch(e){} }
+
+/* =========================================================
+   行进动画
+   ========================================================= */
+const svgURL = s => 'url("data:image/svg+xml,' + encodeURIComponent(s) + '")';
+
+const BG_IMG = {
+  cloud: svgURL(`<svg xmlns='http://www.w3.org/2000/svg' width='520' height='140'>
+    <g fill='#ffffff' opacity='.85'>
+      <ellipse cx='90' cy='80' rx='46' ry='20'/><ellipse cx='124' cy='68' rx='30' ry='17'/><ellipse cx='62' cy='70' rx='24' ry='14'/>
+      <ellipse cx='330' cy='46' rx='40' ry='17'/><ellipse cx='358' cy='36' rx='26' ry='14'/>
+    </g>
+  </svg>`),
+  hill: svgURL(`<svg xmlns='http://www.w3.org/2000/svg' width='600' height='200' preserveAspectRatio='none'>
+    <path d='M0 200 L40 132 L86 158 L140 78 L196 152 L250 106 L306 160 L366 88 L424 154 L486 112 L544 158 L600 120 L600 200 Z' fill='#a9d9c1'/>
+    <path d='M0 200 L72 152 L140 182 L214 138 L292 184 L368 146 L446 186 L522 150 L600 190 L600 200 Z' fill='#8ec9aa'/>
+  </svg>`),
+  tree: svgURL(`<svg xmlns='http://www.w3.org/2000/svg' width='320' height='130'>
+    <path d='M26 130 L58 26 L90 130 Z' fill='#3f8f3f'/>
+    <path d='M45 82 L58 20 L71 82 Z' fill='#4ea34a'/>
+    <path d='M124 130 L148 58 L172 130 Z' fill='#42923f'/>
+    <path d='M190 130 L222 14 L254 130 Z' fill='#3f8f3f'/>
+    <path d='M208 76 L222 8 L236 76 Z' fill='#57ae52'/>
+    <path d='M282 130 L300 74 L318 130 Z' fill='#42923f'/>
+  </svg>`),
+  flower: svgURL(`<svg xmlns='http://www.w3.org/2000/svg' width='180' height='40'>
+    <g><circle cx='24' cy='12' r='4' fill='#fff3b0'/><circle cx='24' cy='12' r='1.6' fill='#f0a92e'/>
+       <circle cx='96' cy='20' r='3.4' fill='#ffffff'/><circle cx='96' cy='20' r='1.4' fill='#f7c948'/>
+       <circle cx='150' cy='10' r='3' fill='#ffe0ec'/><circle cx='150' cy='10' r='1.3' fill='#e8759b'/></g>
+  </svg>`),
+  pole: svgURL(`<svg xmlns='http://www.w3.org/2000/svg' width='220' height='150'>
+    <rect x='104' y='18' width='7' height='132' rx='2' fill='#a98a68'/>
+    <rect x='78' y='34' width='59' height='5' rx='2' fill='#a98a68'/>
+    <rect x='84' y='52' width='47' height='4' rx='2' fill='#a98a68'/>
+    <rect x='78' y='30' width='5' height='9' rx='2' fill='#8f7355'/>
+    <rect x='132' y='30' width='5' height='9' rx='2' fill='#8f7355'/>
+  </svg>`),
+  grass: svgURL(`<svg xmlns='http://www.w3.org/2000/svg' width='60' height='26'>
+    <path d='M8 26 q4 -14 8 0' stroke='#4e9a3b' stroke-width='3' fill='none' stroke-linecap='round'/>
+    <path d='M38 26 q3 -10 6 0' stroke='#4e9a3b' stroke-width='2.5' fill='none' stroke-linecap='round'/>
+    <path d='M24 26 q2 -8 4 0' stroke='#58a844' stroke-width='2' fill='none' stroke-linecap='round'/>
+  </svg>`),
+  rail: svgURL(`<svg xmlns='http://www.w3.org/2000/svg' width='44' height='30'>
+    <rect x='7' y='0' width='9' height='30' rx='2' fill='#b98a5e'/>
+  </svg>`)
+};
+
+let riding = false;
+
+/* 把路障送回屏幕右边(下一段行程重新开过来) */
+function resetBarrier(){
+  const b = $("#barrier");
+  if(!b) return;
+  b.classList.add("noanim");
+  b.classList.remove("hit");
+  b.style.transform = "translateX(110vw)";
+  void b.offsetHeight;                      // 强制回流,碎片直接归位不飞回去
+  requestAnimationFrame(()=>b.classList.remove("noanim"));
+}
+
+/* 撞击瞬间的木屑/尘土 */
+function burstDust(){
+  const ride = $("#ride"), b = $("#barrier");
+  if(!ride || !b) return;
+  const rb = ride.getBoundingClientRect(), bb = b.getBoundingClientRect();
+  const cx = bb.left - rb.left + 26;
+  const cy = rb.bottom - bb.top - 40;
+  for(let i=0;i<10;i++){
+    const d = document.createElement("span");
+    d.className = "dust";
+    const s = 7 + Math.random()*11;
+    d.style.left = cx + "px";
+    d.style.bottom = cy + "px";
+    d.style.width = s + "px";
+    d.style.height = s * (0.7 + Math.random()*0.6) + "px";
+    d.style.borderRadius = (i % 3 ? "50%" : "2px");
+    d.style.background = i % 3 ? "rgba(228,214,192,.96)" : (i % 2 ? "rgba(232,80,58,.85)" : "rgba(194,146,106,.95)");
+    ride.appendChild(d);
+    if(!d.animate){ setTimeout(()=>d.remove(), 600); continue; }
+    const dx = (Math.random()-.5) * 170;
+    const dy = 12 + Math.random()*84;
+    const an = d.animate([
+      { transform:"translate(0,0) rotate(0deg) scale(.4)", opacity:.95 },
+      { transform:`translate(${dx*.55}px,${-dy*.75}px) rotate(${dx*.4}deg) scale(1.15)`, opacity:.9, offset:.42 },
+      { transform:`translate(${dx}px,${-dy}px) rotate(${dx*.9}deg) scale(.55)`, opacity:0 }
+    ], { duration: 430 + Math.random()*330, easing:"cubic-bezier(.2,.7,.4,1)" });
+    an.onfinish = () => d.remove();
+  }
+}
+
+/* 一段行程:起步 → 飞奔 → 看见路障 → 减速停住
+   opt = { barrier:Boolean, exit:Boolean, onArrive:fn } */
+function playJourney(dur, opt){
+  opt = opt || {};
+  const el = $("#ride");
+  const b = $("#barrier");
+  const hasB = opt.barrier !== false;
+
+  riding = true;
+  S.locked = true;
+  document.body.classList.add("riding");
+  el.classList.add("show");
+  if(hasB) resetBarrier();
+
+  const layers = [
+    { el: $("#rCloud"),  k: 0.07, w: 520 },
+    { el: $("#rHill"),   k: 0.16, w: 600 },
+    { el: $("#rTree"),   k: 0.42, w: 320 },
+    { el: $("#rPole"),   k: 0.60, w: 220 },
+    { el: $("#rGrass"),  k: 0.86, w: 60  },
+    { el: $("#rFlower"), k: 1.15, w: 180 },
+    { el: $("#rRail"),   k: 1.00, w: 44  }
+  ];
+
+  let off = 0, last = performance.now(), start = last;
+  // 起步加速 → 匀速 → 到路障前减速
+  const speed = p => p < 0.16 ? (p / 0.16) : (p > 0.84 ? Math.max(0, (1 - p) / 0.16) : 1);
+
+  function frame(t){
+    const p = Math.min(1, (t - start) / dur);
+    const dt = Math.min(48, t - last);
+    last = t;
+    off += speed(p) * dt * 0.62;
+    for(const L of layers){
+      if(L.el) L.el.style.backgroundPositionX = (-off * L.k % L.w) + "px";
+    }
+    if(hasB && b){
+      // 后半程路障从右边滑进来,越走越慢,最后一刻停在车头前
+      const q = Math.max(0, Math.min(1, (p - 0.46) / 0.54));
+      const e = 1 - Math.pow(1 - q, 2.2);
+      b.style.transform = "translateX(" + (110 * (1 - e)).toFixed(2) + "vw)";
+    }
+    if(p < 1){ requestAnimationFrame(frame); return; }
+
+    if(hasB && b) b.style.transform = "translateX(0)";
+    document.body.classList.remove("riding");
+    if(opt.exit) el.classList.remove("show");
+    // 先解锁再亮出题目,否则面板刚出现的那一下按键会被吃掉
+    riding = false;
+    S.locked = false;
+    if(opt.onArrive) opt.onArrive();
+  }
+  requestAnimationFrame(frame);
+}
+
+/* =========================================================
+   声音:语音合成 + 简单音效(全部离线,零依赖)
+   ========================================================= */
+const S = {
+  screen:"welcome",   // welcome | setup | intro | play | win
+  cfg:null,           // {phone, area, building, door}
+  step:0,
+  input:"",
+  wrong:0,
+  hinted:false,
+  heardIdx:-1,
+  heardAt:0,
+  options:[],
+  locked:false,
+  sound:true,
+  whoTmp:"爸爸"
+};
+let STEPS = [];
+
+/* ---------- 语音 + 音效:移动端解锁 / 失败可检测 ---------- */
+let AC = null, audioPrimed = false, lastTTSUnlock = 0, unlockTries = 0;
+let voiceList = [], ttsState = "unknown", ttsTimer = null, speakSeq = 0;
+let onlineTTS = false, ttsFailCount = 0, onlineAudio = null, onlineFail = 0, onlineDead = false;
+
+function ac(){
+  if(!AC){
+    try{ AC = new (window.AudioContext || window.webkitAudioContext)(); }catch(e){ return null; }
+  }
+  if(AC.state === "suspended"){ try{ AC.resume(); }catch(e){} }
+  return AC;
+}
+function ttsSupported(){
+  return typeof window.speechSynthesis !== "undefined" && typeof window.SpeechSynthesisUtterance === "function";
+}
+function refreshVoices(){
+  if(!ttsSupported()) return [];
+  try{ voiceList = speechSynthesis.getVoices() || []; }catch(e){ voiceList = []; }
+  return voiceList;
+}
+function zhVoice(){
+  if(!voiceList.length) refreshVoices();
+  return voiceList.find(v => /zh[-_]?CN/i.test(v.lang)) || voiceList.find(v => /^zh/i.test(v.lang)) || null;
+}
+
+/* 必须在"真实用户手势"的调用栈里执行一次:
+   - 解锁 Web Audio(安卓/iOS 的自动播放策略)
+   - 解锁语音合成(iOS 尤其严格,而且要先真的说一句,空字符串无效) */
+function unlockAudio(){
+  const c = ac();
+  if(c && !audioPrimed){
+    try{
+      const b = c.createBuffer(1, 1, 22050);
+      const src = c.createBufferSource();
+      src.buffer = b; src.connect(c.destination); src.start(0);
+      audioPrimed = true;
+    }catch(e){}
+  }
+  // 只在"还没成功说过话"时预热,避免每次点击都插一句
+  if(ttsSupported() && ttsState !== "ok" && unlockTries < 3){
+    const now = Date.now();
+    if(now - lastTTSUnlock > 600){
+      lastTTSUnlock = now;
+      unlockTries++;
+      try{
+        const u = new SpeechSynthesisUtterance("出发");
+        u.lang = "zh-CN"; u.volume = 0.03; u.rate = 1.2; u.pitch = 1;
+        u.onstart = () => { ttsState = "ok"; };
+        speechSynthesis.speak(u);
+      }catch(e){ ttsState = "fail"; }
+    }
+  }
+}
+function warmupSpeech(){ unlockAudio(); }
+
+/* 安卓 WebView(微信、各类 App 内置浏览器)有个通病:
+   speak() 调用成功但语音一直不开始,状态卡在 paused/pending 且不报错。
+   办法是说话期间持续 resume,直到 onend。 */
+let speakGuard = null, guardStop = null;
+function startGuard(){
+  stopGuard();
+  try{ if(speechSynthesis.paused) speechSynthesis.resume(); }catch(e){}
+  speakGuard = setInterval(()=>{
+    try{
+      if(speechSynthesis.paused) speechSynthesis.resume();
+    }catch(e){}
+  }, 300);
+  guardStop = setTimeout(stopGuard, 15000);
+}
+function stopGuard(){
+  if(speakGuard){ clearInterval(speakGuard); speakGuard = null; }
+  if(guardStop){ clearTimeout(guardStop); guardStop = null; }
+}
+function envInfo(){
+  let zh = [];
+  try{ zh = voiceList.filter(v=>/^zh/i.test(v.lang)).map(v=>v.name).slice(0,2); }catch(e){}
+  const ua = navigator.userAgent || "";
+  const inWv = /; wv\)/.test(ua) || /Version\/4\.0/.test(ua);
+  return {
+    tts: ttsSupported(),
+    total: voiceList.length,
+    zh: zh,
+    ac: AC ? AC.state : "none",
+    wv: inWv
+  };
+}
+
+/* 有些安卓 WebView 完全没有本地语音合成能力(语音包 0 个)。
+   这时退到在线语音:用 <audio> 直接播 mp3,跨域也不需要 CORS。 */
+function speakOnline(text, opt){
+  if(onlineDead){ onlineTTS = false; speak(text, opt); return; }
+  try{
+    if(onlineAudio){ try{ onlineAudio.pause(); }catch(e){} onlineAudio = null; }
+    const spd = (opt && opt.rate != null && opt.rate < 0.85) ? 2 : 3;
+    const url = "https://fanyi.baidu.com/gettts?lan=zh&spd=" + spd
+              + "&source=web&text=" + encodeURIComponent(text);
+    ttsState = "pending";
+    const a = new Audio(url);
+    a.preload = "auto";
+    a.onplaying = () => { ttsState = "ok"; onlineFail = 0; };
+    // 在线取不到声音就彻底退回本机:状态置死,下一次 speak 自然走本机合成
+    a.onerror = () => {
+      ttsState = "fail";
+      onlineFail++;
+      if(onlineFail >= 2){ onlineDead = true; onlineTTS = false; speak(text, opt); }
+    };
+    const pr = a.play();
+    if(pr && pr.catch) pr.catch(()=>{
+      ttsState = "fail";
+      onlineFail++;
+      if(onlineFail >= 2){ onlineDead = true; onlineTTS = false; speak(text, opt); }
+    });
+    onlineAudio = a;
+  }catch(e){ ttsState = "fail"; onlineDead = true; onlineTTS = false; speak(text, opt); }
+}
+function switchOnline(text, opt){
+  if(onlineTTS) return;
+  onlineTTS = true;
+  speakOnline(text, opt);
+}
+
+function speak(text, opt){
+  if(!S.sound) return;
+  opt = opt || {};
+  const seq = ++speakSeq;
+
+  // 已经在在线模式,且在线没判死:直接用在线
+  if(onlineTTS && !onlineDead){ speakOnline(text, opt); return; }
+
+  if(!ttsSupported()){ ttsFailCount += 3; tryOnline(text, opt); return; }
+
+  try{ speechSynthesis.cancel(); }catch(e){}
+  setTimeout(()=>{
+    if(seq !== speakSeq) return;
+    ttsState = "pending";
+    const u = new SpeechSynthesisUtterance(text);
+    u.lang = "zh-CN";
+    u.rate = opt.rate != null ? opt.rate : 0.92;
+    u.pitch = opt.pitch != null ? opt.pitch : 1.12;
+    u.volume = 1;
+    // 有 voice 对象就指定;有些安卓机 getVoices() 返回 0 个,
+    // 但系统默认引擎照样能按 lang 念中文,所以这里不能因空列表就放弃
+    const v = zhVoice(); if(v) u.voice = v;
+    u.onstart = () => { ttsState = "ok"; ttsFailCount = 0; };
+    u.onerror = (ev) => {
+      const err = ev && ev.error;
+      if(err === "interrupted" || err === "canceled") return;
+      ttsState = "fail";
+    };
+    u.onend = stopGuard;
+    startGuard();
+    try{ speechSynthesis.speak(u); }catch(e){ stopGuard(); ttsState = "fail"; ttsFailCount++; return; }
+    clearTimeout(ttsTimer);
+    ttsTimer = setTimeout(()=>{
+      if(ttsState === "ok") return;
+      ttsState = "fail";
+      stopGuard();
+      ttsFailCount++;
+      // 连续三次完全没响,才认为本机合成不可用
+      if(ttsFailCount >= 3 && navigator.onLine !== false) tryOnline(text, opt);
+    }, 2200);
+  }, 60);
+}
+
+function tryOnline(text, opt){
+  if(onlineDead || navigator.onLine === false) return;
+  onlineTTS = true;
+  speakOnline(text, opt);
+}
+
+function tone(freq, dur, type, delay, gain){
+  if(!S.sound) return;
+  const c = ac(); if(!c) return;
+  const t0 = c.currentTime + (delay||0);
+  const o = c.createOscillator(), g = c.createGain();
+  o.type = type || "sine"; o.frequency.value = freq;
+  g.gain.setValueAtTime(0, t0);
+  g.gain.linearRampToValueAtTime(gain==null?0.14:gain, t0+0.02);
+  g.gain.exponentialRampToValueAtTime(0.0001, t0+dur);
+  o.connect(g); g.connect(c.destination); o.start(t0); o.stop(t0+dur+0.05);
+}
+function sfxTap(){ tone(620,.07,"sine",0,.08); }
+function sfxGood(){ tone(660,.12,"sine",0,.13); tone(990,.16,"sine",.1,.11); }
+function sfxBad(){ tone(240,.16,"triangle",0,.12); tone(180,.22,"triangle",.14,.1); }
+function sfxWin(){ [523,659,784,1047,1319].forEach((f,i)=>tone(f,.34,"sine",i*.13,.12)); }
+function sfxTest(){ tone(880,.16,"sine",0,.28); tone(1108,.16,"sine",.18,.24); tone(1318,.28,"sine",.36,.22); }
+function sfxSwitch(){ tone(200,.05,"square",0,.13); tone(330,.06,"square",.075,.1); }
+function sfxWhistle(){ tone(520,.7,"sawtooth",0,.05); tone(700,.7,"sawtooth",.02,.04); }
+
+/* 撞击:低频闷响 + 木头断裂的噪声 */
+function noiseBurst(dur, gain, delay, cutoff){
+  if(!S.sound) return;
+  const c = ac(); if(!c) return;
+  const t0 = c.currentTime + (delay||0);
+  const n = Math.max(1, Math.floor(c.sampleRate * dur));
+  const buf = c.createBuffer(1, n, c.sampleRate);
+  const d = buf.getChannelData(0);
+  for(let i=0;i<n;i++){ const k = 1 - i/n; d[i] = (Math.random()*2-1) * k * k; }
+  const src = c.createBufferSource(); src.buffer = buf;
+  const f = c.createBiquadFilter(); f.type = "lowpass"; f.frequency.value = cutoff || 1200;
+  const g = c.createGain();
+  g.gain.setValueAtTime(gain, t0);
+  g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+  src.connect(f); f.connect(g); g.connect(c.destination);
+  src.start(t0); src.stop(t0 + dur + 0.02);
+}
+function sfxCrash(){
+  tone(150,.18,"triangle",0,.2);
+  tone(84,.36,"sine",.01,.18);
+  noiseBurst(.42,.3,0,1300);
+  noiseBurst(.1,.2,.04,3000);
+  noiseBurst(.09,.13,.17,3400);
+}
+
+/* =========================================================
+   关卡数据
+   ========================================================= */
+const AREA_POOL = ["阳光花园","幸福小区","翠竹苑","金色家园","和平里","梧桐山庄","彩虹社区","星光小区","锦绣家园","柳树胡同"];
+
+function areaOptions(ans){
+  const others = AREA_POOL.filter(x=>x!==ans);
+  const extra = shuffle(others).slice(0,3);
+  while(extra.length < 3) extra.push("邻居家"+(extra.length+1)+"号");
+  return shuffle([ans, ...extra]);
+}
+function numOptions(ans, fallback){
+  ans = String(ans);
+  const m = ans.match(/\d+/);
+  const set = new Set([ans]);
+  if(m){
+    const n = parseInt(m[0],10);
+    [n+1, n-1, n+2, n+10, n-10].forEach(c=>{
+      if(c > 0 && set.size < 4){
+        const s = ans.replace(m[0], String(c));
+        if(!set.has(s)) set.add(s);
+      }
+    });
+  }
+  for(const f of fallback){
+    if(set.size >= 4) break;
+    if(!set.has(f)) set.add(f);
+  }
+  return shuffle([...set]).slice(0,4);
+}
+
+function buildSteps(cfg){
+  const d = cfg.phone.replace(/\D/g,"");
+  const who = cfg.who || "爸爸";
+  return [
+    { kind:"code", seg:d.slice(0,3),  title:"第一道道岔", hint:`请输入${who}电话的前 3 位`,   say:`第一道道岔，${who}电话的前三位是？` },
+    { kind:"code", seg:d.slice(3,7),  title:"第二道道岔", hint:`请输入${who}电话的中间 4 位`, say:"第二道道岔，中间四位是？" },
+    { kind:"code", seg:d.slice(7,11), title:"第三道道岔", hint:`请输入${who}电话的最后 4 位`, say:"最后一道道岔，最后四位是？" },
+    { kind:"tunnel", title:"道岔场", hint:`把火车引到写着${who}号码的轨道上`, say:`前面是道岔，五条轨道只有一条写着${who}的号码，把火车引过去。` },
+    { kind:"pick", field:"area", title:"到小区啦", hint:"听一听，哪个是我们家的小区？", icon:"house",
+      answer:cfg.area, options:areaOptions(cfg.area),
+      say:"到小区啦。点一下听一听，听好了再点它一下，就是选它。" },
+    { kind:"pick", field:"building", title:"找楼栋", hint:"听一听，我们家在哪一栋？", icon:"building",
+      answer:cfg.building, options:numOptions(cfg.building, ["1号楼1单元","2号楼1单元","3号楼2单元","5号楼1单元"]),
+      say:"找一找，我们家在哪一栋楼。点一下听一听。" },
+    { kind:"pick", field:"door", title:"最后一扇门", hint:"听一听，门牌号是多少？", icon:"door",
+      answer:cfg.door, options:numOptions(cfg.door, ["101","102","201","301"]),
+      say:"最后一扇门，门牌号是多少？点一下听一听。" }
+  ];
+}
+
+function makePhoneDistractors(correct, n){
+  const out = new Set();
+  let guard = 0;
+  while(out.size < n && guard++ < 200){
+    const arr = correct.split("");
+    const k = Math.random() < .55 ? 1 : 2;
+    for(let i=0;i<k;i++){
+      const pos = 1 + Math.floor(Math.random()*(arr.length-1)); // 首位保持 1
+      let dgt; do{ dgt = String(Math.floor(Math.random()*10)); }while(dgt === arr[pos]);
+      arr[pos] = dgt;
+    }
+    const s = arr.join("");
+    if(s !== correct) out.add(s);
+  }
+  return [...out];
+}
+
+/* =========================================================
+   通关记录(连续天数)
+   ========================================================= */
+function todayStr(){
+  const d = new Date();
+  return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");
+}
+function loadRec(){ return lsGet(REC_KEY) || { days:[], total:0 }; }
+function recordWin(){
+  const rec = loadRec();
+  if(!rec.days.includes(todayStr())) rec.days.push(todayStr());
+  rec.total = (rec.total||0) + 1;
+  lsSet(REC_KEY, rec);
+}
+function streakDays(days){
+  if(!days || !days.length) return 0;
+  const set = new Set(days);
+  let n = 0;
+  const d = new Date();
+  // 若今天还没玩,从昨天开始算
+  if(!set.has(todayStr())) d.setDate(d.getDate()-1);
+  while(true){
+    const k = d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");
+    if(!set.has(k)) break;
+    n++; d.setDate(d.getDate()-1);
+  }
+  return n;
+}
+
+/* =========================================================
+   渲染:顶栏
+   ========================================================= */
+function renderTopbar(){
+  const tb = $("#topbar");
+  const show = (S.screen === "play" || S.screen === "win");
+  tb.classList.toggle("hidden", !show);
+  if(!show) return;
+
+  const total = STEPS.length || 7;
+  const done = Math.min(S.step, total);
+  $("#progressFill").style.width = (done/total*100) + "%";
+
+  const stops = $("#stops");
+  if(stops.children.length !== total){
+    stops.innerHTML = "";
+    for(let i=0;i<total;i++){
+      const s = document.createElement("div");
+      s.className = "stop";
+      s.style.left = ((i+0.5)/total*100) + "%";
+      stops.appendChild(s);
+    }
+  }
+  [...stops.children].forEach((el,i)=> el.classList.toggle("done", i < done));
+
+  const train = $("#bigTrain");
+  train.style.left = (3 + (done/total)*66) + "%";
+}
+
+/* =========================================================
+   渲染:各屏
+   ========================================================= */
+function render(){
+  renderTopbar();
+  const area = $("#stageArea");
+  switch(S.screen){
+    case "welcome": area.innerHTML = viewWelcome(); break;
+    case "setup":   area.innerHTML = viewSetup();   break;
+    case "intro":   area.innerHTML = viewIntro();   break;
+    case "play":    area.innerHTML = viewPlay();    break;
+    case "win":     area.innerHTML = viewWin();     break;
+  }
+  if(S.screen === "play" && STEPS[S.step] && STEPS[S.step].kind === "tunnel") initYardTrain();
+  area.scrollTop = 0;
+}
+
+function viewWelcome(){
+  return `<div class="panel">
+    <div class="hero">${TRAIN_SVG}</div>
+    <h1>小火车回家记</h1>
+    <p>小火车迷路啦！<br>只有记住家里的电话和我家的地址，<br>才能帮它找到回家的路。</p>
+    <button class="btn" data-act="toSetup">填写我家的信息</button>
+    <button class="btn ghost" data-act="demo">先用示例试玩</button>
+    <button class="link-btn" data-act="demo">信息只保存在这台设备上，不会上传</button>
+  </div>`;
+}
+
+function viewSetup(){
+  const c = S.cfg || { phone:"", area:"", building:"", door:"", who:"爸爸" };
+  return `<div class="panel">
+    <h1>家长设置</h1>
+    <p>信息只保存在本机浏览器，不会上传到任何地方。</p>
+    <div class="field">
+      <label>这是谁的电话</label>
+      <div class="who-row">
+        ${["爸爸","妈妈","爷爷","奶奶"].map(w=>`<button type="button" class="who-btn ${w===(c.who||"爸爸")?"on":""}" data-who="${w}">${w}</button>`).join("")}
+      </div>
+    </div>
+    <div class="field">
+      <label>手机号（11 位）</label>
+      <input id="fPhone" type="tel" inputmode="numeric" maxlength="11" placeholder="13800138000" value="${escapeHTML(c.phone)}">
+      <div class="tip">会拆成 3 - 4 - 4 三段来闯关</div>
+    </div>
+    <div class="field">
+      <label>小区 / 村名</label>
+      <input id="fArea" type="text" placeholder="阳光花园" value="${escapeHTML(c.area)}">
+    </div>
+    <div class="field">
+      <label>楼栋 / 单元</label>
+      <input id="fBuilding" type="text" placeholder="3号楼2单元" value="${escapeHTML(c.building)}">
+    </div>
+    <div class="field">
+      <label>门牌号</label>
+      <input id="fDoor" type="text" placeholder="501" value="${escapeHTML(c.door)}">
+    </div>
+    <div class="warn" id="setupWarn"></div>
+    <button class="btn" data-act="saveCfg">保存并开始</button>
+    <button class="btn ghost" data-act="testSound">测试声音</button>
+    <div class="diag" id="diag"></div>
+    ${S.cfg ? `<button class="btn ghost" data-act="backIntro">返回游戏</button>` : ``}
+  </div>`;
+}
+
+function viewIntro(){
+  return `<div class="panel">
+    <div class="hero">${TRAIN_SVG}</div>
+    <h1>准备出发！</h1>
+    <p>路上有 7 道路障挡着，<br>答对一题就撞开一道，<br>才能回到${S.cfg.who||'爸爸'}和我家。</p>
+    <div class="info-card">
+      <div class="phone">${fmtPhone(S.cfg.phone)}</div>
+      <div class="addr">${escapeHTML(S.cfg.area)} · ${escapeHTML(S.cfg.building)} · ${escapeHTML(S.cfg.door)}</div>
+    </div>
+    <button class="btn" data-act="start">出发！</button>
+    <button class="link-btn" data-act="toSetup">家长修改信息</button>
+  </div>`;
+}
+
+function viewPlay(){
+  const st = STEPS[S.step];
+  if(!st) return "";
+  const head = `<div class="head">
+      <div class="badge">第 ${S.step+1} / ${STEPS.length} 关</div>
+      <h2>${st.title}</h2>
+      <p>${st.hint}</p>
+    </div>`;
+
+  if(st.kind === "code"){
+    const slots = Array.from({length: st.seg.length}, ()=>`<div class="slot"></div>`).join("");
+    const keys = [1,2,3,4,5,6,7,8,9].map(n=>`<button class="key" data-key="${n}">${n}</button>`).join("");
+    return `<div class="stage">
+      ${head}
+      <div class="slots" id="slots">${slots}</div>
+      <div class="keypad">
+        ${keys}
+        <button class="key key-fn" data-key="listen" aria-label="听一听">${ICON.sound}</button>
+        <button class="key" data-key="0">0</button>
+        <button class="key key-fn" data-key="del" aria-label="删除">${ICON.del}</button>
+      </div>
+      <div class="feedback" id="feedback"></div>
+    </div>`;
+  }
+
+  if(st.kind === "tunnel"){
+    const rows = S.options.map((p,i)=>`
+      <button class="switch" data-opt="${i}">
+        <span class="rail"></span>
+        <span class="plate">${fmtPhone(p)}</span>
+      </button>`).join("");
+    return `<div class="stage">
+      ${head}
+      <div class="yard" id="yard">
+        <span class="yard-main"></span>
+        <div class="switch-list">${rows}</div>
+        <div class="yard-train" id="yardTrain">${TRAIN_TOP}</div>
+      </div>
+      <div class="feedback" id="feedback"></div>
+    </div>`;
+  }
+
+  const cards = S.options.map((t,i)=>`
+    <button class="ear" data-opt="${i}" aria-label="听第 ${i+1} 个">
+      <span class="spk">${ICON.sound}</span>
+      <span class="idx">${["①","②","③","④"][i] || (i+1)}</span>
+      <span class="tip">点一下听</span>
+      <span class="again">${ICON.tap}</span>
+    </button>`).join("");
+  return `<div class="stage">
+    ${head}
+    <div class="ears">${cards}</div>
+    <div class="feedback" id="feedback"></div>
+  </div>`;
+}
+
+function viewWin(){
+  const rec = loadRec();
+  const st = streakDays(rec.days);
+  return `<div class="panel">
+    <div class="hero">${ICON.home}</div>
+    <h1>小火车到家啦！</h1>
+    <p>你帮它记住了回家的路，真棒！</p>
+    <div class="info-card">
+      <div class="phone">${fmtPhone(S.cfg.phone)}</div>
+      <div class="addr">${escapeHTML(S.cfg.area)} · ${escapeHTML(S.cfg.building)} · ${escapeHTML(S.cfg.door)}</div>
+    </div>
+    <div class="medals" style="margin-top:6px">
+      <div class="medal">连续 ${st} 天</div>
+      <div class="medal">共回家 ${rec.total||1} 次</div>
+    </div>
+    <button class="btn" data-act="start">再玩一次</button>
+    <button class="link-btn" data-act="toSetup">家长修改信息</button>
+  </div>`;
+}
+
+/* =========================================================
+   游戏流程:每关 = 开一段车 → 被路障拦停 → 答题 → 撞开路障
+   ========================================================= */
+const RIDE_DUR = { code: 2400, tunnel: 2700, pick: 2200 };
+
+function hideStage(instant){
+  const a = $("#stageArea");
+  if(instant) a.classList.add("noanim");
+  a.classList.add("waiting");
+  if(instant){ void a.offsetHeight; a.classList.remove("noanim"); }
+}
+function showStage(){ $("#stageArea").classList.remove("waiting"); }
+
+function startGame(){
+  STEPS = buildSteps(S.cfg);
+  S.step = 0;
+  S.screen = "play";
+  enterStep(true);
+}
+
+function enterStep(instant){
+  const st = STEPS[S.step];
+  if(!st) return;
+  S.input = "";
+  S.wrong = 0;
+  S.hinted = false;
+  S.heardIdx = -1;
+  S.options = [];
+  if(st.kind === "tunnel"){
+    S.options = shuffle([S.cfg.phone.replace(/\D/g,""), ...makePhoneDistractors(S.cfg.phone.replace(/\D/g,""), 4)]);
+  }else if(st.kind === "pick"){
+    S.options = st.options.slice();
+  }
+  hideStage(!!instant);                 // 先藏起题目面板,露出轨道
+  render();
+
+  const first = (S.step === 0);
+  playJourney(RIDE_DUR[st.kind] || 2400, {
+    barrier: true,
+    onArrive(){
+      if(S.screen !== "play") return;
+      sfxWhistle();
+      showStage();                      // 停在路障前,题目浮上来
+      setTimeout(()=>{
+        if(S.screen !== "play") return;
+        // 第一次玩,先讲一句规则:路障挡住,答对才能撞开
+        if(first){
+          speak("前面有路障，火车停下来啦！答对了才能撞过去。", {rate:.95});
+          setTimeout(()=>{ if(S.screen === "play") speak(st.say || st.hint); }, 2300);
+        }else{
+          speak(st.say || st.hint);
+        }
+      }, 300);
+    }
+  });
+}
+
+function nextStep(){
+  S.step++;
+  if(S.step >= STEPS.length){ goHome(); return; }
+  enterStep(false);
+}
+
+/* 最后一关撞开后不再有路障,一路开到家门口 */
+function goHome(){
+  playJourney(3600, { barrier:false, exit:true, onArrive: finishGame });
+}
+
+/* 答对 → 撞开路障 */
+function breakThrough(){
+  if(S.screen !== "play") return;
+  S.locked = true;
+  hideStage();                        // 面板先淡出,让出画面
+  setTimeout(smash, 240);
+  // 撞碎的木板还在飞,火车已经冲出去开往下一处
+  setTimeout(nextStep, 1100);
+}
+
+function smash(){
+  const r = $("#ride"), b = $("#barrier"), sh = $("#rShine"), tr = $("#rTrainIn");
+  if(b) b.classList.add("hit");
+  if(r) r.classList.add("hit");
+  if(sh) sh.classList.add("on");
+  if(tr) tr.classList.add("push");
+  burstDust();
+  sfxCrash();
+  setTimeout(()=>{ if(r) r.classList.remove("hit"); }, 470);
+  setTimeout(()=>{ if(sh) sh.classList.remove("on"); }, 560);
+  setTimeout(()=>{ if(tr) tr.classList.remove("push"); }, 640);
+}
+
+function finishGame(){
+  S.screen = "win";
+  S.step = STEPS.length;
+  recordWin();
+  render();
+  setTimeout(showStage, 240);        // 等行进层淡出后再露出面板
+  sfxWhistle();
+  setTimeout(sfxWin, 700);
+  const cfg = S.cfg;
+  setTimeout(()=>{
+    speak(`到家啦！${cfg.who||'爸爸'}的电话是，${sayDigits(cfg.phone)}。我们家住在，${cfg.area}，${cfg.building}，${cfg.door}。`, {rate:.85});
+  }, 1400);
+}
+
+function setFeedback(text, cls){
+  const el = $("#feedback");
+  if(!el) return;
+  el.textContent = text;
+  el.className = "feedback show" + (cls ? " " + cls : "");
+}
+
+/* 错两次后:直接把第一位填进输入框(而不是只显示成灰色占位),
+   孩子从第二位接着按,不用把已知的那一位再写一遍。 */
+function applyHint(){
+  const st = STEPS[S.step];
+  if(!st || st.kind !== "code" || S.wrong < 2) return;
+  if(S.input.length) return;          // 已经输进去了就不覆盖
+  S.input = st.seg[0];                // 答错清空后会再补回来
+  S.hinted = true;
+}
+
+function renderSlots(){
+  const st = STEPS[S.step];
+  if(!st || st.kind !== "code") return;
+  const wrap = $("#slots");
+  if(!wrap) return;
+  applyHint();
+  const slots = [...wrap.children];
+  slots.forEach((el,i)=>{
+    el.textContent = S.input[i] || "";
+    el.classList.toggle("filled", !!S.input[i]);
+    el.classList.toggle("hintfirst", S.hinted && i === 0);
+  });
+}
+
+function press(key){
+  const st = STEPS[S.step];
+  if(!st || st.kind !== "code") return;
+
+  if(key === "listen"){
+    speak(`听一听，${sayDigits(st.seg)}`, {rate:.78});
+    return;
+  }
+  if(S.locked) return;
+  if(key === "del"){
+    if(S.hinted && S.input.length <= 1){ sfxTap(); return; }   // 提示位是送的,不给删
+    S.input = S.input.slice(0,-1);
+    sfxTap(); renderSlots(); return;
+  }
+  if(S.input.length >= st.seg.length) return;
+
+  S.input += key;
+  sfxTap();
+  renderSlots();
+  if(S.input.length === st.seg.length){
+    S.locked = true;
+    setTimeout(checkCode, 220);
+  }
+}
+
+function checkCode(){
+  const st = STEPS[S.step];
+  if(S.input === st.seg){
+    S.locked = true;
+    sfxGood();
+    setFeedback("对啦！", "ok");
+    speak(`对啦！${sayDigits(st.seg)}`, {rate:.85});
+    setTimeout(breakThrough, 480);
+  }else{
+    S.locked = true;
+    S.wrong++;
+    sfxBad();
+    setFeedback(S.wrong >= 2 ? "再想一想，从第二位开始" : "再想一想～", "bad");
+    const slots = $("#slots"); if(slots) slots.classList.add("shake");
+    if(S.wrong < 2) speak("再想一想", {rate:.95});
+    setTimeout(()=>{
+      S.input = "";
+      S.locked = false;
+      const sl = $("#slots"); if(sl) sl.classList.remove("shake");
+      renderSlots();
+      if(S.wrong === 2) speak(`提示，第一位是${CN[+st.seg[0]]}，已经帮你填好了，接着按后面的`, {rate:.86});
+      else if(S.wrong > 2) speak("再想一想，从第二位接着按", {rate:.9});
+    }, 760);
+  }
+}
+
+/* ---------- 道岔场 ---------- */
+function yardRows(){ return [...document.querySelectorAll(".switch")]; }
+function initYardTrain(){
+  const yard = $("#yard"), tr = $("#yardTrain");
+  if(!yard || !tr) return;
+  tr.style.transition = "none";
+  tr.style.top = Math.max(0, yard.clientHeight - 40) + "px";
+  tr.style.transform = "translateX(0) rotate(0deg)";
+  void tr.offsetHeight;               // 强制回流,避免初始位置也被动画
+  tr.style.transition = "";
+}
+function moveYardTrain(idx){
+  const yard = $("#yard"), tr = $("#yardTrain"), row = yardRows()[idx];
+  if(!yard || !tr || !row) return;
+  const yb = yard.getBoundingClientRect(), rb = row.getBoundingClientRect();
+  const center = rb.top - yb.top + rb.height/2;
+  tr.style.top = Math.max(0, center - 22) + "px";
+  tr.style.transform = "translateX(8px) rotate(7deg)";
+}
+function resetYardTrain(){
+  const yard = $("#yard"), tr = $("#yardTrain");
+  if(!yard || !tr) return;
+  tr.style.top = Math.max(0, yard.clientHeight - 40) + "px";
+  tr.style.transform = "translateX(0) rotate(0deg)";
+}
+
+function chooseOption(idx){
+  const st = STEPS[S.step];
+  if(!st || S.locked) return;
+  const chosen = S.options[idx];
+  const answer = st.kind === "tunnel" ? S.cfg.phone.replace(/\D/g,"") : st.answer;
+  const row = document.querySelector(`[data-opt="${idx}"]`);
+
+  // 道岔场:先扳道岔、让车头开上这条岔路,再判定
+  if(st.kind === "tunnel"){
+    S.locked = true;
+    yardRows().forEach(r=>r.classList.remove("on"));
+    if(row) row.classList.add("on");
+    moveYardTrain(idx);
+    sfxSwitch();
+    speak("咔哒", {rate:1.05, pitch:1.25});
+    setTimeout(()=>judgeChoice(idx, chosen, answer, row), 820);
+    return;
+  }
+  // 听音关卡:第一次点=听,第二次点=选
+  if(st.kind === "pick"){
+    const again = (S.heardIdx === idx) && (Date.now() - S.heardAt > 800);
+    if(!again){
+      S.heardIdx = idx;
+      S.heardAt = Date.now();
+      // 只保留"当前正在听"的这一张高亮,听别的就把高亮移过去
+      document.querySelectorAll(".ear").forEach(c=>{
+        c.classList.remove("playing");
+        if(c !== row) c.classList.remove("heard");
+      });
+      if(row){
+        row.classList.add("heard","playing");
+        setTimeout(()=>row.classList.remove("playing"), 1100);
+      }
+      speak(`第${CN[idx+1]}个，${sayOption(chosen)}`, {rate:.76});
+      setFeedback("听清楚了吗？再点它一下就选它", "");
+      return;
+    }
+    judgeChoice(idx, chosen, answer, row);
+    return;
+  }
+
+  judgeChoice(idx, chosen, answer, row);
+}
+
+function judgeChoice(idx, chosen, answer, row){
+  const st = STEPS[S.step];
+  if(!st) return;
+  const isYard = st.kind === "tunnel";
+
+  if(String(chosen) === String(answer)){
+    S.locked = true;
+    yardRows().forEach(r=>r.classList.remove("hint"));
+    if(row) row.classList.add(isYard ? "ok" : "correct");
+    sfxGood();
+    setFeedback("通过！", "ok");
+    if(isYard){
+      const who = S.cfg.who || "爸爸";
+      sfxWhistle();
+      speak(`对啦！这条就是${who}的号码，道岔扳对了。`, {rate:.92});
+      setTimeout(breakThrough, 760);
+    }else{
+      speak(`对啦，${sayOption(chosen)}`, {rate:.86});
+      setTimeout(breakThrough, 520);
+    }
+    return;
+  }
+
+  S.locked = true;
+  S.wrong++;
+  if(row) row.classList.add(isYard ? "bad" : "wrong");
+  sfxBad();
+  setFeedback(isYard ? "这条路不通哦" : "不是这个", "bad");
+  speak(isYard
+    ? "这条路不通，再看看别的轨道"
+    : `这是${sayOption(chosen)}，不是我们家`, {rate:.92});
+
+  // 听音关连错两次:把正确答案再念一遍,不点亮卡片(要他靠耳朵找)
+  if(!isYard && S.wrong >= 2){
+    setTimeout(()=>speak(`再听一遍，我们家是，${sayOption(answer)}`, {rate:.74}), 1300);
+  }
+
+  // 连错两次:把正确的那条轨道轻轻点亮,给个方向
+  if(isYard && S.wrong >= 2){
+    const ai = S.options.findIndex(o=>String(o)===String(answer));
+    const target = document.querySelector(`[data-opt="${ai}"]`);
+    if(target) setTimeout(()=>{ if(!row || !row.classList.contains("ok")) target.classList.add("hint"); }, 700);
+  }
+
+  setTimeout(()=>{
+    if(row) row.classList.remove(isYard ? "bad" : "wrong", "on");
+    if(isYard) resetYardTrain();
+    if(!isYard){
+      S.heardIdx = -1;
+      document.querySelectorAll(".ear").forEach(c=>c.classList.remove("heard"));
+    }
+    S.locked = false;
+    setFeedback("", "");
+  }, 900);
+}
+
+/* =========================================================
+   事件
+   ========================================================= */
+document.addEventListener("click", (e)=>{
+  // 任何一次真实点击都尝试解锁音频(移动端必需)
+  unlockAudio();
+
+  // 声音开关
+  if(e.target.closest("#btnSound")){
+    S.sound = !S.sound;
+    const b = $("#btnSound");
+    b.innerHTML = S.sound ? ICON.sound : ICON.mute;
+    b.classList.toggle("off", !S.sound);
+    if(!S.sound){
+      if(ttsSupported()){ try{ speechSynthesis.cancel(); }catch(err){} }
+    }else{
+      sfxTap();
+      speak("声音打开了", {rate:1});
+    }
+    return;
+  }
+
+  // 数字键 / 功能键
+  const k = e.target.closest("[data-key]");
+  if(k){ press(k.dataset.key); return; }
+
+  // 称呼选择
+  const w = e.target.closest("[data-who]");
+  if(w){
+    S.whoTmp = w.dataset.who;
+    document.querySelectorAll("[data-who]").forEach(x=>x.classList.toggle("on", x===w));
+    return;
+  }
+
+  // 选项
+  const o = e.target.closest("[data-opt]");
+  if(o){ chooseOption(Number(o.dataset.opt)); return; }
+
+  // 动作按钮
+  const a = e.target.closest("[data-act]");
+  if(!a) return;
+  const act = a.dataset.act;
+  warmupSpeech();
+
+  if(act === "demo"){
+    S.cfg = { phone:"13800138000", area:"阳光花园", building:"3号楼2单元", door:"501", who:"爸爸" };
+    lsSet(CFG_KEY, S.cfg);
+    S.screen = "intro"; render();
+  }
+  else if(act === "toSetup"){ S.whoTmp = (S.cfg && S.cfg.who) || "爸爸"; S.screen = "setup"; render(); }
+  else if(act === "testSound"){
+    const w = $("#setupWarn");
+    unlockAudio();
+    ttsState = "unknown";
+    onlineFail = 0; onlineDead = false;
+    sfxTest();                                     // 先来三声"叮",能听见说明通道通
+    setTimeout(()=>speak("声音测试，一、二、三、四", {rate:.9}), 160);
+    if(w){ w.style.color = "#5d6f7d"; w.textContent = "正在播放：三声提示音 + 一句语音…"; }
+    setTimeout(()=>{
+      const box = $("#setupWarn");
+      if(box){
+        if(ttsState === "ok"){
+          box.style.color = "#2f9e44";
+          box.textContent = "✓ 语音正常（如果没听见，请调高手机媒体音量）";
+        }else if(ttsState === "pending"){
+          box.style.color = "#a9770b";
+          box.textContent = "语音还在加载（网络较慢），再等一两秒看看。";
+        }else{
+          box.style.color = "#e8503a";
+          if(!onlineTTS && navigator.onLine !== false){
+            box.textContent = "本机语音没响，正在切换在线语音再试一次…";
+            switchOnline("声音测试，一、二、三、四", {rate:.9});
+          }else{
+            box.textContent = "仍然没有声音：请检查手机是否静音、媒体音量是否为 0。";
+          }
+        }
+      }
+      const e = envInfo();
+      const d = $("#diag");
+      if(d){
+        let vt;
+        if(!e.tts) vt = "不支持（这个内置浏览器没有语音能力）";
+        else if(e.total === 0) vt = "支持，但语音包为 0 个（系统没装中文语音引擎）";
+        else vt = "支持，语音包 " + e.total + " 个" + (e.zh.length ? "（" + e.zh.join(" / ") + "）" : "（无中文）");
+        d.innerHTML =
+          "语音合成：<b>" + vt + "</b><br>" +
+          "音频通道：<b>" + e.ac + "</b>　容器：<b>" + (e.wv ? "App 内置 WebView" : "普通浏览器") + "</b><br>" +
+          "语音模式：<b>" + (onlineTTS ? "在线语音（本机合成不可用，已自动切换）" : "本机语音合成") + "</b><br>" +
+          "本次结果：<b>" + ttsState + "</b>";
+      }
+    }, 2900);
+  }
+  else if(act === "backIntro"){ S.screen = "intro"; render(); }
+  else if(act === "start"){ startGame(); }
+  else if(act === "saveCfg"){
+    const phone = ($("#fPhone").value||"").replace(/\D/g,"");
+    const area = ($("#fArea").value||"").trim();
+    const building = ($("#fBuilding").value||"").trim();
+    const door = ($("#fDoor").value||"").trim();
+    const warn = $("#setupWarn");
+    if(phone.length !== 11){ warn.style.color = "#e8503a"; warn.textContent = "手机号需要 11 位数字"; return; }
+    if(!area || !building || !door){ warn.style.color = "#e8503a"; warn.textContent = "地址三项都要填写哦"; return; }
+    if(area.length > 10 || building.length > 12 || door.length > 10){
+      warn.textContent = "地址请填写简短一些（方便孩子记忆）"; return;
+    }
+    S.cfg = { phone, area, building, door, who: S.whoTmp || "爸爸" };
+    lsSet(CFG_KEY, S.cfg);
+    S.screen = "intro"; render();
+  }
+});
+
+document.addEventListener("keydown", (e)=>{
+  if(S.screen !== "play") return;
+  if(/^[0-9]$/.test(e.key)) press(e.key);
+  else if(e.key === "Backspace") press("del");
+});
+
+/* =========================================================
+   启动
+   ========================================================= */
+function boot(){
+  $("#bigTrain").innerHTML = TRAIN_SVG;
+  $("#rTrainIn").innerHTML = TRAIN_SVG;
+  $("#rCloud").style.backgroundImage = BG_IMG.cloud;
+  $("#rHill").style.backgroundImage = BG_IMG.hill;
+  $("#rTree").style.backgroundImage = BG_IMG.tree;
+  $("#rPole").style.backgroundImage = BG_IMG.pole;
+  $("#rGrass").style.backgroundImage = BG_IMG.grass;
+  $("#rFlower").style.backgroundImage = BG_IMG.flower;
+  $("#rRail").style.backgroundImage = BG_IMG.rail;
+  const puff = $("#rPuff");
+  puff.innerHTML = [0,0.35,0.7,1.05].map(d=>`<span style="animation-delay:${d}s"></span>`).join("");
+  $("#btnSound").innerHTML = ICON.sound;
+  const cfg = lsGet(CFG_KEY);
+  if(cfg && cfg.phone && cfg.area && cfg.building && cfg.door){
+    S.cfg = cfg;
+    S.screen = "intro";
+  }else{
+    S.screen = "welcome";
+  }
+  render();
+}
+boot();
+
+// 预加载语音列表
+if(ttsSupported()){
+  refreshVoices();
+  try{ speechSynthesis.addEventListener("voiceschanged", refreshVoices); }catch(e){}
+  setTimeout(refreshVoices, 300);
+  setTimeout(refreshVoices, 1000);
+  setTimeout(refreshVoices, 2500);
+}
+
+})();
+</script>
+</body>
+</html>
