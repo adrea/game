@@ -491,6 +491,20 @@
     doubleJumpV: -840
   };
 
+  /* 吃到食物就换一套颜色：6 套鲜艳配色循环，给孩子即时可见的反馈 */
+  var DINO_PALETTES = [
+    { body: '#5cc972', dark: '#3fae52', tail: '#4fbf62', belly: '#b6ecb0' }, // 青草绿
+    { body: '#ff9f5a', dark: '#dd7133', tail: '#f5894a', belly: '#ffdab0' }, // 橘子橙
+    { body: '#ff8fb1', dark: '#e05f88', tail: '#f27aa0', belly: '#ffd9e6' }, // 草莓粉
+    { body: '#5cc8f5', dark: '#2f9ed6', tail: '#4fb6ea', belly: '#cdeeff' }, // 天空蓝
+    { body: '#b18cf0', dark: '#855fc4', tail: '#a17ade', belly: '#e6d9ff' }, // 葡萄紫
+    { body: '#ffd84d', dark: '#e0ac20', tail: '#f2c83c', belly: '#fff2b8' }  // 柠檬黄
+  ];
+  var colorIndex = 0;
+  function nextDinoColor() {
+    colorIndex = (colorIndex + 1) % DINO_PALETTES.length;
+  }
+
   var state = 'start';   // start | playing | clear | over | allclear
   var lives = 2, score = 0, totalScore = 0;
   var expRunStart = 0, expRunGain = 0;
@@ -570,7 +584,7 @@
     obstacles.length = 0; foods.length = 0; particles.length = 0; floatTexts.length = 0;
     invTimer = 0; shake = 0; stumbleT = 0; starFlash = 0; foodFlash = 0;
     spawnTimer = 0.75; jumpsUsed = 0; wasAirborne = false; expTickAcc = 0;
-    airHintDone = false;
+    airHintDone = false; colorIndex = 0;   // 每关从青草绿重新开始
 
     dino = {
       x: Math.max(64, W * 0.15), y: GROUND, vy: 0,
@@ -1019,6 +1033,7 @@
             foodFlash = 1;
             Sound.play('meat');
           }
+          nextDinoColor();   // 每吃到一口就换一次颜色
           addExp(gain);
           spawnFloatText('+' + gain + ' EXP', fd.x, fd.y - 14);
           spawnFoodBurst(fd.x, fd.y, fd.kind);
@@ -1525,10 +1540,12 @@
   // 核心恐龙绘制：thunder=闪电纹，king=金色
   function drawDinoShape(c, king, thunder, runPhase, onGround, scaleIgnored) {
     var S = 1;   // 已在外层按等级缩放
-    var body = king ? '#ffc93c' : '#5cc972';
-    var dark = king ? '#e0a520' : '#3fae52';
-    var tail = king ? '#e8b62c' : '#4fbf62';
-    var belly = king ? '#ffe9a8' : '#b6ecb0';
+    // 身体配色跟随「吃到食物就变色」；王冠/角/闪电纹仍保留金色的终极形态标识
+    var pal = DINO_PALETTES[colorIndex];
+    var body = pal.body;
+    var dark = pal.dark;
+    var tail = pal.tail;
+    var belly = pal.belly;
 
     // 尾巴
     c.fillStyle = tail;
@@ -1552,7 +1569,7 @@
 
     // 背刺（等级>=3 出现，越大越多）
     if (level >= 3) {
-      c.fillStyle = king ? '#ffb020' : '#3fae52';
+      c.fillStyle = dark;
       var spikes = Math.min(4, level - 2);
       for (var sp2 = 0; sp2 < spikes; sp2++) {
         var sx = -14 * S + sp2 * 12 * S;
