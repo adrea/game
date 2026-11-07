@@ -488,7 +488,13 @@
     expDistStep: 400,
     coyote: 0.09, jumpBuffer: 0.13,
     hitboxShrink: 0.60,
-    doubleJumpV: -840
+    doubleJumpV: -840,
+    // 体型成长：吃出来的分数累积，越大滚动越慢
+    growPerStep: 16,      // 每攒这么多「吃到的分」长一档
+    sizeStep: 0.14,       // 每档体型倍率增量
+    sizeMaxSteps: 10,     // 最多 10 档 -> 最大 2.4 倍
+    slowPerSize: 0.60,    // 减速系数：倍率每 +1，速度约降 37%
+    danceTime: 2.6        // 通关舞蹈时长（秒）
   };
 
   /* 吃到食物就换一套颜色：6 套鲜艳配色循环，给孩子即时可见的反馈 */
@@ -505,8 +511,17 @@
     colorIndex = (colorIndex + 1) % DINO_PALETTES.length;
   }
 
-  var state = 'start';   // start | playing | clear | over | allclear
+  var state = 'start';   // start | playing | dance | clear | over | allclear
   var lives = 2, score = 0, totalScore = 0;
+  // 体型：growPoints 只由「吃到食物」累积，sizeMul 平滑趋近目标值
+  var growPoints = 0, sizeMul = 1, sizeStep = 0;
+  var danceT = 0, danceColorT = 0;
+  function targetSizeMul() {
+    return 1 + Math.min(growPoints / CFG.growPerStep, CFG.sizeMaxSteps) * CFG.sizeStep;
+  }
+  function speedFactor() {
+    return 1 / (1 + (sizeMul - 1) * CFG.slowPerSize);
+  }
   var expRunStart = 0, expRunGain = 0;
   var levelIndex = 0;
   var biome = BIOMES.forest, prevBiome = null, biomeBlend = 1;
@@ -585,6 +600,8 @@
     invTimer = 0; shake = 0; stumbleT = 0; starFlash = 0; foodFlash = 0;
     spawnTimer = 0.75; jumpsUsed = 0; wasAirborne = false; expTickAcc = 0;
     airHintDone = false; colorIndex = 0;   // 每关从青草绿重新开始
+    growPoints = 0; sizeMul = 1; sizeStep = 0;   // 每关重新长大
+    danceT = 0; danceColorT = 0;
 
     dino = {
       x: Math.max(64, W * 0.15), y: GROUND, vy: 0,
@@ -749,6 +766,31 @@
   function restart() { startLevel(levelIndex); }
   function restartAll() { hideAll(); levelIndex = 0; totalScore = 0; startLevel(0); }
 
+  /* 通关舞蹈：原地弹跳 + 摇摆 + 快速变色 + 彩纸，跳完再进结算 */
+  function startDance() {
+    state = 'dance';
+    danceT = CFG.danceTime;
+    danceColorT = 0;
+    dino.y = GROUND; dino.vy = 0; dino.onGround = true;
+    Sound.play('clear');
+    Sound.speak('跳舞啦！', 'dance', 0);
+    spawnFloatText('跳舞时间!', dino.x, dino.y - 170 * SCALE);
+  }
+
+  function spawnDanceConfetti() {
+    var cols = [
+      'rgba(255,120,120,', 'rgba(255,210,80,', 'rgba(120,200,255,',
+      'rgba(160,230,140,', 'rgba(200,150,255,'
+    ];
+    particles.push({
+      x: dino.x + (Math.random() - 0.5) * 200 * SCALE,
+      y: dino.y - 130 * SCALE - Math.random() * 90 * SCALE,
+      vx: (Math.random() - 0.5) * 90, vy: 70 + Math.random() * 90,
+      life: 1.1, max: 1.1, r: 3 + Math.random() * 5,
+      c: cols[Math.floor(Math.random() * cols.length)], g: 110
+    });
+  }
+
   function stageClear() {
     state = 'clear';
     score = Math.floor(score);
@@ -900,8 +942,15 @@
   function update(dt) {
     elapsed += dt;
     var lv = currentLevel();
-    var spd = (stumbleT > 0) ? 0 : Math.min(CFG.maxSpeed, lv.speed + elapsed * CFG.speedGain);
-    speed = Math.min(CFG.maxSpeed, lv.speed + elapsed * CFG.speedGain);
+
+    // 体型平滑趋近目标：吃食物变大、掉血变小都是渐变
+    sizeMul += (targetSizeMul() - sizeMul) * Math.min(1, dt * 3.5);
+    var slow = speedFactor();
+
+    // 越大跑得越慢
+    var baseSpd = Math.min(CFG.maxSpeed, lv.speed + elapsed * CFG.speedGain);
+    var spd = (stumbleT > 0) ? 0 : baseSpd * slow;
+    speed = baseSpd * slow;
     if (stumbleT > 0) stumbleT -= dt;
     if (invTimer > 0) invTimer -= dt;
     if (shake > 0) shake = Math.max(0, shake - dt * 3.2);
@@ -965,21 +1014,18 @@
       if (groundDots[g2].x < -10) { groundDots[g2].x = W + 10; groundDots[g2].y = GROUND + 12 + Math.random() * Math.max(10, H - GROUND - 24); }
     }
     updateParticles(dt);
-    for (var ft = floatTexts.length - 1; ft >= 0; ft--) {
-      var fo = floatTexts[ft]; fo.y -= 58 * dt; fo.life -= dt;
-      if (fo.life <= 0) floatTexts.splice(ft, 1);
-    }
+    updateFloatTexts(dt);
 
-    /* --- 生成 --- */
-    spawnTimer -= dt;
+    /* --- 生成 ---（减速时同步放慢，保证每单位距离的障碍数量不变） */
+    spawnTimer -= dt * slow;
     if (spawnTimer <= 0) {
       spawnObstacle();
       spawnTimer = lv.spawnMin + Math.random() * (lv.spawnMax - lv.spawnMin);
     }
 
-    /* --- 碰撞：恐龙碰撞盒 --- */
+    /* --- 碰撞：恐龙碰撞盒（体型放大后用平方根温和放大，避免巨大时过难） --- */
     var st = stageOf(level);
-    var S = SCALE * st.scale;
+    var S = SCALE * st.scale * Math.sqrt(sizeMul);
     var dinoBox = {
       x: dino.x - 26 * S * CFG.hitboxShrink,
       y: dino.y - 62 * S + 4,
@@ -1000,9 +1046,12 @@
         stumbleT = 0.5;
         shake = 1;
         distance = Math.max(0, distance - lv.length * 0.12);
+        // 掉血会「缩回去」一大截，孩子能立刻看到体型变小
+        growPoints = Math.max(0, growPoints - 48);
+        sizeStep = Math.min(CFG.sizeMaxSteps, Math.floor(growPoints / CFG.growPerStep));
         Sound.play('hurt');
         Sound.speak('哎呀，没关系！', 'hurt', 12000);
-        spawnFloatText('哎呀!', dino.x, dino.y - 112 * S);
+        spawnFloatText('哎呀，变小啦!', dino.x, dino.y - 112 * S);
         spawnHitStars();
         updateHUD();
         if (lives <= 0) { gameOver(); return; }
@@ -1024,7 +1073,9 @@
           fd.got = true;
           var gain = fd.kind === 'star' ? 22 : 12;
           gain = Math.round(gain * expMul());
-          score += fd.kind === 'star' ? 8 : 4;
+          var foodScore = fd.kind === 'star' ? 8 : 4;
+          score += foodScore;
+          growPoints += foodScore;   // 只有「吃到」的分才让恐龙长大，光跑不算
           if (fd.kind === 'star') {
             starFlash = 1;
             Sound.play('star');
@@ -1034,6 +1085,11 @@
             Sound.play('meat');
           }
           nextDinoColor();   // 每吃到一口就换一次颜色
+          var newStep = Math.min(CFG.sizeMaxSteps, Math.floor(growPoints / CFG.growPerStep));
+          if (newStep > sizeStep) {
+            sizeStep = newStep;
+            spawnFloatText('变大啦!', dino.x, dino.y - 150 * SCALE);
+          }
           addExp(gain);
           spawnFloatText('+' + gain + ' EXP', fd.x, fd.y - 14);
           spawnFoodBurst(fd.x, fd.y, fd.kind);
@@ -1047,7 +1103,7 @@
     if (distance >= lv.length) {
       distance = lv.length;
       updateHUD();
-      stageClear();
+      startDance();   // 先跳一段舞，再进结算界面
       return;
     }
     updateHUD();
@@ -1071,6 +1127,13 @@
       pt.vy += (pt.g || 300) * dt;
       pt.life -= dt;
       if (pt.life <= 0) particles.splice(p, 1);
+    }
+  }
+
+  function updateFloatTexts(dt) {
+    for (var ft = floatTexts.length - 1; ft >= 0; ft--) {
+      var fo = floatTexts[ft]; fo.y -= 58 * dt; fo.life -= dt;
+      if (fo.life <= 0) floatTexts.splice(ft, 1);
     }
   }
 
@@ -1519,21 +1582,32 @@
     var st = stageOf(level);
     var S = SCALE * st.scale;
     var flash = invTimer > 0 && (Math.floor(invTimer * 12) % 2 === 0);
+    var dancing = (state === 'dance');
 
     ctx.save();
     ctx.translate(dino.x, dino.y);
-    if (flash) ctx.globalAlpha = 0.35;
 
-    // 影子
+    // 影子画在缩放之前，始终贴地，只随体型变宽
     ctx.save();
     ctx.globalAlpha = 0.16; ctx.fillStyle = '#000';
     var sh = 1 - Math.min(0.72, (GROUND - dino.y) / 440);
     ctx.beginPath();
-    ctx.ellipse(0, GROUND - dino.y + 5, 34 * S * sh, 8 * S * sh, 0, 0, 6.29);
+    ctx.ellipse(0, GROUND - dino.y + 5, 34 * S * sizeMul * sh, 8 * S * sizeMul * sh, 0, 0, 6.29);
     ctx.fill();
     ctx.restore();
 
+    // 通关舞蹈：原地弹跳 + 左右摇摆
+    if (dancing) {
+      var ph = (CFG.danceTime - danceT) * 7;
+      ctx.translate(0, -Math.abs(Math.sin(ph)) * 26 * SCALE);
+      ctx.rotate(Math.sin(ph * 0.5) * 0.20);
+    }
+
+    ctx.save();
+    ctx.scale(sizeMul, sizeMul);   // 吃出来的体型
+    if (flash) ctx.globalAlpha = 0.35;
     drawDinoShape(ctx, level >= 7, level >= 6, dino.runPhase, dino.onGround, st.scale);
+    ctx.restore();
     ctx.restore();
   }
 
@@ -1718,6 +1792,15 @@
 
     if (state === 'playing') update(dt);
     else {
+      if (state === 'dance') {
+        danceT -= dt;
+        dino.runPhase += dt * 9;
+        danceColorT -= dt;
+        if (danceColorT <= 0) { danceColorT = 0.22; nextDinoColor(); }
+        if (Math.random() < 0.75) spawnDanceConfetti();
+        updateFloatTexts(dt);
+        if (danceT <= 0) stageClear();   // 内部把 state 切到 'clear'
+      }
       if (state === 'start') {
         elapsed += dt;
         for (var i = 0; i < clouds.length; i++) {
@@ -1735,7 +1818,7 @@
     }
 
     // 游戏中隐藏声音开关，避免它挡住「点屏幕跳跃」的点击区域
-    soundBtn.classList.toggle('inplay', state === 'playing');
+    soundBtn.classList.toggle('inplay', state === 'playing' || state === 'dance');
 
     render();
     requestAnimationFrame(loop);
@@ -1756,7 +1839,7 @@
     hitObstacle: hitObstacle,
     geo: function () { return { GROUND: GROUND, SCALE: SCALE, W: W }; },
     dinoBox: function () {
-      var st = stageOf(level); var S = SCALE * st.scale;
+      var st = stageOf(level); var S = SCALE * st.scale * Math.sqrt(sizeMul);
       return {
         x: dino.x - 26 * S * CFG.hitboxShrink,
         y: dino.y - 62 * S + 4,
