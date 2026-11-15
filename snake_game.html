@@ -1,0 +1,445 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>🌈 彩虹小蛇大冒险 🌈</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  body {
+    font-family: "PingFang SC", "Microsoft YaHei", sans-serif;
+    background: linear-gradient(135deg, #FFD86B 0%, #FF9E6D 35%, #A18CD1 100%);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 10px;
+    overflow: hidden;
+    touch-action: manipulation;
+  }
+  h1 {
+    font-size: 26px;
+    color: #fff;
+    text-shadow: 2px 2px 0 #FF6FA5, 4px 4px 0 rgba(0,0,0,.15);
+    margin-bottom: 6px;
+    letter-spacing: 2px;
+  }
+  .topbar {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 8px;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+  .chip {
+    background: #fff;
+    border-radius: 20px;
+    padding: 6px 16px;
+    font-size: 18px;
+    font-weight: bold;
+    color: #FF6FA5;
+    box-shadow: 0 3px 0 rgba(0,0,0,.12);
+  }
+  #gameWrap {
+    position: relative;
+    border-radius: 24px;
+    padding: 10px;
+    background: rgba(255,255,255,.35);
+    box-shadow: 0 8px 24px rgba(0,0,0,.2);
+  }
+  canvas {
+    border-radius: 18px;
+    display: block;
+    max-width: 92vw;
+    max-height: 60vh;
+  }
+  .overlay {
+    position: absolute;
+    inset: 0;
+    border-radius: 24px;
+    background: rgba(255, 240, 245, .92);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 20px;
+    z-index: 10;
+  }
+  .overlay.hidden { display: none; }
+  .overlay .big { font-size: 42px; margin-bottom: 10px; }
+  .overlay .msg { font-size: 20px; color: #7A5C9E; margin-bottom: 6px; line-height: 1.5; }
+  .btn {
+    margin-top: 14px;
+    font-size: 24px;
+    font-weight: bold;
+    color: #fff;
+    background: linear-gradient(180deg, #FF8AC2, #FF5FA0);
+    border: none;
+    border-radius: 30px;
+    padding: 12px 36px;
+    cursor: pointer;
+    box-shadow: 0 5px 0 #D14C86;
+    font-family: inherit;
+  }
+  .btn:active { transform: translateY(3px); box-shadow: 0 2px 0 #D14C86; }
+  .controls {
+    margin-top: 12px;
+    display: grid;
+    grid-template-columns: repeat(3, 64px);
+    grid-template-rows: repeat(2, 64px);
+    gap: 8px;
+    justify-content: center;
+  }
+  .pad {
+    font-size: 30px;
+    background: #fff;
+    border: none;
+    border-radius: 18px;
+    box-shadow: 0 4px 0 rgba(0,0,0,.15);
+    cursor: pointer;
+    color: #7A5C9E;
+  }
+  .pad:active { transform: translateY(2px); box-shadow: 0 2px 0 rgba(0,0,0,.15); }
+  .up { grid-column: 2; grid-row: 1; }
+  .left { grid-column: 1; grid-row: 2; }
+  .down { grid-column: 2; grid-row: 2; }
+  .right { grid-column: 3; grid-row: 2; }
+  #starRow { font-size: 20px; margin-top: 4px; letter-spacing: 2px; }
+  .star { color: #FFC93C; }
+  .star.off { color: #D8CBBB; }
+</style>
+</head>
+<body>
+  <h1>🌈 彩虹小蛇大冒险 🌈</h1>
+  <div class="topbar">
+    <div class="chip">🍬 得分 <span id="score">0</span></div>
+    <div class="chip">🚩 第 <span id="level">1</span> 关</div>
+    <div class="chip">🎯 目标 <span id="goal">5</span></div>
+  </div>
+  <div id="gameWrap">
+    <canvas id="game" width="480" height="480"></canvas>
+    <div class="overlay" id="overlay">
+      <div class="big" id="ovEmoji">🐍</div>
+      <div class="msg" id="ovTitle">彩虹小蛇大冒险</div>
+      <div class="msg" id="ovText">帮小蛇吃到糖果吧！<br>用下面的按钮或键盘方向键控制方向～</div>
+      <button class="btn" id="startBtn">开始玩啦 🎉</button>
+    </div>
+  </div>
+  <div id="starRow"></div>
+  <div class="controls">
+    <button class="pad up" data-dir="up">⬆️</button>
+    <button class="pad left" data-dir="left">⬅️</button>
+    <button class="pad down" data-dir="down">⬇️</button>
+    <button class="pad right" data-dir="right">➡️</button>
+  </div>
+
+<script>
+(function () {
+  const CELL = 30;
+  const COLS = 16;
+  const ROWS = 16;
+  const canvas = document.getElementById('game');
+  const ctx = canvas.getContext('2d');
+  canvas.width = COLS * CELL;
+  canvas.height = ROWS * CELL;
+
+  const scoreEl = document.getElementById('score');
+  const levelEl = document.getElementById('level');
+  const goalEl = document.getElementById('goal');
+  const starRow = document.getElementById('starRow');
+  const overlay = document.getElementById('overlay');
+  const ovEmoji = document.getElementById('ovEmoji');
+  const ovTitle = document.getElementById('ovTitle');
+  const ovText = document.getElementById('ovText');
+  const startBtn = document.getElementById('startBtn');
+
+  // 关卡配置：吃满 goal 颗糖过关。越后面速度越快、障碍越多
+  const LEVELS = [
+    { goal: 5, speed: 640, walls: 0,  bg: ['#FFF7D6', '#FFEDB8'], name: '草地迷宫' },
+    { goal: 6, speed: 560, walls: 4,  bg: ['#E0F7FF', '#C4ECFF'], name: '大海遨游' },
+    { goal: 7, speed: 500, walls: 7,  bg: ['#FDE7FF', '#F6D2FF'], name: '糖果森林' },
+    { goal: 8, speed: 440, walls: 10, bg: ['#FFF0E0', '#FFE0C2'], name: '云朵天空' },
+    { goal: 10, speed: 380, walls: 14, bg: ['#E7FFE9', '#D2F7D8'], name: '星空探险' }
+  ];
+
+  let level = 0;
+  let score = 0;
+  let eaten = 0;
+  let snake, dir, nextDir, food, walls, timer, running = false, dead = false;
+
+  function resetLevel() {
+    const cfg = LEVELS[level];
+    eaten = 0;
+    goalEl.textContent = cfg.goal;
+    levelEl.textContent = level + 1;
+    snake = [{x: 8, y: 10}, {x: 7, y: 10}, {x: 6, y: 10}];
+    dir = {x: 1, y: 0};
+    nextDir = dir;
+    // 生成障碍（避开出生行）
+    walls = [];
+    let tries = 0;
+    while (walls.length < cfg.walls && tries < 500) {
+      tries++;
+      const w = {x: Math.floor(Math.random() * COLS), y: Math.floor(Math.random() * ROWS)};
+      if (w.y === 10 || (w.x >= 5 && w.x <= 9 && w.y >= 9 && w.y <= 11)) continue;
+      if (walls.some(o => o.x === w.x && o.y === w.y)) continue;
+      walls.push(w);
+    }
+    placeFood();
+    updateScore();
+  }
+
+  function placeFood() {
+    let f;
+    do {
+      f = {x: Math.floor(Math.random() * COLS), y: Math.floor(Math.random() * ROWS)};
+    } while (
+      snake.some(s => s.x === f.x && s.y === f.y) ||
+      walls.some(w => w.x === f.x && w.y === f.y)
+    );
+    food = f;
+  }
+
+  function updateScore() {
+    scoreEl.textContent = score;
+    const need = LEVELS[level].goal;
+    let s = '';
+    for (let i = 0; i < need; i++) {
+      s += '<span class="star' + (i < eaten ? '' : ' off') + '">⭐</span>';
+    }
+    starRow.innerHTML = '收集糖果：' + s;
+  }
+
+  function draw() {
+    const [bg1, bg2] = LEVELS[level].bg;
+    // 背景
+    const g = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
+    g.addColorStop(0, bg1);
+    g.addColorStop(1, bg2);
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    // 淡淡的格子
+    ctx.strokeStyle = 'rgba(0,0,0,0.04)';
+    for (let i = 0; i <= COLS; i++) {
+      ctx.beginPath(); ctx.moveTo(i*CELL, 0); ctx.lineTo(i*CELL, canvas.height); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(0, i*CELL); ctx.lineTo(canvas.width, i*CELL); ctx.stroke();
+    }
+
+    // 障碍：小石头
+    walls.forEach(w => {
+      roundRect(w.x*CELL+3, w.y*CELL+3, CELL-6, CELL-6, 8);
+      ctx.fillStyle = '#B7A7D9';
+      ctx.fill();
+      ctx.fillStyle = 'rgba(255,255,255,.5)';
+      ctx.beginPath();
+      ctx.arc(w.x*CELL+CELL/2-5, w.y*CELL+CELL/2-5, 4, 0, Math.PI*2);
+      ctx.fill();
+    });
+
+    // 糖果
+    const fx = food.x*CELL + CELL/2, fy = food.y*CELL + CELL/2;
+    ctx.beginPath();
+    ctx.arc(fx, fy, CELL*0.34, 0, Math.PI*2);
+    ctx.fillStyle = '#FF5FA0';
+    ctx.fill();
+    ctx.fillStyle = '#FFC93C';
+    ctx.beginPath();
+    ctx.arc(fx-5, fy-5, 4, 0, Math.PI*2);
+    ctx.fill();
+    // 糖果棒
+    ctx.strokeStyle = '#7A5C9E';
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(fx+8, fy-8);
+    ctx.lineTo(fx+14, fy-14);
+    ctx.stroke();
+
+    // 小蛇：彩虹身体
+    snake.forEach((s, i) => {
+      const hue = (i * 24 + 100) % 360;
+      ctx.fillStyle = 'hsl(' + hue + ', 85%, 60%)';
+      roundRect(s.x*CELL+2, s.y*CELL+2, CELL-4, CELL-4, 9);
+      ctx.fill();
+    });
+    // 眼睛
+    const head = snake[0];
+    const ex = head.x*CELL + CELL/2, ey = head.y*CELL + CELL/2;
+    const off = 6;
+    const dx = dir.x, dy = dir.y;
+    // 两只眼睛垂直于前进方向分布
+    const eyes = dx !== 0
+      ? [[ex + dx*4, ey - off], [ex + dx*4, ey + off]]
+      : [[ex - off, ey + dy*4], [ex + off, ey + dy*4]];
+    eyes.forEach(([x, y]) => {
+      ctx.fillStyle = '#fff';
+      ctx.beginPath(); ctx.arc(x, y, 5.5, 0, Math.PI*2); ctx.fill();
+      ctx.fillStyle = '#333';
+      ctx.beginPath(); ctx.arc(x + dx*1.5, y + dy*1.5, 2.8, 0, Math.PI*2); ctx.fill();
+    });
+  }
+
+  function roundRect(x, y, w, h, r) {
+    ctx.beginPath();
+    ctx.moveTo(x + r, y);
+    ctx.arcTo(x + w, y, x + w, y + h, r);
+    ctx.arcTo(x + w, y + h, x, y + h, r);
+    ctx.arcTo(x, y + h, x, y, r);
+    ctx.arcTo(x, y, x + w, y, r);
+    ctx.closePath();
+  }
+
+  function step() {
+    if (!running) return;
+    dir = nextDir;
+    const head = {x: snake[0].x + dir.x, y: snake[0].y + dir.y};
+
+    // 撞墙、撞障碍、撞自己 → 温柔结束
+    if (head.x < 0 || head.x >= COLS || head.y < 0 || head.y >= ROWS ||
+        walls.some(w => w.x === head.x && w.y === head.y) ||
+        snake.some(s => s.x === head.x && s.y === head.y)) {
+      running = false;
+      dead = true;
+      gameOver();
+      return;
+    }
+
+    snake.unshift(head);
+    if (head.x === food.x && head.y === food.y) {
+      eaten++;
+      score++;
+      updateScore();
+      confettiPop(food.x*CELL+CELL/2, food.y*CELL+CELL/2);
+      if (eaten >= LEVELS[level].goal) {
+        running = false;
+        setTimeout(levelClear, 300);
+        return;
+      }
+      placeFood();
+    } else {
+      snake.pop();
+    }
+    draw();
+  }
+
+  function startLoop() {
+    clearInterval(timer);
+    timer = setInterval(step, LEVELS[level].speed);
+  }
+
+  function setDir(d) {
+    const map = {
+      up: {x: 0, y: -1}, down: {x: 0, y: 1},
+      left: {x: -1, y: 0}, right: {x: 1, y: 0}
+    };
+    const nd = map[d];
+    // 不许直接掉头
+    if (nd.x + dir.x === 0 && nd.y + dir.y === 0) return;
+    nextDir = nd;
+  }
+
+  document.querySelectorAll('.pad').forEach(btn => {
+    btn.addEventListener('click', () => setDir(btn.dataset.dir));
+  });
+  document.addEventListener('keydown', e => {
+    const keys = {
+      ArrowUp: 'up', ArrowDown: 'down', ArrowLeft: 'left', ArrowRight: 'right',
+      w: 'up', s: 'down', a: 'left', d: 'right'
+    };
+    if (keys[e.key]) { e.preventDefault(); setDir(keys[e.key]); }
+  });
+
+  // 触屏滑动
+  let touchStart = null;
+  canvas.addEventListener('touchstart', e => {
+    touchStart = {x: e.touches[0].clientX, y: e.touches[0].clientY};
+  }, {passive: true});
+  canvas.addEventListener('touchend', e => {
+    if (!touchStart) return;
+    const dx = e.changedTouches[0].clientX - touchStart.x;
+    const dy = e.changedTouches[0].clientY - touchStart.y;
+    if (Math.abs(dx) > Math.abs(dy)) setDir(dx > 0 ? 'right' : 'left');
+    else setDir(dy > 0 ? 'down' : 'up');
+    touchStart = null;
+  }, {passive: true});
+
+  function showOverlay(emoji, title, text, btnText, handler) {
+    ovEmoji.textContent = emoji;
+    ovTitle.textContent = title;
+    ovText.innerHTML = text;
+    startBtn.textContent = btnText;
+    overlay.classList.remove('hidden');
+    startBtn.onclick = handler;
+  }
+  function hideOverlay() { overlay.classList.add('hidden'); }
+
+  function levelClear() {
+    if (level >= LEVELS.length - 1) {
+      showOverlay('🏆', '全部通关啦！', '小蛇太棒啦，吃了 ' + score + ' 颗糖果！<br>你是最厉害的小玩家～', '再玩一次 🎉', () => {
+        level = 0; score = 0; dead = false;
+        startGame();
+      });
+    } else {
+      showOverlay('🎉', '过关啦！', '下一关是「' + LEVELS[level+1].name + '」，糖果会跑得更快哦！', '继续冒险 ➡️', () => {
+        level++;
+        startGame();
+      });
+    }
+  }
+
+  function gameOver() {
+    showOverlay('💛', '哎呀，撞到啦！', '没关系，再来一次就好！<br>已经吃到了 ' + eaten + ' 颗糖果～', '重新开始 🔁', () => {
+      dead = false;
+      startGame();
+    });
+  }
+
+  function startGame() {
+    hideOverlay();
+    resetLevel();
+    draw();
+    running = true;
+    startLoop();
+  }
+
+  startBtn.onclick = () => startGame();
+
+  // 开心小彩带
+  let pops = [];
+  function confettiPop(x, y) {
+    for (let i = 0; i < 14; i++) {
+      pops.push({
+        x, y,
+        vx: (Math.random() - .5) * 6,
+        vy: -Math.random() * 6 - 2,
+        life: 1,
+        color: 'hsl(' + Math.floor(Math.random() * 360) + ',90%,60%)',
+        size: 3 + Math.random() * 3
+      });
+    }
+    requestAnimationFrame(popTick);
+  }
+  function popTick() {
+    draw();
+    pops = pops.filter(p => p.life > 0);
+    pops.forEach(p => {
+      p.x += p.vx; p.y += p.vy; p.vy += 0.3; p.life -= 0.03;
+      ctx.globalAlpha = Math.max(p.life, 0);
+      ctx.fillStyle = p.color;
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.size, 0, Math.PI*2);
+      ctx.fill();
+      ctx.globalAlpha = 1;
+    });
+    if (pops.length) requestAnimationFrame(popTick);
+  }
+
+  // 初始画面
+  resetLevel();
+  draw();
+})();
+</script>
+</body>
+</html>
