@@ -6,26 +6,33 @@
 <title>🌈 彩虹小蛇大冒险 🌈</title>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { height: 100%; }
   body {
     font-family: "PingFang SC", "Microsoft YaHei", sans-serif;
     background: linear-gradient(135deg, #FFD86B 0%, #FF9E6D 35%, #A18CD1 100%);
-    min-height: 100vh;
+    height: 100vh;
+    height: 100dvh;
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    padding: 10px;
+    padding: 8px 8px 10px;
     overflow: hidden;
     touch-action: manipulation;
+    -webkit-user-select: none;
+    user-select: none;
   }
   h1 {
-    font-size: 26px;
+    flex: 0 0 auto;
+    font-size: clamp(18px, 5.2vw, 26px);
     color: #fff;
     text-shadow: 2px 2px 0 #FF6FA5, 4px 4px 0 rgba(0,0,0,.15);
     margin-bottom: 6px;
     letter-spacing: 2px;
+    white-space: nowrap;
   }
   .topbar {
+    flex: 0 0 auto;
     display: flex;
     gap: 10px;
     margin-bottom: 8px;
@@ -35,11 +42,12 @@
   .chip {
     background: #fff;
     border-radius: 20px;
-    padding: 6px 16px;
-    font-size: 18px;
+    padding: 5px 12px;
+    font-size: clamp(13px, 4vw, 17px);
     font-weight: bold;
     color: #FF6FA5;
     box-shadow: 0 3px 0 rgba(0,0,0,.12);
+    white-space: nowrap;
   }
   #gameWrap {
     position: relative;
@@ -52,7 +60,8 @@
     border-radius: 18px;
     display: block;
     max-width: 92vw;
-    max-height: 60vh;
+    touch-action: none;            /* 手势自行处理，禁止页面滚动/缩放 */
+    -webkit-touch-callout: none;
   }
   .overlay {
     position: absolute;
@@ -68,8 +77,8 @@
     z-index: 10;
   }
   .overlay.hidden { display: none; }
-  .overlay .big { font-size: 42px; margin-bottom: 10px; }
-  .overlay .msg { font-size: 20px; color: #7A5C9E; margin-bottom: 6px; line-height: 1.5; }
+  .overlay .big { font-size: clamp(32px, 9vw, 42px); margin-bottom: 10px; }
+  .overlay .msg { font-size: clamp(16px, 4.6vw, 20px); color: #7A5C9E; margin-bottom: 6px; line-height: 1.5; }
   .btn {
     margin-top: 14px;
     font-size: 24px;
@@ -85,30 +94,80 @@
   }
   .btn:active { transform: translateY(3px); box-shadow: 0 2px 0 #D14C86; }
   .controls {
+    flex: 0 0 auto;
     margin-top: 12px;
     display: grid;
-    grid-template-columns: repeat(3, 64px);
-    grid-template-rows: repeat(2, 64px);
-    gap: 8px;
+    grid-template-columns: repeat(3, 76px);
+    grid-template-rows: repeat(2, 76px);
+    gap: 10px;
     justify-content: center;
   }
   .pad {
-    font-size: 30px;
+    font-size: 34px;
     background: #fff;
     border: none;
-    border-radius: 18px;
+    border-radius: 20px;
     box-shadow: 0 4px 0 rgba(0,0,0,.15);
     cursor: pointer;
     color: #7A5C9E;
+    touch-action: none;            /* 按下即响应，不等待 click */
+    -webkit-user-select: none;
+    user-select: none;
   }
-  .pad:active { transform: translateY(2px); box-shadow: 0 2px 0 rgba(0,0,0,.15); }
+  .pad:active, .pad.pressed { transform: translateY(2px); box-shadow: 0 2px 0 rgba(0,0,0,.15); background: #FFF3FB; }
   .up { grid-column: 2; grid-row: 1; }
   .left { grid-column: 1; grid-row: 2; }
   .down { grid-column: 2; grid-row: 2; }
   .right { grid-column: 3; grid-row: 2; }
-  #starRow { font-size: 20px; margin-top: 4px; letter-spacing: 2px; }
+  #starRow {
+    flex: 0 0 auto;
+    font-size: clamp(15px, 4vw, 20px);
+    margin-top: 4px;
+    letter-spacing: 2px;
+    line-height: 1.35;
+    text-align: center;
+  }
   .star { color: #FFC93C; }
   .star.off { color: #D8CBBB; }
+
+  /* 矮屏 / 横屏：压缩标签与按键，保证画布与按钮都留在视口内 */
+  @media (max-height: 640px) {
+    h1 { font-size: 17px; margin-bottom: 3px; }
+    .chip { font-size: 15px; padding: 4px 12px; }
+    #starRow { font-size: 14px; margin-top: 2px; letter-spacing: 1px; }
+    .controls {
+      margin-top: 8px;
+      grid-template-columns: repeat(3, 60px);
+      grid-template-rows: repeat(2, 60px);
+      gap: 8px;
+    }
+    .pad { font-size: 27px; border-radius: 16px; }
+  }
+
+  /* 横屏且高度不足：方向键移到画布右侧，纵向空间全留给棋盘 */
+  @media (orientation: landscape) and (max-height: 520px) {
+    body {
+      display: grid;
+      grid-template-columns: auto auto;
+      grid-template-rows: auto auto 1fr;
+      justify-content: center;
+      align-content: center;
+      column-gap: 16px;
+      padding: 6px 14px;
+    }
+    h1 { grid-column: 1 / -1; grid-row: 1; justify-self: center; font-size: 16px; margin-bottom: 2px; }
+    .topbar { grid-column: 1 / -1; grid-row: 2; justify-self: center; margin-bottom: 4px; gap: 8px; }
+    #gameWrap { grid-column: 1; grid-row: 3; align-self: center; }
+    #starRow { display: none; }          /* 横屏空间紧张，得分与目标已在上方标签中 */
+    .controls {
+      grid-column: 2; grid-row: 3; align-self: center;
+      margin-top: 0;
+      grid-template-columns: repeat(3, 58px);
+      grid-template-rows: repeat(2, 58px);
+      gap: 8px;
+    }
+    .pad { font-size: 26px; border-radius: 16px; }
+  }
 </style>
 </head>
 <body>
@@ -123,7 +182,7 @@
     <div class="overlay" id="overlay">
       <div class="big" id="ovEmoji">🐍</div>
       <div class="msg" id="ovTitle">彩虹小蛇大冒险</div>
-      <div class="msg" id="ovText">帮小蛇吃到糖果吧！<br>用下面的按钮或键盘方向键控制方向～</div>
+      <div class="msg" id="ovText">帮小蛇吃到糖果吧！<br>在画面上滑动手指，或按下面的方向键～</div>
       <button class="btn" id="startBtn">开始玩啦 🎉</button>
     </div>
   </div>
@@ -154,6 +213,9 @@
   const ovTitle = document.getElementById('ovTitle');
   const ovText = document.getElementById('ovText');
   const startBtn = document.getElementById('startBtn');
+  const h1El = document.querySelector('h1');
+  const topbarEl = document.querySelector('.topbar');
+  const controlsEl = document.querySelector('.controls');
 
   // 关卡配置：吃满 goal 颗糖过关。越后面速度越快、障碍越多
   const LEVELS = [
@@ -168,6 +230,7 @@
   let score = 0;
   let eaten = 0;
   let snake, dir, nextDir, food, walls, timer, running = false, dead = false;
+  let queue = [];   // 待执行方向队列（最多 2 个），让连续拐弯不丢指令
 
   function resetLevel() {
     const cfg = LEVELS[level];
@@ -177,6 +240,7 @@
     snake = [{x: 8, y: 10}, {x: 7, y: 10}, {x: 6, y: 10}];
     dir = {x: 1, y: 0};
     nextDir = dir;
+    queue = [];
     // 生成障碍（避开出生行）
     walls = [];
     let tries = 0;
@@ -210,6 +274,29 @@
       s += '<span class="star' + (i < eaten ? '' : ' off') + '">⭐</span>';
     }
     starRow.innerHTML = '收集糖果：' + s;
+    requestAnimationFrame(fitCanvas);   // 星星行高度可能变化，重算画布尺寸
+  }
+
+  // 横屏紧凑布局：方向键在右侧，纵向只需容纳标题+画布
+  function isLandscapeCompact() {
+    return window.innerHeight <= 520 && window.innerWidth > window.innerHeight;
+  }
+
+  // 让画布始终完整落在视口内：小屏不再把底部方向键挤出屏幕
+  function fitCanvas() {
+    let availH, availW;
+    if (isLandscapeCompact()) {
+      const head = h1El.offsetHeight + topbarEl.offsetHeight + 32;
+      availH = window.innerHeight - head;
+      availW = window.innerWidth * 0.68;
+    } else {
+      const used = h1El.offsetHeight + topbarEl.offsetHeight + starRow.offsetHeight + controlsEl.offsetHeight;
+      availH = window.innerHeight - (used + 74);   // 各块间距 + 页面与面板内边距
+      availW = Math.min(window.innerWidth * 0.92, 560);
+    }
+    const size = Math.max(150, Math.min(availW, availH));
+    canvas.style.width = size + 'px';
+    canvas.style.height = size + 'px';
   }
 
   function draw() {
@@ -293,7 +380,7 @@
 
   function step() {
     if (!running) return;
-    dir = nextDir;
+    if (queue.length) { dir = queue.shift(); nextDir = dir; }
     const head = {x: snake[0].x + dir.x, y: snake[0].y + dir.y};
 
     // 撞墙、撞障碍、撞自己 → 温柔结束
@@ -329,19 +416,38 @@
     timer = setInterval(step, LEVELS[level].speed);
   }
 
+  const DIRS = {
+    up: {x: 0, y: -1}, down: {x: 0, y: 1},
+    left: {x: -1, y: 0}, right: {x: 1, y: 0}
+  };
+
+  // 以"队列最后一个待执行方向"为基准判断掉头，避免 180° 自杀；
+  // 队列最多存 2 个方向，快速连拐两个弯时指令不会被吞掉。
   function setDir(d) {
-    const map = {
-      up: {x: 0, y: -1}, down: {x: 0, y: 1},
-      left: {x: -1, y: 0}, right: {x: 1, y: 0}
-    };
-    const nd = map[d];
-    // 不许直接掉头
-    if (nd.x + dir.x === 0 && nd.y + dir.y === 0) return;
+    const nd = DIRS[d];
+    if (!nd) return;
+    const base = queue.length ? queue[queue.length - 1] : dir;
+    if (nd.x === base.x && nd.y === base.y) return;          // 同方向，忽略
+    if (nd.x === -base.x && nd.y === -base.y) return;        // 反向，忽略
+    if (queue.length >= 2) return;                            // 队列已满
     nextDir = nd;
+    queue.push(nd);
   }
 
   document.querySelectorAll('.pad').forEach(btn => {
-    btn.addEventListener('click', () => setDir(btn.dataset.dir));
+    const press = e => {
+      e.preventDefault();                 // 阻止 click 延迟、长按菜单、双击缩放
+      setDir(btn.dataset.dir);
+      btn.classList.add('pressed');
+      setTimeout(() => btn.classList.remove('pressed'), 90);
+    };
+    if (window.PointerEvent) {
+      btn.addEventListener('pointerdown', press);      // 按下即生效，不等抬手
+    } else {
+      btn.addEventListener('touchstart', press, {passive: false});
+      btn.addEventListener('mousedown', press);
+    }
+    btn.addEventListener('click', e => e.preventDefault());
   });
   document.addEventListener('keydown', e => {
     const keys = {
@@ -351,19 +457,30 @@
     if (keys[e.key]) { e.preventDefault(); setDir(keys[e.key]); }
   });
 
-  // 触屏滑动
+  // 触屏手势：在 touchmove 阶段即时转向，每滑过 20px 判定一次，
+  // 因此"按住不放慢慢划"也能连续拐弯，不必等手指抬起。
+  const SWIPE_MIN = 20;
   let touchStart = null;
   canvas.addEventListener('touchstart', e => {
-    touchStart = {x: e.touches[0].clientX, y: e.touches[0].clientY};
+    const t = e.touches[0];
+    touchStart = {x: t.clientX, y: t.clientY};
   }, {passive: true});
-  canvas.addEventListener('touchend', e => {
+
+  canvas.addEventListener('touchmove', e => {
     if (!touchStart) return;
-    const dx = e.changedTouches[0].clientX - touchStart.x;
-    const dy = e.changedTouches[0].clientY - touchStart.y;
-    if (Math.abs(dx) > Math.abs(dy)) setDir(dx > 0 ? 'right' : 'left');
-    else setDir(dy > 0 ? 'down' : 'up');
-    touchStart = null;
-  }, {passive: true});
+    e.preventDefault();                       // 手势归游戏处理，页面不滚动
+    const t = e.touches[0];
+    const dx = t.clientX - touchStart.x;
+    const dy = t.clientY - touchStart.y;
+    const ax = Math.abs(dx), ay = Math.abs(dy);
+    if (ax < SWIPE_MIN && ay < SWIPE_MIN) return;   // 小抖动不判定，防误触
+    if (ax > ay) setDir(dx > 0 ? 'right' : 'left');
+    else         setDir(dy > 0 ? 'down' : 'up');
+    touchStart = {x: t.clientX, y: t.clientY};     // 重置起点，一次划动可连转多次
+  }, {passive: false});
+
+  canvas.addEventListener('touchend', () => { touchStart = null; }, {passive: true});
+  canvas.addEventListener('touchcancel', () => { touchStart = null; }, {passive: true});
 
   function showOverlay(emoji, title, text, btnText, handler) {
     ovEmoji.textContent = emoji;
@@ -437,8 +554,14 @@
   }
 
   // 初始画面
+  window.addEventListener('resize', fitCanvas);
+  window.addEventListener('orientationchange', () => setTimeout(fitCanvas, 120));
+  if (window.visualViewport) window.visualViewport.addEventListener('resize', fitCanvas);
+
+  fitCanvas();
   resetLevel();
   draw();
+  fitCanvas();
 })();
 </script>
 </body>
