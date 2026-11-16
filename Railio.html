@@ -755,7 +755,9 @@ function fitView(){
     x0=Math.min(x0,x); y0=Math.min(y0,y); x1=Math.max(x1,x); y1=Math.max(y1,y);
   }
   const w=(x1-x0+2)*CELL, h=(y1-y0+2)*CELL;
-  camT.s = Math.max(0.32, Math.min(1.25, Math.min((vw-90)/w,(vh-190)/h)));
+  // 上限从 1.25 放宽：大屏（平板横屏）上允许放大，避免整条轨道只占屏幕中间一小块；
+  // 同时用 1.9 封顶，防止小环线被放到过粗。
+  camT.s = Math.max(0.32, Math.min(1.9, Math.min((vw-90)/w,(vh-190)/h)));
   camT.x = (x0+x1+1)*CELL/2; camT.y = (y0+y1+1)*CELL/2;
 }
 let clearArm = 0;
@@ -900,6 +902,7 @@ function seedDefault(){
 (function init(){
   if(!loadSave()) seedDefault();
   redrawAllLayer();
+  fitView();                                  // 按当前屏幕尺寸取景，横竖屏切换后也重算
   Object.assign(cam, {x:camT.x, y:camT.y, s:camT.s});
   buildParts();
   renderComp();
@@ -907,6 +910,17 @@ function seedDefault(){
   setMode("build");
   requestAnimationFrame(loop);
 })();
+
+// 视口变化（旋转 / 分屏 / 窗口缩放）后重新取景，避免平板横屏上画面缩在中间
+let refitTimer = 0;
+window.addEventListener("resize", function(){
+  clearTimeout(refitTimer);
+  refitTimer = setTimeout(fitView, 180);
+});
+window.addEventListener("orientationchange", function(){
+  clearTimeout(refitTimer);
+  refitTimer = setTimeout(function(){ resize(); fitView(); }, 220);
+});
 </script>
 </body>
 </html>

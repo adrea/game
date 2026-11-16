@@ -139,7 +139,7 @@
          padding:16px 14px 14px;box-shadow:0 10px 28px rgba(40,80,110,.12);backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px);}
 
   .head{text-align:center;}
-  .badge{display:inline-block;background:rgba(255,255,255,.9);border-radius:99px;padding:3px 11px;font-size:12px;font-weight:800;color:#7b8b99;letter-spacing:.5px;}
+  .badge{display:inline-block;background:rgba(255,255,255,.9);border-radius:99px;padding:3px 11px;font-size:12px;font-weight:800;color:#4a5863;letter-spacing:.5px;}
   .head h2{margin:7px 0 3px;font-size:clamp(19px,3.2vh,26px);letter-spacing:.5px;}
   .head p{margin:0;font-size:clamp(13px,1.9vh,15px);color:#5d6f7d;font-weight:600;}
 
@@ -161,7 +161,7 @@
 
   .feedback{text-align:center;font-weight:800;font-size:clamp(14px,2vh,17px);min-height:22px;color:#2f9e44;opacity:0;transition:opacity .18s;}
   .feedback.show{opacity:1;}
-  .feedback.bad{color:#e8503a;}
+  .feedback.bad{color:#bf3521;}
 
   /* 道岔场:左边一条主线,五条岔路各挂一块号码牌 */
   .yard{position:relative;padding-left:50px;padding-bottom:30px;margin:2px 0 0;}
@@ -262,13 +262,14 @@
            font-family:inherit;font-weight:800;font-size:15px;color:#5d6f7d;cursor:pointer;}
   .who-btn.on{background:#fff3d6;border-color:#f7c948;color:#a9770b;}
 
-  .btn{display:block;width:100%;height:52px;border:none;border-radius:16px;background:#e8503a;color:#fff;
-       font-family:inherit;font-size:18px;font-weight:800;box-shadow:0 5px 0 #c23c29;cursor:pointer;transition:transform .08s;}
-  .btn:active{transform:translateY(3px);box-shadow:0 2px 0 #c23c29;}
+  .btn{display:block;width:100%;height:52px;border:none;border-radius:16px;background:#bf3521;color:#fff;
+       font-family:inherit;font-size:18px;font-weight:800;box-shadow:0 5px 0 #93271a;cursor:pointer;transition:transform .08s;}
+  .btn:active{transform:translateY(3px);box-shadow:0 2px 0 #93271a;}
   .btn.ghost{background:#eef6fb;color:#3d4a55;box-shadow:0 5px 0 #cfdde7;margin-top:14px;}
   .btn.ghost:active{box-shadow:0 2px 0 #cfdde7;}
-  .link-btn{background:none;border:none;color:#7b8b99;font-family:inherit;font-size:13px;font-weight:700;
-            text-decoration:underline;cursor:pointer;display:block;margin:14px auto 0;padding:6px;}
+  .link-btn{background:none;border:none;color:#4a5863;font-family:inherit;font-size:13px;font-weight:700;
+            text-decoration:underline;cursor:pointer;display:flex;align-items:center;justify-content:center;
+            margin:14px auto 0;padding:6px;min-height:44px;min-width:44px;}
 
   .info-card{background:#f5fbfe;border-radius:16px;padding:14px;text-align:center;margin-bottom:14px;}
   .info-card .phone{font-size:clamp(20px,3.4vh,26px);font-weight:800;letter-spacing:1.5px;color:#e8503a;}
@@ -277,7 +278,17 @@
   .medal{background:#fff8e1;border:2px solid #ffe08a;border-radius:14px;padding:8px 12px;font-size:13px;font-weight:800;color:#a9770b;}
   .diag{font-size:11px;line-height:1.6;color:#93a5b2;margin-top:10px;word-break:break-all;}
   .diag b{color:#5d6f7d;}
-  .warn{font-size:12px;line-height:1.5;color:#e8503a;min-height:16px;font-weight:700;margin:2px 0 10px;}
+  .warn{font-size:12px;line-height:1.5;color:#bf3521;min-height:16px;font-weight:700;margin:2px 0 10px;}
+  /* 平板 / 大屏：放宽主容器宽度，按键与输入区跟着放大，避免只占屏幕中间一条 */
+  @media (min-width: 720px) {
+    .stage { max-width: 720px; padding: 20px 22px 18px; }
+    .panel { max-width: 680px; padding: 26px 30px; }
+    .panel p { font-size: 16px; }
+    .panel .hero svg { width: clamp(140px, 22vh, 200px); }
+  }
+  @media (min-width: 1100px) and (orientation: landscape) {
+    .stage { max-width: 820px; }
+  }
 </style>
 </head>
 <body data-page-node-id="duDGp7Q5ONyK86ZdGymuYA">

@@ -48,8 +48,9 @@
   .row{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:8px 0;font-size:12px}
   .row label{color:#b9c3d4;flex:0 0 auto;min-width:62px}
   .row output{color:var(--gold);font-variant-numeric:tabular-nums;min-width:34px;text-align:right;font-size:11px}
-  input[type=range]{-webkit-appearance:none;appearance:none;flex:1;height:3px;border-radius:3px;
-    background:rgba(139,150,171,.28);outline:none;cursor:pointer}
+  input[type=range]{-webkit-appearance:none;appearance:none;flex:1;height:22px;padding:9px 0;
+    box-sizing:border-box;background:rgba(139,150,171,.28);background-clip:content-box;
+    border-radius:3px;outline:none;cursor:pointer}
   input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:12px;height:12px;border-radius:50%;
     background:var(--gold);border:2px solid #1a2130;cursor:pointer}
   input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;background:var(--gold);
@@ -73,6 +74,17 @@
     #panel{width:212px}
     #tip{font-size:10px;padding:6px 11px;bottom:10px}
     .chip{font-size:10px;padding:5px 8px}
+  }
+  /* 平板横屏：参数台加宽、滑块与复选框加大，便于手指拖拽 */
+  @media (min-width: 900px) {
+    #panel { width: 320px; }
+    .p-body { padding: 14px 15px 16px; }
+    input[type=range]::-webkit-slider-thumb { width: 20px; height: 20px; }
+    input[type=range]::-moz-range-thumb { width: 20px; height: 20px; }
+    .chk input { width: 20px; height: 20px; }
+    .row label { font-size: 13px; min-width: 70px; }
+    .row output { font-size: 13px; }
+    .p-body button, .p-body .btn { min-height: 44px; }
   }
 </style>
 </head>
@@ -819,7 +831,7 @@ const Renderer = {
             ctx.stroke();
           }
         }
-        if(t.invuln>0) ctx.globalAlpha=.45+.55*Math.abs(Math.sin(t.invuln*22));
+        if(t.invuln>0) ctx.globalAlpha=.70+.25*Math.abs(Math.sin(t.invuln*7));
         this.drawTrain(ctx,t,s.length,s.width,t.tri.color,t.boost>0);
 
         // 局部撞击效果：仅涉事车辆抖动 + 过曝闪光，画面不整体晃动

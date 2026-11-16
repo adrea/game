@@ -42,7 +42,7 @@
   @keyframes bump { 0%{transform:scale(1)} 40%{transform:scale(1.18) rotate(4deg)} 100%{transform:scale(1)} }
   .spacer { flex: 1 1 auto; }
   .bar-wrap { flex: 1 1 150px; min-width: 120px; max-width: 260px; }
-  .bar-label { font-size: clamp(11px,1.7vw,14px); font-weight: 800; opacity: .75; margin-bottom: 3px; }
+  .bar-label { font-size: clamp(12px,1.7vw,14px); font-weight: 800; opacity: .75; margin-bottom: 3px; }
   .bar { height: 14px; background: #fff; border: 3px solid #ffb02e; border-radius: 99px; overflow: hidden; }
   #barFill { height: 100%; width: 0%; border-radius: 99px;
     background: linear-gradient(90deg,#ffd84d,#ff8a3d,#ef4444); transition: width .12s linear; }
@@ -89,7 +89,7 @@
   .cover-text { min-width: 0; }
   h1 { margin: 0 0 6px; font-size: clamp(24px, 5vw, 46px); color: #e8402c; letter-spacing: 2px;
        text-shadow: 2px 3px 0 #ffd84d; }
-  .sub { font-size: clamp(12px,2.1vw,18px); font-weight: 700; color: #b07a2a; margin: 0 0 12px; }
+  .sub { font-size: clamp(12px,2.1vw,18px); font-weight: 700; color: #8d5a12; margin: 0 0 12px; }
   ul { margin: 0 0 14px; padding-left: 1.25em; font-size: clamp(12px,2.1vw,18px); line-height: 1.65; font-weight: 700; }
   li { margin-bottom: 3px; }
   /* ---------- 底部 ---------- */
@@ -143,6 +143,15 @@
     .start-btn { font-size: 24px; padding: 9px 30px; }
     #bottom { padding: 10px 12px 14px; }
   }
+  /* 平板横屏：主面板放宽，说明与按钮同步放大 */
+  @media (min-width: 1100px) {
+    #app { max-width: 1280px; }
+    #hud { padding: 14px 22px; }
+    .icon-btn { width: 52px; height: 52px; flex-basis: 52px; }
+  }
+  /* 宽度由脚本按可用高度反推，避免高屏幕把底部按钮切掉 */
+  #app { flex: 0 0 auto; }
+  body { overflow: hidden; }
 </style>
 </head>
 <body>
@@ -182,7 +191,7 @@
 
   <div id="bottom">
     <button id="btnTransform">变！</button>
-    <div class="tip">最靠前：1 小猫 · 2 兔子 · 3 小狗<br>点画面 / 按空格 也能变身<br>没有输赢，一直玩一直变</div>
+    <div class="tip">最靠前：小猫 · 兔子 · 小狗<br>点画面 / 按空格 也能变身<br>没有输赢，一直玩一直变</div>
   </div>
 </div>
 
@@ -194,7 +203,25 @@
   const ctx = canvas.getContext('2d');
   const TAU = Math.PI * 2;
 
+  // 舞台固定 5:3，平板横屏若按宽度铺满会超出视口高度，改为按可用高度反推面板宽度
+  function fitApp() {
+    const app = document.getElementById('app');
+    if (!app) return;
+    const hud = document.getElementById('hud');
+    const bottom = document.getElementById('bottom');
+    const PAD = 28;      // body 内边距合计
+    const BORDER = 12;   // #app 上下边框合计
+    const maxW = Math.min(window.innerWidth - PAD, 1280);
+    app.style.width = '';
+    for (let i = 0; i < 2; i++) {   // 两次测量：宽变窄后顶栏可能换行，高度需重算
+      const availH = window.innerHeight - PAD - hud.offsetHeight - bottom.offsetHeight - BORDER;
+      const w = Math.max(300, Math.min(maxW, availH * 5 / 3 + BORDER));
+      app.style.width = w + 'px';
+    }
+  }
+
   function fitCanvas() {
+    fitApp();
     const dpr = Math.min(window.devicePixelRatio || 1, 2);
     canvas.width = Math.round(W * dpr);
     canvas.height = Math.round(H * dpr);
@@ -420,11 +447,11 @@
   /* ============ 火车前面跑着的三只小动物 ============ */
   const GROUND_Y = 486;
   const ANIMALS = [
-    { id: 'cat',    rank: 1, baseX: 900, phase: 0.0, delay: 0 },
-    { id: 'rabbit', rank: 2, baseX: 800, phase: 2.1, delay: .12 },
-    { id: 'dog',    rank: 3, baseX: 705, phase: 4.0, delay: .24 }
+    { id: 'cat',    baseX: 900, phase: 0.0, delay: 0 },
+    { id: 'rabbit', baseX: 800, phase: 2.1, delay: .12 },
+    { id: 'dog',    baseX: 705, phase: 4.0, delay: .24 }
   ].map(function (a) {
-    return { id: a.id, rank: a.rank, baseX: a.baseX, phase: a.phase, delay: a.delay,
+    return { id: a.id, baseX: a.baseX, phase: a.phase, delay: a.delay,
              jumpY: 0, vy: 0, scare: 0, scareDelay: 0, pending: 0, dash: 0 };
   });
 
@@ -522,15 +549,6 @@
     ctx.fillStyle = '#ffd84d'; circle(6, -39, 4.5); ctx.fill();
   }
 
-  function drawRank(n) {
-    ctx.save(); ctx.translate(-31, -10);
-    ctx.fillStyle = '#ffd84d'; circle(0, 0, 12); ctx.fill();
-    ctx.strokeStyle = '#e8961c'; ctx.lineWidth = 2.5; circle(0, 0, 12); ctx.stroke();
-    ctx.fillStyle = '#a34b00'; ctx.font = '900 15px sans-serif';
-    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-    ctx.fillText(String(n), 0, 1);
-    ctx.restore();
-  }
   function drawBang(k) {
     ctx.save(); ctx.translate(20, -102);
     const sc = .7 + .5 * Math.min(1, k * 1.5);
@@ -558,7 +576,6 @@
       if (a.id === 'cat') drawCat(a, t, run);
       else if (a.id === 'rabbit') drawRabbit(a, t, run);
       else drawDog(a, t, run);
-      drawRank(a.rank);
       if (a.scare > .05) drawBang(a.scare);
       ctx.restore();
     }

@@ -347,6 +347,14 @@
     .gal-grid { grid-template-columns:repeat(auto-fill, minmax(74px, 1fr)); gap:8px; }
     .gal-head h2 { font-size:16.5px; }
   }
+  /* 平板 / 大屏：起始与结算卡片放宽，文字放大，避免大屏上挤成一小块 */
+  @media (min-width: 720px) {
+    .card { width: min(760px, 88vw); padding: 36px 40px; }
+    .card h1 { font-size: 34px; }
+    .card .tag { font-size: 15px; }
+    .card p { font-size: 17px; line-height: 1.95; }
+    .dir, .stat-grid > * { font-size: 16px; }
+  }
 </style>
 </head>
 <body data-page-node-id="NNeohlS1JfBfvwuCAw0yrW">

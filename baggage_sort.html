@@ -41,7 +41,7 @@
 
   .hint{flex:none;margin:8px 0 4px;padding:7px 20px;border-radius:999px;background:rgba(255,255,255,.92);
     font-size:clamp(15px,2.6vw,21px);font-weight:800;text-align:center;box-shadow:0 4px 10px rgba(0,0,0,.08);}
-  .hint b{color:#e65100;}
+  .hint b{color:#b84300;}
 
   #stage{flex:1;min-height:0;width:100%;max-width:1000px;position:relative;
     display:flex;flex-direction:column;gap:8px;}
@@ -129,6 +129,12 @@
     #belt{height:96px;}
     .wagon{height:66px;}
     .tool,.home{height:46px;}
+  }
+  /* 平板 / 大屏：主区放宽，车厢与行李同步放大 */
+  @media (min-width: 1100px) {
+    header, #stage { max-width: 1240px; }
+    .car { max-width: 330px; }
+    .home, .tool { height: 60px; min-width: 60px; }
   }
 </style>
 </head>

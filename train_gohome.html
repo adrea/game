@@ -35,7 +35,7 @@
   #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
   .game-hint { flex: none; font-size: 0.8rem; color: rgba(255,255,255,0.95); text-shadow: 1px 1px 2px rgba(0,0,0,0.2); text-align: center; line-height: 1.5; max-width: 620px; }
   .game-footer { flex: none; display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
-  .btn { padding: 10px 16px; border: none; border-radius: 25px; font-size: 0.95rem; font-weight: 600; cursor: pointer; transition: transform .15s, box-shadow .15s, opacity .15s; font-family: inherit; white-space: nowrap; }
+  .btn { padding: 10px 16px; border: none; border-radius: 25px; font-size: 0.95rem; font-weight: 600; cursor: pointer; transition: transform .15s, box-shadow .15s, opacity .15s; font-family: inherit; white-space: nowrap; min-height: 44px; }
   .btn:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.2); }
   .btn:active { transform: translateY(0); }
   .btn:disabled { opacity: .45; cursor: not-allowed; transform: none; box-shadow: none; }
@@ -58,6 +58,15 @@
     .btn { padding: 8px 12px; font-size: .85rem; }
     .info-badge { font-size: .75rem; padding: 3px 9px; }
     .game-hint { font-size: .72rem; }
+  }
+
+  /* 平板 / 大屏：主区与画布容器放宽，画布按可用空间自动变大 */
+  @media (min-width: 1100px) {
+    #app { max-width: 1400px; }
+    .canvas-wrap { max-width: 1320px; }
+    .game-hint { max-width: 760px; font-size: .9rem; }
+    .game-title { font-size: 1.6rem; }
+    .info-badge { font-size: 1rem; padding: 6px 16px; }
   }
 </style>
 <style class="automa-element-selector">@font-face { font-family: "Inter var"; font-weight: 100 900; font-display: swap; font-style: normal; font-named-instance: "Regular"; src: url("chrome-extension://infppggnoaenmfagbfknfkancpbljcca/Inter-roman-latin.var.woff2") format("woff2") }
