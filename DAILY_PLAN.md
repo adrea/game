@@ -11,7 +11,6 @@
 | 3 | 重命名并挂到 `index.html` 门户 | P0 | 15 min | ✅ 已完成 | 第 13 张卡片 + `nth-child(13)` CSS 两条规则 |
 | 4 | 移除 Google Fonts 外链，改本地字体栈 | P1 | 10 min | ✅ 已完成 | `body` 字体栈 + canvas `ctx.font` 同步替换 |
 | 5 | 六视口浏览器验证 | P0 | 20 min | ✅ 已完成 | 无溢出、零报错、游戏实际启动、canvas DPR 2 |
+| 6 | 提交并推送到 `origin/main` | P0 | 5 min | ✅ 已完成 | `e681550`，一次性 credential helper 推送成功，未触发 GCM 挂起 |
 
-**当日小结**：5 项全部完成，无遗留缺陷。改动停留在工作区（`index.html` 修改、`mini_temple_adventure.html` 新增），未提交。
-
-**待决策**：是否提交并推送到 `origin/main`。按本机环境记录，沙箱内 `git push` 不可行，需主人在自己终端执行，或提供一次性 PAT 走临时 credential helper。
+**当日小结**：6 项全部完成，无遗留缺陷。按主人指示合并为单个 commit `e681550`（3 files / +2900）并推送 `ee30b99..e681550 main -> main`，工作区已干净，本地与 `origin/main` 同步。
