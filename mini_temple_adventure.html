@@ -1,0 +1,2877 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>小小神庙大冒险 - Mini Temple Adventure</title>
+    <style>
+        /* 本地字体栈：无外链依赖，圆体优先以保持儿童向视觉 */
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            user-select: none;
+            -webkit-user-select: none;
+            -webkit-touch-callout: none;
+        }
+
+        body, html {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background-color: #120d0a;
+            font-family: -apple-system, 'YouYuan', 'Yuanti SC', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', 'Noto Sans CJK SC', sans-serif;
+            color: #fff8e7;
+        }
+
+        #game-container {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: radial-gradient(circle at center, #2a1d15 0%, #0f0a07 100%);
+        }
+
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+            touch-action: none;
+        }
+
+        /* UI 覆盖层通用样式 */
+        .ui-layer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            padding: 16px;
+            z-index: 10;
+        }
+
+        .interactive {
+            pointer-events: auto;
+        }
+
+        /* 顶部 HUD */
+        #hud {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            width: 100%;
+            max-width: 1200px;
+            margin: 0 auto;
+            transition: opacity 0.3s ease;
+        }
+
+        .hud-left, .hud-right {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .hud-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .badge {
+            background: rgba(28, 19, 13, 0.78);
+            border: 2px solid #8c6239;
+            border-radius: 14px;
+            padding: 6px 14px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 220, 150, 0.2);
+            backdrop-filter: blur(4px);
+        }
+
+        .hearts-container {
+            display: flex;
+            gap: 4px;
+            font-size: 1.25rem;
+        }
+
+        .heart {
+            transition: transform 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 0.25s;
+            filter: drop-shadow(0 2px 3px rgba(0,0,0,0.6));
+        }
+
+        .heart.lost {
+            opacity: 0.25;
+            transform: scale(0.8);
+            filter: grayscale(1);
+        }
+
+        .stat-label {
+            font-size: 0.75rem;
+            color: #d4b483;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .stat-value {
+            font-size: 1.15rem;
+            font-weight: 700;
+            color: #ffdf85;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.7);
+        }
+
+        /* 道具状态条 */
+        #powerup-bars {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            margin-top: 4px;
+        }
+
+        .powerup-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: rgba(20, 14, 10, 0.82);
+            border: 1.5px solid #a67c52;
+            border-radius: 10px;
+            padding: 4px 10px;
+            width: 170px;
+            animation: slideInLeft 0.25s ease-out;
+        }
+
+        @keyframes slideInLeft {
+            from { transform: translateX(-20px); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+
+        .powerup-bar-bg {
+            flex: 1;
+            height: 8px;
+            background: rgba(255, 255, 255, 0.15);
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .powerup-bar-fill {
+            height: 100%;
+            border-radius: 4px;
+            transition: width 0.08s linear;
+        }
+
+        /* 控制按钮组 */
+        .icon-btn {
+            width: 44px;
+            height: 44px;
+            border-radius: 12px;
+            background: linear-gradient(180deg, #5c3d24 0%, #3b2514 100%);
+            border: 2px solid #c9965b;
+            color: #ffdf85;
+            font-size: 1.2rem;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            box-shadow: 0 4px 0 #24150a, 0 6px 12px rgba(0,0,0,0.5);
+            transition: transform 0.1s, box-shadow 0.1s;
+        }
+
+        .icon-btn:active {
+            transform: translateY(3px);
+            box-shadow: 0 1px 0 #24150a, 0 3px 6px rgba(0,0,0,0.5);
+        }
+
+        /* 区域横幅提示 */
+        #zone-banner {
+            position: absolute;
+            top: 22%;
+            left: 50%;
+            transform: translate(-50%, -50%) scale(0.9);
+            background: linear-gradient(90deg, transparent 0%, rgba(36, 22, 12, 0.92) 20%, rgba(36, 22, 12, 0.92) 80%, transparent 100%);
+            border-top: 2px solid #e6b85c;
+            border-bottom: 2px solid #e6b85c;
+            padding: 12px 48px;
+            text-align: center;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.4s ease, transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            z-index: 15;
+        }
+
+        #zone-banner.show {
+            opacity: 1;
+            transform: translate(-50%, -50%) scale(1);
+        }
+
+        #zone-subtitle {
+            font-size: 0.85rem;
+            color: #d4a359;
+            letter-spacing: 3px;
+            text-transform: uppercase;
+        }
+
+        #zone-title {
+            font-size: 1.8rem;
+            font-weight: 900;
+            color: #ffea9f;
+            text-shadow: 0 3px 8px rgba(0, 0, 0, 0.8);
+            margin-top: 2px;
+        }
+
+        /* 模态弹窗（开始 / 暂停 / 结算） */
+        .modal-overlay {
+            position: absolute;
+            inset: 0;
+            background: rgba(12, 8, 5, 0.72);
+            backdrop-filter: blur(5px);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 20;
+            padding: 20px;
+            transition: opacity 0.3s ease;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        .stone-card {
+            background: linear-gradient(180deg, #3a2718 0%, #24170e 100%);
+            border: 4px solid #b8864b;
+            border-radius: 24px;
+            padding: 28px 32px;
+            max-width: 460px;
+            width: 100%;
+            text-align: center;
+            box-shadow: 
+                0 16px 40px rgba(0, 0, 0, 0.85),
+                inset 0 2px 0 rgba(255, 224, 150, 0.3),
+                inset 0 0 25px rgba(0, 0, 0, 0.6);
+            position: relative;
+            animation: popIn 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        @keyframes popIn {
+            from { transform: scale(0.85); opacity: 0; }
+            to { transform: scale(1); opacity: 1; }
+        }
+
+        .game-title {
+            font-size: 2.2rem;
+            font-weight: 900;
+            line-height: 1.15;
+            background: linear-gradient(180deg, #fff3b8 0%, #f5b942 55%, #c77d1e 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            filter: drop-shadow(0 4px 4px rgba(0, 0, 0, 0.8));
+            margin-bottom: 6px;
+        }
+
+        .game-subtitle {
+            font-size: 0.9rem;
+            color: #c9a679;
+            letter-spacing: 2px;
+            margin-bottom: 18px;
+        }
+
+        .high-score-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: rgba(0, 0, 0, 0.45);
+            border: 1.5px solid #8c6239;
+            border-radius: 999px;
+            padding: 6px 18px;
+            margin-bottom: 20px;
+            color: #ffd56b;
+            font-weight: 700;
+        }
+
+        .controls-guide {
+            background: rgba(18, 11, 7, 0.65);
+            border-radius: 16px;
+            padding: 14px;
+            margin-bottom: 22px;
+            border: 1px solid rgba(184, 134, 75, 0.35);
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            text-align: left;
+            font-size: 0.85rem;
+        }
+
+        .guide-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: #e6d2b5;
+        }
+
+        .key-cap {
+            background: #4f3520;
+            border: 1px solid #a67c52;
+            border-bottom-width: 3px;
+            border-radius: 6px;
+            padding: 2px 7px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            color: #ffdf85;
+            white-space: nowrap;
+        }
+
+        .primary-btn {
+            width: 100%;
+            padding: 14px 24px;
+            font-size: 1.25rem;
+            font-weight: 900;
+            font-family: inherit;
+            color: #2b1604;
+            background: linear-gradient(180deg, #ffe066 0%, #f5a623 100%);
+            border: 2px solid #fff2b2;
+            border-radius: 16px;
+            cursor: pointer;
+            box-shadow: 0 6px 0 #9e5b08, 0 10px 20px rgba(0, 0, 0, 0.6);
+            transition: transform 0.1s, box-shadow 0.1s, filter 0.15s;
+        }
+
+        .primary-btn:hover {
+            filter: brightness(1.06);
+        }
+
+        .primary-btn:active {
+            transform: translateY(4px);
+            box-shadow: 0 2px 0 #9e5b08, 0 5px 10px rgba(0, 0, 0, 0.6);
+        }
+
+        .secondary-btn {
+            width: 100%;
+            margin-top: 12px;
+            padding: 11px 20px;
+            font-size: 1rem;
+            font-weight: 700;
+            font-family: inherit;
+            color: #f5deb3;
+            background: linear-gradient(180deg, #593b22 0%, #3b2615 100%);
+            border: 2px solid #8c6239;
+            border-radius: 14px;
+            cursor: pointer;
+            box-shadow: 0 4px 0 #1f130a;
+            transition: transform 0.1s;
+        }
+
+        .secondary-btn:active {
+            transform: translateY(3px);
+            box-shadow: 0 1px 0 #1f130a;
+        }
+
+        /* 结算数据网格 */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin: 18px 0 22px;
+        }
+
+        .stat-box {
+            background: rgba(15, 10, 6, 0.65);
+            border: 1.5px solid rgba(184, 134, 75, 0.4);
+            border-radius: 14px;
+            padding: 12px;
+        }
+
+        .stat-box .val {
+            font-size: 1.4rem;
+            font-weight: 900;
+            color: #ffdf85;
+            margin-top: 2px;
+        }
+
+        .new-record-badge {
+            display: inline-block;
+            background: linear-gradient(90deg, #ff5e3a, #ff9500);
+            color: #fff;
+            font-size: 0.75rem;
+            font-weight: 900;
+            padding: 3px 10px;
+            border-radius: 999px;
+            margin-bottom: 8px;
+            animation: pulse 1s infinite alternate;
+        }
+
+        @keyframes pulse {
+            from { transform: scale(1); }
+            to { transform: scale(1.08); }
+        }
+
+        /* 移动端底部快捷触控提示 */
+        #mobile-touch-hints {
+            display: none;
+            justify-content: space-between;
+            width: 100%;
+            opacity: 0.55;
+            font-size: 0.8rem;
+            color: #e6cfa8;
+            padding: 0 8px;
+        }
+
+        @media (max-width: 768px) {
+            .game-title { font-size: 1.8rem; }
+            .stone-card { padding: 22px 20px; }
+            .badge { padding: 5px 10px; }
+            .stat-value { font-size: 1rem; }
+            #mobile-touch-hints { display: flex; }
+        }
+
+        /* ============================================================
+           横屏触控双区虚拟按键（左下角滑铲 / 右下角跳跃）
+           ============================================================ */
+        #landscape-controls {
+            position: absolute;
+            bottom: 18px;
+            left: 22px;
+            right: 22px;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            pointer-events: none;
+            z-index: 14;
+            transition: opacity 0.25s ease;
+        }
+
+        #landscape-controls.hidden {
+            display: none !important;
+        }
+
+        .touch-pad-btn {
+            pointer-events: auto;
+            width: 84px;
+            height: 84px;
+            border-radius: 50%;
+            background: radial-gradient(circle at 35% 30%, rgba(110, 74, 42, 0.72), rgba(46, 28, 15, 0.82));
+            border: 3px solid rgba(212, 163, 89, 0.75);
+            box-shadow: 0 6px 16px rgba(0, 0, 0, 0.55), inset 0 2px 4px rgba(255, 224, 150, 0.35);
+            color: #ffdf85;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            gap: 2px;
+            cursor: pointer;
+            backdrop-filter: blur(3px);
+            transition: transform 0.08s ease, background 0.08s ease, border-color 0.08s ease;
+            touch-action: none;
+        }
+
+        .touch-pad-btn .pad-icon {
+            font-size: 1.55rem;
+            line-height: 1;
+            filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.7));
+        }
+
+        .touch-pad-btn .pad-label {
+            font-size: 0.72rem;
+            font-weight: 800;
+            letter-spacing: 0.8px;
+            color: #f5deb3;
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.85);
+        }
+
+        .touch-pad-btn.active,
+        .touch-pad-btn:active {
+            transform: scale(0.91) translateY(3px);
+            background: radial-gradient(circle at 50% 50%, rgba(230, 168, 62, 0.85), rgba(128, 76, 24, 0.9));
+            border-color: #fff2b2;
+        }
+
+        /* 在宽屏矮高度横屏手机上优化卡片与 HUD 间距 */
+        @media (orientation: landscape) and (max-height: 500px) {
+            .ui-layer { padding: 10px 16px; }
+            .badge { padding: 4px 10px; border-radius: 10px; }
+            .stat-label { font-size: 0.65rem; }
+            .stat-value { font-size: 0.95rem; }
+            .hearts-container { font-size: 1.05rem; }
+            .icon-btn { width: 38px; height: 38px; font-size: 1.05rem; }
+            .stone-card { padding: 16px 24px; max-width: 480px; }
+            .game-title { font-size: 1.65rem; }
+            .game-subtitle { margin-bottom: 10px; font-size: 0.8rem; }
+            .high-score-pill { margin-bottom: 12px; padding: 4px 14px; font-size: 0.85rem; }
+            .controls-guide { padding: 10px; margin-bottom: 14px; gap: 6px; font-size: 0.78rem; }
+            .primary-btn { padding: 10px 20px; font-size: 1.1rem; }
+            .stats-grid { margin: 10px 0 14px; gap: 8px; }
+            .stat-box { padding: 8px; }
+            .stat-box .val { font-size: 1.15rem; }
+            #mobile-touch-hints { display: none !important; }
+        }
+
+        /* ============================================================
+           移动端竖屏旋转引导遮罩
+           ============================================================ */
+        #rotate-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(14, 9, 6, 0.88);
+            backdrop-filter: blur(8px);
+            z-index: 50;
+            display: none;
+            justify-content: center;
+            align-items: center;
+            padding: 24px;
+            text-align: center;
+        }
+
+        #rotate-overlay.visible {
+            display: flex;
+        }
+
+        .rotate-card {
+            background: linear-gradient(180deg, #3a2718 0%, #24170e 100%);
+            border: 3px solid #b8864b;
+            border-radius: 22px;
+            padding: 28px 24px;
+            max-width: 340px;
+            width: 100%;
+            box-shadow: 0 14px 36px rgba(0, 0, 0, 0.85);
+            animation: popIn 0.3s ease-out;
+        }
+
+        .phone-rotate-anim {
+            font-size: 3.2rem;
+            display: inline-block;
+            margin-bottom: 12px;
+            animation: tiltPhone 1.8s ease-in-out infinite;
+            filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.6));
+        }
+
+        @keyframes tiltPhone {
+            0%, 20% { transform: rotate(0deg); }
+            55%, 80% { transform: rotate(-90deg); }
+            100% { transform: rotate(0deg); }
+        }
+    </style>
+</head>
+<body>
+
+<div id="game-container">
+    <canvas id="gameCanvas"></canvas>
+
+    <!-- 游戏中 HUD -->
+    <div id="hud-layer" class="ui-layer">
+        <div id="hud">
+            <div class="hud-left">
+                <div class="hud-row">
+                    <!-- 生命值 -->
+                    <div class="badge">
+                        <div class="hearts-container" id="hearts-display">
+                            <span class="heart">❤️</span>
+                            <span class="heart">❤️</span>
+                            <span class="heart">❤️</span>
+                        </div>
+                    </div>
+                    <!-- 得分 -->
+                    <div class="badge">
+                        <div>
+                            <div class="stat-label">得分</div>
+                            <div class="stat-value" id="score-display">0</div>
+                        </div>
+                    </div>
+                    <!-- 距离 -->
+                    <div class="badge">
+                        <div>
+                            <div class="stat-label">距离</div>
+                            <div class="stat-value"><span id="distance-display">0</span>m</div>
+                        </div>
+                    </div>
+                    <!-- 金币 -->
+                    <div class="badge">
+                        <span style="font-size: 1.15rem;">🪙</span>
+                        <div class="stat-value" id="coins-display">0</div>
+                    </div>
+                </div>
+                <!-- 激活道具状态条 -->
+                <div id="powerup-bars"></div>
+            </div>
+
+            <div class="hud-right">
+                <div class="hud-row">
+                    <button id="fullscreen-btn" class="icon-btn interactive" title="全屏 / 横屏切换" aria-label="全屏切换">⛶</button>
+                    <button id="mute-btn" class="icon-btn interactive" title="音效开关" aria-label="音效开关">🔊</button>
+                    <button id="pause-btn" class="icon-btn interactive" title="暂停游戏" aria-label="暂停游戏">⏸️</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 区域切换横幅 -->
+        <div id="zone-banner">
+            <div id="zone-subtitle">STAGE 1</div>
+            <div id="zone-title">神庙外围</div>
+        </div>
+
+        <!-- 横屏双手虚拟按键（左下角滑铲 / 右下角跳跃） -->
+        <div id="landscape-controls" class="hidden">
+            <button id="btn-touch-slide" class="touch-pad-btn" aria-label="滑铲">
+                <span class="pad-icon">🛡️</span>
+                <span class="pad-label">滑铲 SLIDE</span>
+            </button>
+            <button id="btn-touch-jump" class="touch-pad-btn" aria-label="跳跃">
+                <span class="pad-icon">⬆️</span>
+                <span class="pad-label">跳跃 JUMP</span>
+            </button>
+        </div>
+
+        <!-- 移动端操作提示 -->
+        <div id="mobile-touch-hints">
+            <span>左下角 / 下滑：滑铲躲避</span>
+            <span>右下角 / 点击：二段跳跃</span>
+        </div>
+    </div>
+
+    <!-- 竖屏旋转引导提示遮罩（移动端竖屏时出现，可随时点击跳过） -->
+    <div id="rotate-overlay">
+        <div class="rotate-card">
+            <div class="phone-rotate-anim">📱</div>
+            <h3 class="game-title" style="font-size: 1.45rem; margin-bottom: 8px;">横屏体验更佳</h3>
+            <p style="font-size: 0.9rem; color: #e6d2b5; line-height: 1.5; margin-bottom: 20px;">
+                旋转手机至横向，获得更开阔的神庙跑酷视野与双手虚拟按键操控！
+            </p>
+            <button id="dismiss-rotate-btn" class="secondary-btn" style="margin-top: 0;">继续游玩</button>
+        </div>
+    </div>
+
+    <!-- 开始界面 -->
+    <div id="start-modal" class="modal-overlay interactive">
+        <div class="stone-card">
+            <div style="font-size: 3rem; margin-bottom: 4px; filter: drop-shadow(0 4px 6px rgba(0,0,0,0.6));">🏛️🧭</div>
+            <h1 class="game-title">小小神庙大冒险</h1>
+            <div class="game-subtitle">MINI TEMPLE ADVENTURE</div>
+
+            <div class="high-score-pill">
+                <span>🏆 历史最高分：</span>
+                <span id="start-high-score">0</span>
+            </div>
+
+            <div class="controls-guide">
+                <div class="guide-item">
+                    <span class="key-cap">空格 / W / ↑</span>
+                    <span>跳跃 / 二段跳</span>
+                </div>
+                <div class="guide-item">
+                    <span class="key-cap">S / ↓</span>
+                    <span>低身滑铲</span>
+                </div>
+                <div class="guide-item">
+                    <span class="key-cap">点击 / 上滑</span>
+                    <span>触屏跳跃</span>
+                </div>
+                <div class="guide-item">
+                    <span class="key-cap">向下滑动</span>
+                    <span>触屏滑铲</span>
+                </div>
+            </div>
+
+            <button id="start-btn" class="primary-btn">开始探险</button>
+        </div>
+    </div>
+
+    <!-- 暂停界面 -->
+    <div id="pause-modal" class="modal-overlay interactive hidden">
+        <div class="stone-card">
+            <h2 class="game-title" style="font-size: 1.9rem;">探险暂停</h2>
+            <p class="game-subtitle">稍作休整，准备继续前行</p>
+            <button id="resume-btn" class="primary-btn">继续冒险</button>
+            <button id="restart-from-pause-btn" class="secondary-btn">重新开始</button>
+        </div>
+    </div>
+
+    <!-- 结算界面 -->
+    <div id="gameover-modal" class="modal-overlay interactive hidden">
+        <div class="stone-card">
+            <div id="new-record-tag" class="new-record-badge hidden">🎉 刷新历史最高分！</div>
+            <h2 class="game-title" style="font-size: 2rem;">探险结束</h2>
+            <div class="game-subtitle" id="gameover-reason">被古老机关挡住了去路</div>
+
+            <div class="stats-grid">
+                <div class="stat-box">
+                    <div class="stat-label">本局得分</div>
+                    <div class="val" id="final-score">0</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-label">奔跑距离</div>
+                    <div class="val"><span id="final-distance">0</span>m</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-label">收集金币</div>
+                    <div class="val">🪙 <span id="final-coins">0</span></div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-label">历史最高</div>
+                    <div class="val" id="final-high-score">0</div>
+                </div>
+            </div>
+
+            <button id="retry-btn" class="primary-btn">再来一局</button>
+        </div>
+    </div>
+</div>
+
+<script>
+/**
+ * ============================================================================
+ * 《小小神庙大冒险》 (Mini Temple Adventure)
+ * 单文件 HTML5 Canvas 2D + Web Audio API 完整游戏引擎
+ * ============================================================================
+ */
+
+// ============================================================================
+// 1. Web Audio API 复古冒险音效与背景旋律合成器
+// ============================================================================
+class SoundSystem {
+    constructor() {
+        this.ctx = null;
+        this.muted = false;
+        this.bgmTimer = null;
+        this.bgmStep = 0;
+        this.isPlayingBgm = false;
+    }
+
+    init() {
+        if (!this.ctx) {
+            const AudioCtx = window.AudioContext || window.webkitAudioContext;
+            this.ctx = new AudioCtx();
+        }
+        if (this.ctx.state === 'suspended') {
+            this.ctx.resume();
+        }
+    }
+
+    toggleMute() {
+        this.muted = !this.muted;
+        if (this.muted) {
+            this.stopBgm();
+        } else if (game && game.state === 'PLAYING') {
+            this.startBgm();
+        }
+        return this.muted;
+    }
+
+    // 通用音调播放辅助
+    playTone(freq, endFreq, duration, type = 'triangle', vol = 0.15, delay = 0) {
+        if (this.muted || !this.ctx) return;
+        const now = this.ctx.currentTime + delay;
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+
+        osc.type = type;
+        osc.frequency.setValueAtTime(freq, now);
+        if (endFreq && endFreq !== freq) {
+            osc.frequency.exponentialRampToValueAtTime(Math.max(20, endFreq), now + duration);
+        }
+
+        gain.gain.setValueAtTime(0.001, now);
+        gain.gain.linearRampToValueAtTime(vol, now + 0.015);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + duration);
+
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+
+        osc.start(now);
+        osc.stop(now + duration + 0.02);
+    }
+
+    playJump() {
+        this.playTone(240, 560, 0.16, 'sine', 0.18);
+        this.playTone(320, 680, 0.14, 'triangle', 0.10, 0.02);
+    }
+
+    playDoubleJump() {
+        this.playTone(420, 880, 0.18, 'triangle', 0.18);
+        this.playTone(620, 1080, 0.15, 'sine', 0.12, 0.04);
+    }
+
+    playSlide() {
+        this.playTone(220, 95, 0.22, 'sawtooth', 0.09);
+    }
+
+    playCoin() {
+        this.playTone(987.77, 987.77, 0.07, 'sine', 0.14, 0);       // B5
+        this.playTone(1318.51, 1318.51, 0.16, 'sine', 0.14, 0.065); // E6
+    }
+
+    playGem() {
+        const notes = [659.25, 830.61, 987.77, 1318.51]; // E5, G#5, B5, E6
+        notes.forEach((n, i) => {
+            this.playTone(n, n * 1.02, 0.14, 'triangle', 0.14, i * 0.045);
+        });
+    }
+
+    playPowerup() {
+        const notes = [440, 554.37, 659.25, 880, 1108.73];
+        notes.forEach((n, i) => {
+            this.playTone(n, n, 0.15, 'sine', 0.16, i * 0.05);
+        });
+    }
+
+    playHit() {
+        this.playTone(180, 55, 0.32, 'sawtooth', 0.22);
+        this.playTone(120, 40, 0.35, 'square', 0.15, 0.03);
+    }
+
+    playZoneUp() {
+        const notes = [523.25, 659.25, 783.99, 1046.50];
+        notes.forEach((n, i) => {
+            this.playTone(n, n, 0.22, 'triangle', 0.15, i * 0.08);
+        });
+    }
+
+    // 轻快神秘的古代神庙节奏旋律（D 小调 / 阿拉伯五声音阶风味）
+    startBgm() {
+        if (this.muted || this.isPlayingBgm) return;
+        this.init();
+        this.isPlayingBgm = true;
+        this.bgmStep = 0;
+
+        // 旋律音符频率表 (D4, F4, G4, A4, Bb4, D5, E5, F5)
+        const melody = [
+            293.66, 0, 349.23, 440.00,
+            466.16, 440.00, 349.23, 392.00,
+            293.66, 0, 440.00, 587.33,
+            523.25, 466.16, 440.00, 392.00
+        ];
+        const bass = [
+            146.83, 0, 146.83, 220.00,
+            174.61, 0, 174.61, 220.00,
+            146.83, 0, 146.83, 220.00,
+            196.00, 0, 220.00, 146.83
+        ];
+
+        const tick = () => {
+            if (!this.isPlayingBgm || this.muted) return;
+            const idx = this.bgmStep % melody.length;
+            const mNote = melody[idx];
+            const bNote = bass[idx];
+
+            if (mNote > 0) {
+                this.playTone(mNote, mNote * 0.99, 0.16, 'triangle', 0.055);
+            }
+            if (bNote > 0) {
+                this.playTone(bNote, bNote, 0.18, 'sine', 0.065);
+            }
+            // 轻柔部落鼓点
+            if (idx % 2 === 0) {
+                this.playTone(idx % 4 === 0 ? 110 : 165, 45, 0.07, 'sine', 0.05);
+            }
+
+            this.bgmStep++;
+            this.bgmTimer = setTimeout(tick, 195);
+        };
+        tick();
+    }
+
+    stopBgm() {
+        this.isPlayingBgm = false;
+        if (this.bgmTimer) {
+            clearTimeout(this.bgmTimer);
+            this.bgmTimer = null;
+        }
+    }
+}
+
+const sound = new SoundSystem();
+
+// ============================================================================
+// 2. 区域主题配置（随距离切换神庙生态与光照）
+// ============================================================================
+const ZONES = [
+    {
+        name: '神庙外围',
+        subtitle: 'STAGE 1 · ANCIENT COURTYARD',
+        minDist: 0,
+        skyTop: '#1f2d27',
+        skyBottom: '#4e6347',
+        mountainFar: '#27382e',
+        mountainNear: '#1b2921',
+        pillarColor: '#5c584c',
+        pillarShadow: '#3b3830',
+        groundTop: '#6b8e4e',
+        groundMain: '#594a3c',
+        groundDark: '#362b22',
+        torchColor: '#ff9d2e',
+        leafColor: '#88b04b'
+    },
+    {
+        name: '幽暗地宫',
+        subtitle: 'STAGE 2 · SHADOW CATACOMBS',
+        minDist: 300,
+        skyTop: '#111629',
+        skyBottom: '#253152',
+        mountainFar: '#19223b',
+        mountainNear: '#101729',
+        pillarColor: '#3f4c6b',
+        pillarShadow: '#252e42',
+        groundTop: '#3b7a75',
+        groundMain: '#2b3347',
+        groundDark: '#191e2b',
+        torchColor: '#38f2ff',
+        leafColor: '#52e3c2'
+    },
+    {
+        name: '黄金圣殿',
+        subtitle: 'STAGE 3 · GOLDEN SANCTUARY',
+        minDist: 750,
+        skyTop: '#2e160d',
+        skyBottom: '#783f18',
+        mountainFar: '#4a2511',
+        mountainNear: '#33180a',
+        pillarColor: '#9c6f34',
+        pillarShadow: '#614119',
+        groundTop: '#e6b445',
+        groundMain: '#6e4323',
+        groundDark: '#422510',
+        torchColor: '#ffcf40',
+        leafColor: '#ffd15c'
+    }
+];
+
+// ============================================================================
+// 3. 粒子与浮动文字系统
+// ============================================================================
+class Particle {
+    constructor(x, y, vx, vy, size, color, life, gravity = 0.15, shape = 'circle') {
+        this.x = x;
+        this.y = y;
+        this.vx = vx;
+        this.vy = vy;
+        this.size = size;
+        this.color = color;
+        this.life = life;
+        this.maxLife = life;
+        this.gravity = gravity;
+        this.shape = shape;
+        this.rotation = Math.random() * Math.PI * 2;
+        this.rotSpeed = (Math.random() - 0.5) * 0.15;
+    }
+
+    update(dt) {
+        this.x += this.vx * dt * 60;
+        this.y += this.vy * dt * 60;
+        this.vy += this.gravity * dt * 60;
+        this.rotation += this.rotSpeed * dt * 60;
+        this.life -= dt;
+    }
+
+    draw(ctx) {
+        const alpha = Math.max(0, this.life / this.maxLife);
+        ctx.save();
+        ctx.globalAlpha = alpha;
+        ctx.translate(this.x, this.y);
+        ctx.rotate(this.rotation);
+        ctx.fillStyle = this.color;
+
+        if (this.shape === 'leaf') {
+            ctx.beginPath();
+            ctx.ellipse(0, 0, this.size, this.size * 0.5, 0, 0, Math.PI * 2);
+            ctx.fill();
+        } else if (this.shape === 'spark') {
+            ctx.fillRect(-this.size / 2, -this.size / 2, this.size, this.size);
+        } else {
+            ctx.beginPath();
+            ctx.arc(0, 0, this.size, 0, Math.PI * 2);
+            ctx.fill();
+        }
+        ctx.restore();
+    }
+}
+
+class FloatingText {
+    constructor(x, y, text, color = '#ffdf85') {
+        this.x = x;
+        this.y = y;
+        this.text = text;
+        this.color = color;
+        this.life = 0.9;
+        this.maxLife = 0.9;
+    }
+
+    update(dt) {
+        this.y -= 45 * dt;
+        this.life -= dt;
+    }
+
+    draw(ctx) {
+        const alpha = Math.max(0, this.life / this.maxLife);
+        ctx.save();
+        ctx.globalAlpha = alpha;
+        ctx.font = 'bold 18px "YouYuan", "Yuanti SC", "PingFang SC", "Microsoft YaHei", sans-serif';
+        ctx.textAlign = 'center';
+        ctx.lineWidth = 4;
+        ctx.strokeStyle = 'rgba(20, 12, 6, 0.85)';
+        ctx.strokeText(this.text, this.x, this.y);
+        ctx.fillStyle = this.color;
+        ctx.fillText(this.text, this.x, this.y);
+        ctx.restore();
+    }
+}
+
+// ============================================================================
+// 4. Q 版探险家主角类（动画、物理、二段跳、滑铲、无敌闪烁）
+// ============================================================================
+class Explorer {
+    constructor(x, groundY) {
+        this.x = x;
+        this.baseWidth = 42;
+        this.baseHeight = 56;
+        this.slideHeight = 30;
+
+        this.width = this.baseWidth;
+        this.height = this.baseHeight;
+        this.y = groundY - this.height;
+        this.vy = 0;
+
+        // 物理参数
+        this.gravity = 2350;
+        this.jumpForce = -760;
+        this.doubleJumpForce = -680;
+
+        // 状态标记
+        this.isGrounded = true;
+        this.jumpCount = 0;
+        this.maxJumps = 2;
+        this.isSliding = false;
+        this.slideTimer = 0;
+
+        // 手感增强：土狼时间 & 跳跃缓冲
+        this.coyoteTimer = 0;
+        this.coyoteDuration = 0.11;
+        this.jumpBufferTimer = 0;
+        this.jumpBufferDuration = 0.13;
+
+        // 动画与视觉
+        this.runCycle = 0;
+        this.flipAngle = 0;
+        this.squashX = 1;
+        this.squashY = 1;
+        this.invincibleTimer = 0;
+        this.trail = [];
+    }
+
+    reset(x, groundY) {
+        this.x = x;
+        this.width = this.baseWidth;
+        this.height = this.baseHeight;
+        this.y = groundY - this.height;
+        this.vy = 0;
+        this.isGrounded = true;
+        this.jumpCount = 0;
+        this.isSliding = false;
+        this.slideTimer = 0;
+        this.coyoteTimer = 0;
+        this.jumpBufferTimer = 0;
+        this.flipAngle = 0;
+        this.squashX = 1;
+        this.squashY = 1;
+        this.invincibleTimer = 0;
+        this.trail = [];
+    }
+
+    bufferJump() {
+        this.jumpBufferTimer = this.jumpBufferDuration;
+    }
+
+    startSlide() {
+        if (this.isSliding) {
+            this.slideTimer = Math.max(this.slideTimer, 0.55);
+            return;
+        }
+        // 如果在空中下滑，加速下落
+        if (!this.isGrounded) {
+            this.vy = Math.max(this.vy, 680);
+        }
+        this.isSliding = true;
+        this.slideTimer = 0.62;
+        const bottom = this.y + this.height;
+        this.height = this.slideHeight;
+        this.y = bottom - this.height;
+        this.squashX = 1.25;
+        this.squashY = 0.78;
+        sound.playSlide();
+    }
+
+    stopSlide() {
+        if (!this.isSliding) return;
+        this.isSliding = false;
+        this.slideTimer = 0;
+        const bottom = this.y + this.height;
+        this.height = this.baseHeight;
+        this.y = bottom - this.height;
+        this.squashX = 0.88;
+        this.squashY = 1.12;
+    }
+
+    executeJump(spawnParticlesFn) {
+        if (this.isSliding) {
+            this.stopSlide();
+        }
+
+        // 第一段跳（地面或土狼时间内）
+        if (this.isGrounded || this.coyoteTimer > 0) {
+            this.vy = this.jumpForce;
+            this.isGrounded = false;
+            this.coyoteTimer = 0;
+            this.jumpCount = 1;
+            this.flipAngle = 0;
+            this.squashX = 0.78;
+            this.squashY = 1.26;
+            sound.playJump();
+            spawnParticlesFn(this.x + this.width / 2, this.y + this.height, 8, '#e6cfa8');
+            return true;
+        }
+
+        // 二段跳（空中翻滚）
+        if (this.jumpCount < this.maxJumps) {
+            this.vy = this.doubleJumpForce;
+            this.jumpCount = 2;
+            this.flipAngle = 0.01; // 触发前空翻
+            this.squashX = 0.82;
+            this.squashY = 1.22;
+            sound.playDoubleJump();
+            spawnParticlesFn(this.x + this.width / 2, this.y + this.height, 12, '#ffe066');
+            return true;
+        }
+        return false;
+    }
+
+    update(dt, platforms, groundY, speedMultiplier, spawnParticlesFn, holdSlide = false) {
+        // 恢复挤压拉伸形变
+        this.squashX += (1 - this.squashX) * Math.min(1, dt * 14);
+        this.squashY += (1 - this.squashY) * Math.min(1, dt * 14);
+
+        // 无敌闪烁倒计时
+        if (this.invincibleTimer > 0) {
+            this.invincibleTimer -= dt;
+        }
+
+        // 滑铲计时（按住滑铲键或键盘下键时保持持续低身滑铲）
+        if (holdSlide && !this.isSliding) {
+            this.startSlide();
+        }
+        if (this.isSliding) {
+            if (holdSlide) {
+                this.slideTimer = Math.max(this.slideTimer, 0.15);
+            } else {
+                this.slideTimer -= dt;
+            }
+            if (this.isGrounded && Math.random() < 0.45) {
+                spawnParticlesFn(this.x + 6, this.y + this.height, 1, '#c9b089');
+            }
+            if (this.slideTimer <= 0 && !holdSlide) {
+                this.stopSlide();
+            }
+        }
+
+        // 土狼时间与跳跃缓冲更新
+        if (this.isGrounded) {
+            this.coyoteTimer = this.coyoteDuration;
+        } else {
+            this.coyoteTimer -= dt;
+        }
+
+        if (this.jumpBufferTimer > 0) {
+            this.jumpBufferTimer -= dt;
+            if (this.executeJump(spawnParticlesFn)) {
+                this.jumpBufferTimer = 0;
+            }
+        }
+
+        // 垂直速度与重力
+        const prevBottom = this.y + this.height;
+        this.vy += this.gravity * dt;
+        this.y += this.vy * dt;
+        const currBottom = this.y + this.height;
+
+        // 平台与地面碰撞检测（仅下落时检测单向平台）
+        let landed = false;
+        if (this.vy >= 0) {
+            for (const p of platforms) {
+                if (p.type === 'gap') continue;
+                const withinX = (this.x + this.width * 0.78 > p.x) && (this.x + this.width * 0.22 < p.x + p.width);
+                if (withinX && prevBottom <= p.y + 12 && currBottom >= p.y) {
+                    this.y = p.y - this.height;
+                    this.vy = 0;
+                    landed = true;
+                    break;
+                }
+            }
+        }
+
+        if (landed) {
+            if (!this.isGrounded) {
+                // 刚落地瞬间的缓冲形变与尘土
+                this.squashX = 1.24;
+                this.squashY = 0.78;
+                this.flipAngle = 0;
+                spawnParticlesFn(this.x + this.width / 2, this.y + this.height, 6, '#d4b483');
+            }
+            this.isGrounded = true;
+            this.jumpCount = 0;
+        } else {
+            this.isGrounded = false;
+        }
+
+        // 跑步动画帧与二段跳空翻角度
+        if (this.isGrounded && !this.isSliding) {
+            this.runCycle += dt * 15 * speedMultiplier;
+            if (Math.random() < 0.22) {
+                spawnParticlesFn(this.x + 10, this.y + this.height, 1, '#bfa57d');
+            }
+        }
+
+        if (!this.isGrounded && this.jumpCount === 2 && this.flipAngle > 0) {
+            this.flipAngle += dt * 14;
+            if (this.flipAngle >= Math.PI * 2) {
+                this.flipAngle = 0;
+            }
+        }
+
+        // 记录冲刺残影
+        if (speedMultiplier > 1.35) {
+            this.trail.push({ x: this.x, y: this.y, w: this.width, h: this.height, alpha: 0.45 });
+        }
+        for (let i = this.trail.length - 1; i >= 0; i--) {
+            this.trail[i].alpha -= dt * 2.5;
+            this.trail[i].x -= 180 * dt;
+            if (this.trail[i].alpha <= 0) this.trail.splice(i, 1);
+        }
+    }
+
+    getHitbox() {
+        // 略微宽容的碰撞箱，提升动作游戏体验
+        return {
+            x: this.x + 8,
+            y: this.y + 6,
+            width: this.width - 16,
+            height: this.height - 8
+        };
+    }
+
+    draw(ctx, activePowerups) {
+        // 无敌帧闪烁
+        if (this.invincibleTimer > 0 && Math.floor(this.invincibleTimer * 18) % 2 === 0) {
+            return;
+        }
+
+        // 绘制加速残影
+        for (const t of this.trail) {
+            ctx.save();
+            ctx.globalAlpha = t.alpha * 0.4;
+            ctx.fillStyle = '#ffe066';
+            ctx.beginPath();
+            ctx.roundRect(t.x, t.y, t.w, t.h, 12);
+            ctx.fill();
+            ctx.restore();
+        }
+
+        ctx.save();
+        const centerX = this.x + this.width / 2;
+        const bottomY = this.y + this.height;
+        ctx.translate(centerX, bottomY);
+
+        // 二段跳翻滚旋转中心调整
+        if (this.flipAngle > 0) {
+            ctx.translate(0, -this.height / 2);
+            ctx.rotate(this.flipAngle);
+            ctx.translate(0, this.height / 2);
+        } else if (this.isSliding) {
+            ctx.rotate(-0.22);
+        }
+
+        ctx.scale(this.squashX, this.squashY);
+
+        const swing = this.isGrounded && !this.isSliding ? Math.sin(this.runCycle) : 0.4;
+
+        // 1. 棕色探险小背包
+        ctx.fillStyle = '#7a441e';
+        ctx.strokeStyle = '#2e1607';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.roundRect(-22, -42, 14, 22, 5);
+        ctx.fill();
+        ctx.stroke();
+
+        // 背包搭扣
+        ctx.fillStyle = '#f5b942';
+        ctx.fillRect(-19, -34, 6, 4);
+
+        // 2. 后腿与靴子
+        ctx.save();
+        ctx.translate(-3, -16);
+        ctx.rotate(-swing * 0.65);
+        ctx.fillStyle = '#3d2c20';
+        ctx.beginPath();
+        ctx.roundRect(-5, 0, 10, 15, 4);
+        ctx.fill();
+        ctx.restore();
+
+        // 3. 探险家躯干（卡其色探险服 + 红色小围巾）
+        ctx.fillStyle = '#d9b37c';
+        ctx.strokeStyle = '#3b2410';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.roundRect(-12, -38, 24, 24, 8);
+        ctx.fill();
+        ctx.stroke();
+
+        // 腰带
+        ctx.fillStyle = '#4a2810';
+        ctx.fillRect(-12, -21, 24, 4);
+        ctx.fillStyle = '#ffd54f';
+        ctx.fillRect(-2, -22, 6, 6);
+
+        // 飘动的红围巾
+        ctx.fillStyle = '#e63946';
+        ctx.beginPath();
+        ctx.roundRect(-13, -39, 26, 7, 3);
+        ctx.fill();
+        // 围巾尾巴
+        const scarfWave = Math.sin(this.runCycle * 1.3) * 4;
+        ctx.beginPath();
+        ctx.moveTo(-12, -36);
+        ctx.quadraticCurveTo(-24, -38 + scarfWave, -30, -30 + scarfWave);
+        ctx.lineTo(-26, -25 + scarfWave);
+        ctx.quadraticCurveTo(-18, -31, -11, -33);
+        ctx.fill();
+
+        // 4. 前腿与靴子
+        ctx.save();
+        ctx.translate(4, -16);
+        ctx.rotate(swing * 0.65);
+        ctx.fillStyle = '#5c3d28';
+        ctx.beginPath();
+        ctx.roundRect(-5, 0, 10, 15, 4);
+        ctx.fill();
+        ctx.restore();
+
+        // 5. Q 版大头与五官
+        ctx.fillStyle = '#ffdfc4';
+        ctx.strokeStyle = '#3b2410';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.arc(2, -48, 14, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+
+        // 腮红
+        ctx.fillStyle = 'rgba(255, 118, 117, 0.55)';
+        ctx.beginPath();
+        ctx.arc(6, -45, 3, 0, Math.PI * 2);
+        ctx.fill();
+
+        // 明亮大眼睛
+        ctx.fillStyle = '#24150a';
+        ctx.beginPath();
+        ctx.arc(9, -49, 2.5, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = '#ffffff';
+        ctx.beginPath();
+        ctx.arc(10, -50, 1, 0, Math.PI * 2);
+        ctx.fill();
+
+        // 6. 经典探险帽（宽帽檐 + 帽顶）
+        ctx.fillStyle = '#a86b32';
+        ctx.strokeStyle = '#2e1607';
+        ctx.lineWidth = 2;
+        // 帽檐
+        ctx.beginPath();
+        ctx.ellipse(2, -57, 20, 5, -0.06, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+        // 帽顶
+        ctx.beginPath();
+        ctx.arc(2, -58, 11, Math.PI, 0);
+        ctx.fill();
+        ctx.stroke();
+        // 帽带
+        ctx.fillStyle = '#e63946';
+        ctx.fillRect(-8, -60, 20, 3);
+
+        // 7. 手臂挥动
+        ctx.save();
+        ctx.translate(0, -33);
+        ctx.rotate(-swing * 0.55);
+        ctx.fillStyle = '#ffdfc4';
+        ctx.strokeStyle = '#3b2410';
+        ctx.lineWidth = 1.8;
+        ctx.beginPath();
+        ctx.roundRect(-4, 0, 8, 13, 4);
+        ctx.fill();
+        ctx.stroke();
+        ctx.restore();
+
+        // 8. 护盾特效光罩
+        if (activePowerups.shield > 0) {
+            ctx.strokeStyle = '#4dd0e1';
+            ctx.fillStyle = 'rgba(77, 208, 225, 0.18)';
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            ctx.arc(0, -this.height / 2, this.height * 0.68, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.stroke();
+        }
+
+        // 9. 磁铁特效光环
+        if (activePowerups.magnet > 0) {
+            const pulse = (Date.now() % 600) / 600;
+            ctx.strokeStyle = `rgba(255, 82, 82, ${1 - pulse})`;
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.arc(0, -this.height / 2, 30 + pulse * 35, 0, Math.PI * 2);
+            ctx.stroke();
+        }
+
+        ctx.restore();
+    }
+}
+
+// ============================================================================
+// 5. 游戏主控制器
+// ============================================================================
+class TempleAdventureGame {
+    constructor() {
+        this.canvas = document.getElementById('gameCanvas');
+        this.ctx = this.canvas.getContext('2d');
+
+        // 横屏宽屏逻辑分辨率：高度固定 450px，宽度随屏幕宽高比动态延伸（800px ~ 1200px+）
+        this.logicalHeight = 450;
+        this.logicalWidth = 850;
+        this.groundY = 365;
+
+        this.state = 'MENU'; // MENU, PLAYING, PAUSED, GAMEOVER
+        this.score = 0;
+        this.coins = 0;
+        this.distance = 0;
+        this.lives = 3;
+        this.maxLives = 3;
+        this.highScore = parseInt(localStorage.getItem('mini_temple_high_score') || '0', 10);
+
+        this.baseSpeed = 390;
+        this.currentSpeed = 390;
+        this.zoneIndex = 0;
+        this.shakeTimer = 0;
+        this.shakeIntensity = 0;
+        this.holdSlide = false;
+        this.rotateDismissed = false;
+
+        // 道具剩余时间（秒）
+        this.powerups = {
+            boost: 0,
+            shield: 0,
+            magnet: 0
+        };
+
+        // 场景实体数组
+        this.platforms = [];
+        this.obstacles = [];
+        this.collectibles = [];
+        this.particles = [];
+        this.floatingTexts = [];
+        this.bgPillars = [];
+        this.torches = [];
+
+        this.player = new Explorer(150, this.groundY);
+
+        this.lastTime = 0;
+        this.initResize();
+        this.bindEvents();
+        this.updateHighScoreUI();
+        this.initBackgroundDecor();
+
+        // 启动主循环
+        requestAnimationFrame((t) => this.loop(t));
+    }
+
+    initResize() {
+        const resize = () => {
+            const dpr = Math.min(window.devicePixelRatio || 1, 2);
+            const rect = this.canvas.parentElement.getBoundingClientRect();
+            this.canvas.width = rect.width * dpr;
+            this.canvas.height = rect.height * dpr;
+
+            const aspect = rect.width / Math.max(1, rect.height);
+            this.logicalHeight = 450;
+            // 横屏模式下视野更开阔，同时保证竖屏降级游玩时也有足够前方反应距离
+            this.logicalWidth = Math.max(640, this.logicalHeight * aspect);
+            const oldGroundY = this.groundY;
+            this.groundY = 365;
+
+            // 玩家水平位置响应式调整（偏左侧，留出充足前方跑酷视野）
+            this.player.x = Math.min(165, Math.max(85, this.logicalWidth * 0.17));
+            if (this.player.isGrounded && oldGroundY !== this.groundY) {
+                this.player.y = this.groundY - this.player.height;
+            }
+
+            this.checkOrientationPrompt();
+        };
+        window.addEventListener('resize', resize);
+        window.addEventListener('orientationchange', () => {
+            setTimeout(resize, 120);
+        });
+        resize();
+    }
+
+    // 检测移动设备竖屏并智能提示旋转横屏
+    checkOrientationPrompt() {
+        const overlay = document.getElementById('rotate-overlay');
+        if (!overlay) return;
+
+        const isMobileLike = ('ontouchstart' in window || navigator.maxTouchPoints > 0) &&
+            Math.min(window.innerWidth, window.innerHeight) <= 900;
+        const isPortrait = window.innerHeight > window.innerWidth;
+
+        if (isMobileLike && isPortrait && !this.rotateDismissed) {
+            overlay.classList.add('visible');
+        } else {
+            overlay.classList.remove('visible');
+            if (!isPortrait) {
+                // 一旦用户主动横屏，重置忽略标记，下次竖屏可再次贴心提示
+                this.rotateDismissed = false;
+            }
+        }
+    }
+
+    // 请求全屏并尝试锁定为横屏方向（兼容不支持的浏览器静默降级）
+    async requestLandscapeFullscreen() {
+        try {
+            const docEl = document.documentElement;
+            if (!document.fullscreenElement && docEl.requestFullscreen) {
+                await docEl.requestFullscreen().catch(() => {});
+            } else if (!document.webkitFullscreenElement && docEl.webkitRequestFullscreen) {
+                docEl.webkitRequestFullscreen();
+            }
+        } catch (_) {}
+
+        try {
+            if (screen.orientation && screen.orientation.lock) {
+                await screen.orientation.lock('landscape').catch(() => {});
+            }
+        } catch (_) {}
+    }
+
+    bindEvents() {
+        // 按钮交互
+        document.getElementById('start-btn').addEventListener('click', () => {
+            this.requestLandscapeFullscreen();
+            this.startGame();
+        });
+        document.getElementById('retry-btn').addEventListener('click', () => {
+            this.requestLandscapeFullscreen();
+            this.startGame();
+        });
+        document.getElementById('resume-btn').addEventListener('click', () => this.togglePause());
+        document.getElementById('restart-from-pause-btn').addEventListener('click', () => this.startGame());
+        document.getElementById('pause-btn').addEventListener('click', () => this.togglePause());
+
+        // 竖屏提示遮罩「继续游玩」按钮
+        document.getElementById('dismiss-rotate-btn').addEventListener('click', () => {
+            this.rotateDismissed = true;
+            document.getElementById('rotate-overlay').classList.remove('visible');
+        });
+
+        // 全屏 / 横屏切换按钮
+        document.getElementById('fullscreen-btn').addEventListener('click', async () => {
+            if (document.fullscreenElement || document.webkitFullscreenElement) {
+                try {
+                    if (document.exitFullscreen) await document.exitFullscreen();
+                    else if (document.webkitExitFullscreen) document.webkitExitFullscreen();
+                } catch (_) {}
+            } else {
+                this.requestLandscapeFullscreen();
+            }
+        });
+
+        const muteBtn = document.getElementById('mute-btn');
+        muteBtn.addEventListener('click', () => {
+            sound.init();
+            const isMuted = sound.toggleMute();
+            muteBtn.textContent = isMuted ? '🔇' : '🔊';
+        });
+
+        // ============================================================
+        // 横屏双区触屏虚拟按键（左下角滑铲 / 右下角跳跃）
+        // ============================================================
+        const slideBtn = document.getElementById('btn-touch-slide');
+        const jumpBtn = document.getElementById('btn-touch-jump');
+
+        const startSlideHold = (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            if (this.state !== 'PLAYING') return;
+            this.holdSlide = true;
+            slideBtn.classList.add('active');
+            this.player.startSlide();
+        };
+
+        const endSlideHold = (e) => {
+            if (e) {
+                e.preventDefault();
+                e.stopPropagation();
+            }
+            this.holdSlide = false;
+            slideBtn.classList.remove('active');
+        };
+
+        slideBtn.addEventListener('touchstart', startSlideHold, { passive: false });
+        slideBtn.addEventListener('touchend', endSlideHold, { passive: false });
+        slideBtn.addEventListener('touchcancel', endSlideHold, { passive: false });
+        slideBtn.addEventListener('mousedown', startSlideHold);
+        slideBtn.addEventListener('mouseup', endSlideHold);
+        slideBtn.addEventListener('mouseleave', endSlideHold);
+
+        const triggerJumpPad = (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            if (this.state !== 'PLAYING') return;
+            jumpBtn.classList.add('active');
+            this.player.bufferJump();
+        };
+
+        const releaseJumpPad = (e) => {
+            if (e) {
+                e.preventDefault();
+                e.stopPropagation();
+            }
+            jumpBtn.classList.remove('active');
+        };
+
+        jumpBtn.addEventListener('touchstart', triggerJumpPad, { passive: false });
+        jumpBtn.addEventListener('touchend', releaseJumpPad, { passive: false });
+        jumpBtn.addEventListener('touchcancel', releaseJumpPad, { passive: false });
+        jumpBtn.addEventListener('mousedown', triggerJumpPad);
+        jumpBtn.addEventListener('mouseup', releaseJumpPad);
+        jumpBtn.addEventListener('mouseleave', releaseJumpPad);
+
+        // 键盘控制
+        window.addEventListener('keydown', (e) => {
+            if (e.repeat) return;
+            const code = e.code;
+            if (code === 'Space' || code === 'ArrowUp' || code === 'KeyW') {
+                e.preventDefault();
+                if (this.state === 'PLAYING') {
+                    this.player.bufferJump();
+                } else if (this.state === 'MENU' || this.state === 'GAMEOVER') {
+                    this.startGame();
+                }
+            } else if (code === 'ArrowDown' || code === 'KeyS') {
+                e.preventDefault();
+                if (this.state === 'PLAYING') {
+                    this.holdSlide = true;
+                    this.player.startSlide();
+                }
+            } else if (code === 'Escape' || code === 'KeyP') {
+                if (this.state === 'PLAYING' || this.state === 'PAUSED') {
+                    this.togglePause();
+                }
+            }
+        });
+
+        window.addEventListener('keyup', (e) => {
+            if (e.code === 'ArrowDown' || e.code === 'KeyS') {
+                this.holdSlide = false;
+            }
+        });
+
+        // 触屏与鼠标手势（点击/上滑跳跃，下滑滑铲）
+        let touchStartY = 0;
+        let touchHandled = false;
+
+        this.canvas.addEventListener('touchstart', (e) => {
+            if (this.state !== 'PLAYING') return;
+            e.preventDefault();
+            touchStartY = e.touches[0].clientY;
+            touchHandled = false;
+        }, { passive: false });
+
+        this.canvas.addEventListener('touchmove', (e) => {
+            if (this.state !== 'PLAYING' || touchHandled) return;
+            e.preventDefault();
+            const dy = e.touches[0].clientY - touchStartY;
+            if (dy > 28) {
+                this.player.startSlide();
+                touchHandled = true;
+            } else if (dy < -28) {
+                this.player.bufferJump();
+                touchHandled = true;
+            }
+        }, { passive: false });
+
+        this.canvas.addEventListener('touchend', (e) => {
+            if (this.state !== 'PLAYING') return;
+            e.preventDefault();
+            if (!touchHandled) {
+                this.player.bufferJump();
+            }
+        }, { passive: false });
+
+        // 鼠标左键点击画布跳跃
+        this.canvas.addEventListener('mousedown', (e) => {
+            if (e.button === 0 && this.state === 'PLAYING') {
+                this.player.bufferJump();
+            }
+        });
+    }
+
+    initBackgroundDecor() {
+        this.bgPillars = [];
+        this.torches = [];
+        for (let i = 0; i < 8; i++) {
+            const x = i * 260;
+            this.bgPillars.push({
+                x,
+                width: 56 + (i % 3) * 14,
+                hasVines: i % 2 === 0
+            });
+            if (i % 2 === 1) {
+                this.torches.push({
+                    x: x + 28,
+                    y: 195 + (i % 2) * 24,
+                    phase: Math.random() * Math.PI * 2
+                });
+            }
+        }
+    }
+
+    startGame() {
+        sound.init();
+        this.state = 'PLAYING';
+        this.score = 0;
+        this.coins = 0;
+        this.distance = 0;
+        this.lives = this.maxLives;
+        this.baseSpeed = 400;
+        this.currentSpeed = 400;
+        this.zoneIndex = 0;
+        this.shakeTimer = 0;
+        this.holdSlide = false;
+
+        this.powerups = { boost: 0, shield: 0, magnet: 0 };
+        this.platforms = [];
+        this.obstacles = [];
+        this.collectibles = [];
+        this.particles = [];
+        this.floatingTexts = [];
+
+        this.player.reset(Math.min(165, Math.max(85, this.logicalWidth * 0.17)), this.groundY);
+
+        // 生成初始安全地面
+        this.platforms.push({
+            x: -100,
+            y: this.groundY,
+            width: this.logicalWidth + 600,
+            height: this.logicalHeight - this.groundY,
+            type: 'ground'
+        });
+
+        // 预设前方路段
+        this.generateWorldAhead();
+
+        // UI 切换
+        document.getElementById('start-modal').classList.add('hidden');
+        document.getElementById('pause-modal').classList.add('hidden');
+        document.getElementById('gameover-modal').classList.add('hidden');
+        document.getElementById('landscape-controls').classList.remove('hidden');
+
+        this.updateHUD();
+        this.showZoneBanner(ZONES[0]);
+        sound.startBgm();
+    }
+
+    togglePause() {
+        if (this.state === 'PLAYING') {
+            this.state = 'PAUSED';
+            this.holdSlide = false;
+            sound.stopBgm();
+            document.getElementById('pause-modal').classList.remove('hidden');
+            document.getElementById('landscape-controls').classList.add('hidden');
+        } else if (this.state === 'PAUSED') {
+            this.state = 'PLAYING';
+            this.lastTime = performance.now();
+            sound.startBgm();
+            document.getElementById('pause-modal').classList.add('hidden');
+            document.getElementById('landscape-controls').classList.remove('hidden');
+        }
+    }
+
+    gameOver(reason = '探险家耗尽了体力') {
+        this.state = 'GAMEOVER';
+        this.holdSlide = false;
+        sound.stopBgm();
+        document.getElementById('landscape-controls').classList.add('hidden');
+
+        const finalScore = Math.floor(this.score);
+        const isNewRecord = finalScore > this.highScore;
+        if (isNewRecord) {
+            this.highScore = finalScore;
+            localStorage.setItem('mini_temple_high_score', String(this.highScore));
+        }
+
+        document.getElementById('gameover-reason').textContent = reason;
+        document.getElementById('final-score').textContent = finalScore;
+        document.getElementById('final-distance').textContent = Math.floor(this.distance);
+        document.getElementById('final-coins').textContent = this.coins;
+        document.getElementById('final-high-score').textContent = this.highScore;
+
+        const tag = document.getElementById('new-record-tag');
+        if (isNewRecord && finalScore > 0) {
+            tag.classList.remove('hidden');
+        } else {
+            tag.classList.add('hidden');
+        }
+
+        this.updateHighScoreUI();
+        document.getElementById('gameover-modal').classList.remove('hidden');
+    }
+
+    updateHighScoreUI() {
+        document.getElementById('start-high-score').textContent = this.highScore;
+    }
+
+    showZoneBanner(zone) {
+        const banner = document.getElementById('zone-banner');
+        document.getElementById('zone-subtitle').textContent = zone.subtitle;
+        document.getElementById('zone-title').textContent = zone.name;
+        banner.classList.add('show');
+        clearTimeout(this.bannerTimeout);
+        this.bannerTimeout = setTimeout(() => {
+            banner.classList.remove('show');
+        }, 2600);
+    }
+
+    spawnParticles(x, y, count, color, shape = 'circle') {
+        for (let i = 0; i < count; i++) {
+            const angle = Math.random() * Math.PI * 2;
+            const speed = 1 + Math.random() * 4;
+            this.particles.push(new Particle(
+                x, y,
+                Math.cos(angle) * speed,
+                Math.sin(angle) * speed - 1.5,
+                3 + Math.random() * 3.5,
+                color,
+                0.35 + Math.random() * 0.3,
+                0.14,
+                shape
+            ));
+        }
+    }
+
+    addFloatingText(x, y, text, color) {
+        this.floatingTexts.push(new FloatingText(x, y, text, color));
+    }
+
+    // ========================================================================
+    // 程序化关卡生成（地面、断崖、悬浮石台、地刺、巨石、喷火、摆动藤蔓/锤、宝物）
+    // ========================================================================
+    generateWorldAhead() {
+        let rightmostX = 0;
+        for (const p of this.platforms) {
+            if (p.x + p.width > rightmostX) {
+                rightmostX = p.x + p.width;
+            }
+        }
+
+        const difficulty = Math.min(1, this.distance / 1200);
+
+        while (rightmostX < this.logicalWidth + 900) {
+            // 决定是否生成断崖深渊
+            const makeGap = this.distance > 40 && Math.random() < (0.22 + difficulty * 0.14);
+
+            if (makeGap) {
+                const gapWidth = 115 + Math.random() * (65 + difficulty * 55);
+                this.platforms.push({
+                    x: rightmostX,
+                    y: this.groundY,
+                    width: gapWidth,
+                    height: this.logicalHeight - this.groundY,
+                    type: 'gap'
+                });
+
+                // 断崖上方生成引导金币弧线
+                const arcCount = 4;
+                for (let i = 0; i < arcCount; i++) {
+                    const t = (i + 0.5) / arcCount;
+                    const cx = rightmostX + t * gapWidth;
+                    const cy = this.groundY - 75 - Math.sin(t * Math.PI) * 55;
+                    this.collectibles.push({
+                        x: cx, y: cy, radius: 13, type: 'coin', phase: i * 0.5
+                    });
+                }
+
+                rightmostX += gapWidth;
+            }
+
+            // 生成实心神庙地面段
+            const segWidth = 340 + Math.random() * 360;
+            const segStartX = rightmostX;
+            this.platforms.push({
+                x: segStartX,
+                y: this.groundY,
+                width: segWidth,
+                height: this.logicalHeight - this.groundY,
+                type: 'ground'
+            });
+
+            // 概率生成高处悬浮石台
+            if (segWidth > 380 && Math.random() < 0.58) {
+                const platW = 130 + Math.random() * 80;
+                const platX = segStartX + 90 + Math.random() * (segWidth - platW - 140);
+                const platY = this.groundY - (115 + Math.random() * 35);
+                this.platforms.push({
+                    x: platX,
+                    y: platY,
+                    width: platW,
+                    height: 24,
+                    type: 'floating'
+                });
+
+                // 悬浮台上放置宝石或道具
+                if (Math.random() < 0.28) {
+                    const pTypes = ['boost', 'shield', 'magnet'];
+                    const chosen = pTypes[Math.floor(Math.random() * pTypes.length)];
+                    this.collectibles.push({
+                        x: platX + platW / 2,
+                        y: platY - 26,
+                        radius: 16,
+                        type: chosen,
+                        phase: 0
+                    });
+                } else {
+                    const gemType = Math.random() < 0.5 ? 'ruby' : 'sapphire';
+                    this.collectibles.push({
+                        x: platX + platW / 2,
+                        y: platY - 24,
+                        radius: 15,
+                        type: gemType,
+                        phase: 0
+                    });
+                }
+            }
+
+            // 在安全距离内放置地面障碍物
+            if (this.distance > 25 && segWidth > 320) {
+                const obsX = segStartX + segWidth * (0.45 + Math.random() * 0.25);
+                const roll = Math.random();
+
+                if (roll < 0.34) {
+                    // 1. 地刺陷阱（需跳跃躲避）
+                    const spikeCount = Math.random() < 0.5 ? 2 : 3;
+                    this.obstacles.push({
+                        type: 'spikes',
+                        x: obsX,
+                        y: this.groundY - 26,
+                        width: spikeCount * 22,
+                        height: 26
+                    });
+                    // 地刺上方金币
+                    this.collectibles.push({
+                        x: obsX + (spikeCount * 22) / 2,
+                        y: this.groundY - 95,
+                        radius: 13,
+                        type: 'coin',
+                        phase: 0
+                    });
+                } else if (roll < 0.64) {
+                    // 2. 悬挂摇摆巨锤 / 藤蔓刺球（需滑铲或高跳）
+                    this.obstacles.push({
+                        type: 'pendulum',
+                        pivotX: obsX,
+                        pivotY: 75,
+                        length: this.groundY - 75 - 46, // 最低点刚好留出滑铲高度
+                        radius: 22,
+                        angle: 0,
+                        speed: 2.6 + difficulty * 1.2,
+                        phase: Math.random() * Math.PI * 2
+                    });
+                    // 地面低空引导金币（鼓励滑铲）
+                    for (let k = -1; k <= 1; k++) {
+                        this.collectibles.push({
+                            x: obsX + k * 34,
+                            y: this.groundY - 18,
+                            radius: 12,
+                            type: 'coin',
+                            phase: k * 0.3
+                        });
+                    }
+                } else if (roll < 0.84) {
+                    // 3. 喷火石雕机关（间歇性喷火）
+                    this.obstacles.push({
+                        type: 'flame',
+                        x: obsX,
+                        y: this.groundY - 28,
+                        width: 34,
+                        height: 28,
+                        flameHeight: 82,
+                        timer: Math.random() * 2.5,
+                        cycle: 2.6
+                    });
+                } else {
+                    // 4. 迎面滚落的古老巨石
+                    this.obstacles.push({
+                        type: 'boulder',
+                        x: obsX + 120,
+                        y: this.groundY - 44,
+                        radius: 22,
+                        vx: -(130 + difficulty * 90),
+                        rotation: 0
+                    });
+                }
+            } else {
+                // 地面一排金币
+                const coinCount = 3 + Math.floor(Math.random() * 3);
+                for (let c = 0; c < coinCount; c++) {
+                    this.collectibles.push({
+                        x: segStartX + 90 + c * 38,
+                        y: this.groundY - 26,
+                        radius: 13,
+                        type: 'coin',
+                        phase: c * 0.4
+                    });
+                }
+            }
+
+            rightmostX += segWidth;
+        }
+    }
+
+    // ========================================================================
+    // 主更新逻辑
+    // ========================================================================
+    update(dt) {
+        if (this.state !== 'PLAYING') return;
+
+        // 道具时间递减
+        for (const key of ['boost', 'shield', 'magnet']) {
+            if (this.powerups[key] > 0) {
+                this.powerups[key] = Math.max(0, this.powerups[key] - dt);
+            }
+        }
+
+        // 随距离渐进提升基础速度
+        const targetBaseSpeed = Math.min(720, 400 + this.distance * 0.24);
+        this.baseSpeed += (targetBaseSpeed - this.baseSpeed) * dt * 2;
+        const speedMultiplier = this.powerups.boost > 0 ? 1.55 : 1.0;
+        this.currentSpeed = this.baseSpeed * speedMultiplier;
+
+        // 距离与得分累加
+        const dx = this.currentSpeed * dt;
+        this.distance += dx / 42;
+        this.score += (dx / 15) * (this.powerups.boost > 0 ? 2 : 1);
+
+        // 检查区域晋级
+        let newZoneIdx = 0;
+        for (let i = ZONES.length - 1; i >= 0; i--) {
+            if (this.distance >= ZONES[i].minDist) {
+                newZoneIdx = i;
+                break;
+            }
+        }
+        if (newZoneIdx !== this.zoneIndex) {
+            this.zoneIndex = newZoneIdx;
+            this.showZoneBanner(ZONES[this.zoneIndex]);
+            sound.playZoneUp();
+        }
+
+        // 屏幕震动衰减
+        if (this.shakeTimer > 0) {
+            this.shakeTimer -= dt;
+        }
+
+        // 飘落神庙树叶/金色微尘粒子
+        if (Math.random() < 0.25) {
+            const zone = ZONES[this.zoneIndex];
+            this.particles.push(new Particle(
+                this.logicalWidth + 20,
+                40 + Math.random() * (this.groundY - 80),
+                -60 - Math.random() * 80,
+                15 + Math.random() * 25,
+                4 + Math.random() * 3,
+                zone.leafColor,
+                5,
+                0.01,
+                'leaf'
+            ));
+        }
+
+        // 背景石柱与火把视差移动
+        for (const p of this.bgPillars) {
+            p.x -= dx * 0.35;
+            if (p.x + p.width < -100) {
+                p.x += 8 * 260;
+            }
+        }
+        for (const t of this.torches) {
+            t.x -= dx * 0.35;
+            t.phase += dt * 10;
+            if (t.x < -100) {
+                t.x += 8 * 260;
+            }
+        }
+
+        // 平台移动与清理
+        for (let i = this.platforms.length - 1; i >= 0; i--) {
+            this.platforms[i].x -= dx;
+            if (this.platforms[i].x + this.platforms[i].width < -200) {
+                this.platforms.splice(i, 1);
+            }
+        }
+
+        // 更新主角物理
+        this.player.update(
+            dt,
+            this.platforms,
+            this.groundY,
+            speedMultiplier,
+            (x, y, count, color, shape) => this.spawnParticles(x, y, count, color, shape),
+            this.holdSlide
+        );
+
+        // 检查是否掉入断崖深渊
+        if (this.player.y > this.logicalHeight + 40) {
+            this.handleFallInPit();
+        }
+
+        // 更新并检测收集物
+        const pBox = this.player.getHitbox();
+        const pCenterX = pBox.x + pBox.width / 2;
+        const pCenterY = pBox.y + pBox.height / 2;
+
+        for (let i = this.collectibles.length - 1; i >= 0; i--) {
+            const c = this.collectibles[i];
+            c.x -= dx;
+            c.phase += dt * 5;
+
+            // 磁铁吸附效果
+            if (this.powerups.magnet > 0 && (c.type === 'coin' || c.type === 'ruby' || c.type === 'sapphire')) {
+                const dist = Math.hypot(pCenterX - c.x, pCenterY - c.y);
+                if (dist < 260) {
+                    c.x += (pCenterX - c.x) * dt * 9;
+                    c.y += (pCenterY - c.y) * dt * 9;
+                }
+            }
+
+            // 收集碰撞检测
+            const hitDist = Math.hypot(pCenterX - c.x, pCenterY - c.y);
+            if (hitDist < c.radius + 26) {
+                this.collectItem(c);
+                this.collectibles.splice(i, 1);
+                continue;
+            }
+
+            if (c.x < -80) {
+                this.collectibles.splice(i, 1);
+            }
+        }
+
+        // 更新并检测机关障碍物
+        for (let i = this.obstacles.length - 1; i >= 0; i--) {
+            const obs = this.obstacles[i];
+
+            if (obs.type === 'spikes') {
+                obs.x -= dx;
+                if (this.checkRectOverlap(pBox, obs)) {
+                    this.damagePlayer(obs.x + obs.width / 2, obs.y);
+                }
+                if (obs.x + obs.width < -100) this.obstacles.splice(i, 1);
+
+            } else if (obs.type === 'boulder') {
+                obs.x -= dx - obs.vx * dt;
+                obs.rotation += (obs.vx * dt) / obs.radius;
+                if (this.checkCircleRectOverlap(obs.x, obs.y + obs.radius, obs.radius - 4, pBox)) {
+                    if (this.powerups.boost > 0 || this.powerups.shield > 0) {
+                        this.smashObstacle(obs.x, obs.y + obs.radius);
+                        this.obstacles.splice(i, 1);
+                        continue;
+                    }
+                    this.damagePlayer(obs.x, obs.y);
+                }
+                if (obs.x < -120) this.obstacles.splice(i, 1);
+
+            } else if (obs.type === 'pendulum') {
+                obs.pivotX -= dx;
+                obs.phase += obs.speed * dt;
+                obs.angle = Math.sin(obs.phase) * 0.65;
+                const bobX = obs.pivotX + Math.sin(obs.angle) * obs.length;
+                const bobY = obs.pivotY + Math.cos(obs.angle) * obs.length;
+
+                if (this.checkCircleRectOverlap(bobX, bobY, obs.radius - 4, pBox)) {
+                    if (this.powerups.boost > 0 || this.powerups.shield > 0) {
+                        this.smashObstacle(bobX, bobY);
+                        this.obstacles.splice(i, 1);
+                        continue;
+                    }
+                    this.damagePlayer(bobX, bobY);
+                }
+                if (obs.pivotX < -150) this.obstacles.splice(i, 1);
+
+            } else if (obs.type === 'flame') {
+                obs.x -= dx;
+                obs.timer = (obs.timer + dt) % obs.cycle;
+                const isFiring = obs.timer > 1.25; // 后半周期喷火
+                const baseBox = { x: obs.x, y: obs.y, width: obs.width, height: obs.height };
+
+                if (this.checkRectOverlap(pBox, baseBox)) {
+                    this.damagePlayer(obs.x + obs.width / 2, obs.y);
+                } else if (isFiring) {
+                    const fireBox = {
+                        x: obs.x + 5,
+                        y: obs.y - obs.flameHeight,
+                        width: obs.width - 10,
+                        height: obs.flameHeight
+                    };
+                    if (this.checkRectOverlap(pBox, fireBox)) {
+                        this.damagePlayer(obs.x + obs.width / 2, obs.y - 40);
+                    }
+                }
+                if (obs.x + obs.width < -100) this.obstacles.splice(i, 1);
+            }
+        }
+
+        // 更新粒子与浮动文字
+        for (let i = this.particles.length - 1; i >= 0; i--) {
+            this.particles[i].update(dt);
+            if (this.particles[i].life <= 0) this.particles.splice(i, 1);
+        }
+        for (let i = this.floatingTexts.length - 1; i >= 0; i--) {
+            this.floatingTexts[i].update(dt);
+            if (this.floatingTexts[i].life <= 0) this.floatingTexts.splice(i, 1);
+        }
+
+        this.generateWorldAhead();
+        this.updateHUD();
+    }
+
+    collectItem(item) {
+        if (item.type === 'coin') {
+            this.coins += 1;
+            this.score += 15;
+            sound.playCoin();
+            this.spawnParticles(item.x, item.y, 7, '#ffd54f', 'spark');
+            this.addFloatingText(item.x, item.y - 10, '+15', '#ffe066');
+        } else if (item.type === 'ruby') {
+            this.coins += 5;
+            this.score += 100;
+            sound.playGem();
+            this.spawnParticles(item.x, item.y, 14, '#ff5252', 'spark');
+            this.addFloatingText(item.x, item.y - 12, '红宝石 +100', '#ff7675');
+        } else if (item.type === 'sapphire') {
+            this.coins += 5;
+            this.score += 120;
+            sound.playGem();
+            this.spawnParticles(item.x, item.y, 14, '#40c4ff', 'spark');
+            this.addFloatingText(item.x, item.y - 12, '蓝宝石 +120', '#74b9ff');
+        } else if (item.type === 'boost') {
+            this.powerups.boost = 5.0;
+            this.score += 50;
+            sound.playPowerup();
+            this.spawnParticles(item.x, item.y, 16, '#ffab40', 'spark');
+            this.addFloatingText(item.x, item.y - 14, '⚡ 疾风冲刺！', '#ffbe76');
+        } else if (item.type === 'shield') {
+            this.powerups.shield = 8.0;
+            this.score += 50;
+            sound.playPowerup();
+            this.spawnParticles(item.x, item.y, 16, '#4dd0e1', 'spark');
+            this.addFloatingText(item.x, item.y - 14, '🛡️ 圣殿护盾！', '#81ecec');
+        } else if (item.type === 'magnet') {
+            this.powerups.magnet = 8.0;
+            this.score += 50;
+            sound.playPowerup();
+            this.spawnParticles(item.x, item.y, 16, '#ff6b81', 'spark');
+            this.addFloatingText(item.x, item.y - 14, '🧲 宝藏磁铁！', '#ff7979');
+        }
+    }
+
+    smashObstacle(x, y) {
+        sound.playHit();
+        this.score += 40;
+        this.shakeTimer = 0.15;
+        this.shakeIntensity = 6;
+        this.spawnParticles(x, y, 16, '#b89f7d');
+        this.addFloatingText(x, y - 15, '击碎 +40', '#ffeaa7');
+    }
+
+    damagePlayer(hitX, hitY) {
+        if (this.player.invincibleTimer > 0) return;
+
+        // 疾风冲刺状态免疫碰撞
+        if (this.powerups.boost > 0) {
+            this.smashObstacle(hitX, hitY);
+            return;
+        }
+
+        // 护盾抵消一次伤害
+        if (this.powerups.shield > 0) {
+            this.powerups.shield = 0;
+            this.player.invincibleTimer = 1.2;
+            sound.playHit();
+            this.shakeTimer = 0.2;
+            this.shakeIntensity = 7;
+            this.spawnParticles(hitX, hitY, 18, '#4dd0e1');
+            this.addFloatingText(this.player.x + 20, this.player.y - 15, '护盾抵挡！', '#81ecec');
+            return;
+        }
+
+        this.lives -= 1;
+        this.player.invincibleTimer = 1.5;
+        this.shakeTimer = 0.28;
+        this.shakeIntensity = 10;
+        sound.playHit();
+        this.spawnParticles(hitX, hitY, 18, '#ff5252');
+        this.addFloatingText(this.player.x + 20, this.player.y - 15, '-1 ❤️', '#ff7675');
+        this.updateHUD();
+
+        if (this.lives <= 0) {
+            this.gameOver('被古老神庙机关击中了');
+        }
+    }
+
+    handleFallInPit() {
+        this.lives -= 1;
+        this.shakeTimer = 0.3;
+        this.shakeIntensity = 12;
+        sound.playHit();
+        this.updateHUD();
+
+        if (this.lives <= 0) {
+            this.gameOver('失足跌入了神庙深渊');
+            return;
+        }
+
+        // 营救回安全地面并赋予短暂无敌与护盾光环
+        this.player.y = 95;
+        this.player.vy = 0;
+        this.player.jumpCount = 0;
+        this.player.invincibleTimer = 2.0;
+        this.addFloatingText(this.player.x + 20, 80, '绳索营救！-1 ❤️', '#ffdf85');
+
+        // 确保脚下有地面可落
+        this.platforms.push({
+            x: this.player.x - 60,
+            y: this.groundY,
+            width: 320,
+            height: this.logicalHeight - this.groundY,
+            type: 'ground'
+        });
+    }
+
+    checkRectOverlap(a, b) {
+        return (
+            a.x < b.x + b.width &&
+            a.x + a.width > b.x &&
+            a.y < b.y + b.height &&
+            a.y + a.height > b.y
+        );
+    }
+
+    checkCircleRectOverlap(cx, cy, cr, rect) {
+        const closestX = Math.max(rect.x, Math.min(cx, rect.x + rect.width));
+        const closestY = Math.max(rect.y, Math.min(cy, rect.y + rect.height));
+        const dx = cx - closestX;
+        const dy = cy - closestY;
+        return (dx * dx + dy * dy) < (cr * cr);
+    }
+
+    updateHUD() {
+        document.getElementById('score-display').textContent = Math.floor(this.score);
+        document.getElementById('distance-display').textContent = Math.floor(this.distance);
+        document.getElementById('coins-display').textContent = this.coins;
+
+        const heartEls = document.querySelectorAll('#hearts-display .heart');
+        heartEls.forEach((el, idx) => {
+            if (idx < this.lives) {
+                el.classList.remove('lost');
+            } else {
+                el.classList.add('lost');
+            }
+        });
+
+        // 道具状态条渲染
+        const barsContainer = document.getElementById('powerup-bars');
+        barsContainer.innerHTML = '';
+
+        const items = [
+            { key: 'boost', max: 5.0, icon: '⚡', color: '#ffab40' },
+            { key: 'shield', max: 8.0, icon: '🛡️', color: '#4dd0e1' },
+            { key: 'magnet', max: 8.0, icon: '🧲', color: '#ff6b81' }
+        ];
+
+        for (const it of items) {
+            const val = this.powerups[it.key];
+            if (val > 0) {
+                const pct = Math.min(100, (val / it.max) * 100);
+                const div = document.createElement('div');
+                div.className = 'powerup-item';
+                div.innerHTML = `
+                    <span>${it.icon}</span>
+                    <div class="powerup-bar-bg">
+                        <div class="powerup-bar-fill" style="width:${pct}%; background:${it.color};"></div>
+                    </div>
+                `;
+                barsContainer.appendChild(div);
+            }
+        }
+    }
+
+    // ========================================================================
+    // Canvas 2D 多层次艺术渲染
+    // ========================================================================
+    draw() {
+        const ctx = this.ctx;
+        const scale = this.canvas.height / this.logicalHeight;
+
+        ctx.save();
+        ctx.scale(scale, scale);
+
+        // 屏幕震动偏移
+        if (this.shakeTimer > 0) {
+            const sx = (Math.random() - 0.5) * this.shakeIntensity * 2;
+            const sy = (Math.random() - 0.5) * this.shakeIntensity * 2;
+            ctx.translate(sx, sy);
+        }
+
+        const zone = ZONES[this.zoneIndex];
+
+        // 1. 天空渐变背景
+        const skyGrad = ctx.createLinearGradient(0, 0, 0, this.groundY);
+        skyGrad.addColorStop(0, zone.skyTop);
+        skyGrad.addColorStop(1, zone.skyBottom);
+        ctx.fillStyle = skyGrad;
+        ctx.fillRect(0, 0, this.logicalWidth, this.logicalHeight);
+
+        // 神秘月亮 / 太阳光轮
+        ctx.save();
+        const sunX = this.logicalWidth * 0.78;
+        const sunY = 92;
+        const sunGlow = ctx.createRadialGradient(sunX, sunY, 8, sunX, sunY, 95);
+        sunGlow.addColorStop(0, 'rgba(255, 236, 179, 0.55)');
+        sunGlow.addColorStop(0.5, 'rgba(255, 193, 7, 0.15)');
+        sunGlow.addColorStop(1, 'rgba(255, 193, 7, 0)');
+        ctx.fillStyle = sunGlow;
+        ctx.beginPath();
+        ctx.arc(sunX, sunY, 95, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.fillStyle = 'rgba(255, 245, 210, 0.85)';
+        ctx.beginPath();
+        ctx.arc(sunX, sunY, 28, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+
+        // 2. 远景山脉与古金字塔剪影
+        this.drawMountainsAndPyramids(ctx, zone);
+
+        // 3. 中景神庙石柱与藤蔓
+        this.drawPillarsAndTorches(ctx, zone);
+
+        // 4. 平台与神庙地面
+        this.drawPlatforms(ctx, zone);
+
+        // 5. 收集物（金币、红/蓝宝石、加速/护盾/磁铁）
+        this.drawCollectibles(ctx);
+
+        // 6. 机关障碍物（地刺、巨石、摇摆锤、喷火机关）
+        this.drawObstacles(ctx);
+
+        // 7. Q 版探险家主角
+        this.player.draw(ctx, this.powerups);
+
+        // 8. 粒子与浮动得分文字
+        for (const p of this.particles) p.draw(ctx);
+        for (const ft of this.floatingTexts) ft.draw(ctx);
+
+        // 9. 疾风冲刺屏幕边缘速度线
+        if (this.powerups.boost > 0) {
+            ctx.save();
+            ctx.strokeStyle = 'rgba(255, 230, 128, 0.28)';
+            ctx.lineWidth = 3;
+            for (let i = 0; i < 8; i++) {
+                const ly = ((i * 79 + Date.now() * 0.2) % this.logicalHeight);
+                const lx = this.logicalWidth - ((Date.now() * 1.4 + i * 210) % (this.logicalWidth + 200));
+                ctx.beginPath();
+                ctx.moveTo(lx, ly);
+                ctx.lineTo(lx + 110, ly);
+                ctx.stroke();
+            }
+            ctx.restore();
+        }
+
+        ctx.restore();
+    }
+
+    drawMountainsAndPyramids(ctx, zone) {
+        const scrollFar = (this.distance * 4) % 900;
+        ctx.fillStyle = zone.mountainFar;
+        for (let i = -1; i < 3; i++) {
+            const baseX = i * 900 - scrollFar;
+            // 远景阶梯金字塔轮廓
+            ctx.beginPath();
+            ctx.moveTo(baseX + 80, this.groundY);
+            ctx.lineTo(baseX + 230, 155);
+            ctx.lineTo(baseX + 280, 155);
+            ctx.lineTo(baseX + 430, this.groundY);
+            ctx.closePath();
+            ctx.fill();
+
+            // 远山
+            ctx.beginPath();
+            ctx.moveTo(baseX + 380, this.groundY);
+            ctx.lineTo(baseX + 620, 185);
+            ctx.lineTo(baseX + 880, this.groundY);
+            ctx.closePath();
+            ctx.fill();
+        }
+
+        const scrollNear = (this.distance * 9) % 750;
+        ctx.fillStyle = zone.mountainNear;
+        for (let i = -1; i < 3; i++) {
+            const baseX = i * 750 - scrollNear;
+            ctx.beginPath();
+            ctx.moveTo(baseX, this.groundY);
+            ctx.lineTo(baseX + 180, 230);
+            ctx.lineTo(baseX + 390, this.groundY);
+            ctx.lineTo(baseX + 560, 215);
+            ctx.lineTo(baseX + 750, this.groundY);
+            ctx.closePath();
+            ctx.fill();
+        }
+    }
+
+    drawPillarsAndTorches(ctx, zone) {
+        for (const p of this.bgPillars) {
+            if (p.x > this.logicalWidth + 100) continue;
+
+            // 石柱主体
+            ctx.fillStyle = zone.pillarColor;
+            ctx.fillRect(p.x, 55, p.width, this.groundY - 55);
+
+            // 石柱右侧阴影
+            ctx.fillStyle = zone.pillarShadow;
+            ctx.fillRect(p.x + p.width * 0.65, 55, p.width * 0.35, this.groundY - 55);
+
+            // 石柱装饰横纹与柱头
+            ctx.fillRect(p.x - 8, 55, p.width + 16, 18);
+            ctx.fillRect(p.x - 8, this.groundY - 22, p.width + 16, 22);
+
+            // 缠绕藤蔓
+            if (p.hasVines) {
+                ctx.strokeStyle = '#3d6b35';
+                ctx.lineWidth = 4;
+                ctx.beginPath();
+                ctx.moveTo(p.x + 6, 73);
+                ctx.quadraticCurveTo(p.x + p.width - 4, 140, p.x + 8, 210);
+                ctx.quadraticCurveTo(p.x + p.width - 6, 275, p.x + 12, 335);
+                ctx.stroke();
+            }
+        }
+
+        // 闪烁壁挂火把与暖光光晕
+        for (const t of this.torches) {
+            if (t.x > this.logicalWidth + 100) continue;
+            const flicker = 0.85 + Math.sin(t.phase) * 0.15;
+
+            // 火光径向光晕
+            const glow = ctx.createRadialGradient(t.x, t.y - 12, 4, t.x, t.y - 12, 75 * flicker);
+            glow.addColorStop(0, 'rgba(255, 190, 60, 0.45)');
+            glow.addColorStop(1, 'rgba(255, 140, 20, 0)');
+            ctx.fillStyle = glow;
+            ctx.beginPath();
+            ctx.arc(t.x, t.y - 12, 75 * flicker, 0, Math.PI * 2);
+            ctx.fill();
+
+            // 火把木柄
+            ctx.fillStyle = '#3d2210';
+            ctx.fillRect(t.x - 4, t.y - 8, 8, 24);
+
+            // 火焰外焰与内焰
+            ctx.fillStyle = zone.torchColor;
+            ctx.beginPath();
+            ctx.ellipse(t.x, t.y - 16, 8 * flicker, 14 * flicker, 0, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.fillStyle = '#fff9c4';
+            ctx.beginPath();
+            ctx.ellipse(t.x, t.y - 14, 4 * flicker, 8 * flicker, 0, 0, Math.PI * 2);
+            ctx.fill();
+        }
+    }
+
+    drawPlatforms(ctx, zone) {
+        for (const p of this.platforms) {
+            if (p.type === 'gap') {
+                // 深渊底部暗影渐变
+                const abyssGrad = ctx.createLinearGradient(0, this.groundY, 0, this.logicalHeight);
+                abyssGrad.addColorStop(0, 'rgba(5, 3, 2, 0.4)');
+                abyssGrad.addColorStop(1, '#050302');
+                ctx.fillStyle = abyssGrad;
+                ctx.fillRect(p.x, this.groundY, p.width, p.height);
+                continue;
+            }
+
+            if (p.type === 'ground') {
+                // 泥土/石砖主体
+                ctx.fillStyle = zone.groundMain;
+                ctx.fillRect(p.x, p.y, p.width, p.height);
+
+                // 石砖纹理线条
+                ctx.fillStyle = zone.groundDark;
+                for (let bx = p.x + 20; bx < p.x + p.width - 20; bx += 64) {
+                    ctx.fillRect(bx, p.y + 28, 44, 18);
+                    ctx.fillRect(bx + 16, p.y + 58, 44, 18);
+                }
+
+                // 顶部苔藓/石板草皮层
+                ctx.fillStyle = zone.groundTop;
+                ctx.beginPath();
+                ctx.roundRect(p.x, p.y, p.width, 16, [6, 6, 0, 0]);
+                ctx.fill();
+
+                // 边缘高光线
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.2)';
+                ctx.fillRect(p.x + 2, p.y + 2, p.width - 4, 3);
+            } else if (p.type === 'floating') {
+                // 悬浮古老石台
+                ctx.fillStyle = zone.pillarShadow;
+                ctx.beginPath();
+                ctx.roundRect(p.x, p.y, p.width, p.height, 8);
+                ctx.fill();
+
+                ctx.fillStyle = zone.pillarColor;
+                ctx.beginPath();
+                ctx.roundRect(p.x, p.y, p.width, p.height - 6, 8);
+                ctx.fill();
+
+                // 石台顶部苔藓装饰
+                ctx.fillStyle = zone.groundTop;
+                ctx.beginPath();
+                ctx.roundRect(p.x + 4, p.y, p.width - 8, 6, 4);
+                ctx.fill();
+            }
+        }
+    }
+
+    drawCollectibles(ctx) {
+        for (const c of this.collectibles) {
+            const bobY = c.y + Math.sin(c.phase) * 4;
+            ctx.save();
+            ctx.translate(c.x, bobY);
+
+            if (c.type === 'coin') {
+                const stretchX = 0.75 + Math.abs(Math.cos(c.phase * 0.8)) * 0.25;
+                ctx.scale(stretchX, 1);
+                ctx.fillStyle = '#ffd54f';
+                ctx.strokeStyle = '#b26a00';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.arc(0, 0, c.radius, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.stroke();
+
+                // 金币内圈刻印
+                ctx.strokeStyle = '#fff59d';
+                ctx.lineWidth = 1.5;
+                ctx.beginPath();
+                ctx.arc(0, 0, c.radius * 0.62, 0, Math.PI * 2);
+                ctx.stroke();
+            } else if (c.type === 'ruby' || c.type === 'sapphire') {
+                const isRuby = c.type === 'ruby';
+                ctx.fillStyle = isRuby ? '#ff5252' : '#40c4ff';
+                ctx.strokeStyle = isRuby ? '#8e0000' : '#0069c0';
+                ctx.lineWidth = 2;
+
+                // 六边形钻石切割轮廓
+                ctx.beginPath();
+                ctx.moveTo(0, -15);
+                ctx.lineTo(13, -5);
+                ctx.lineTo(10, 12);
+                ctx.lineTo(0, 16);
+                ctx.lineTo(-10, 12);
+                ctx.lineTo(-13, -5);
+                ctx.closePath();
+                ctx.fill();
+                ctx.stroke();
+
+                // 宝石高光切面
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.55)';
+                ctx.beginPath();
+                ctx.moveTo(0, -12);
+                ctx.lineTo(7, -4);
+                ctx.lineTo(0, 4);
+                ctx.lineTo(-7, -4);
+                ctx.closePath();
+                ctx.fill();
+            } else {
+                // 特殊道具光球（加速 / 护盾 / 磁铁）
+                const colors = {
+                    boost: { bg: '#ff9100', border: '#fff3e0', icon: '⚡' },
+                    shield: { bg: '#00bcd4', border: '#e0f7fa', icon: '🛡️' },
+                    magnet: { bg: '#ff4081', border: '#fce4ec', icon: '🧲' }
+                };
+                const cfg = colors[c.type];
+                ctx.fillStyle = cfg.bg;
+                ctx.strokeStyle = cfg.border;
+                ctx.lineWidth = 2.5;
+                ctx.beginPath();
+                ctx.arc(0, 0, 17, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.stroke();
+
+                ctx.font = '16px sans-serif';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(cfg.icon, 0, 1);
+            }
+
+            ctx.restore();
+        }
+    }
+
+    drawObstacles(ctx) {
+        for (const obs of this.obstacles) {
+            if (obs.type === 'spikes') {
+                const count = Math.floor(obs.width / 22);
+                for (let i = 0; i < count; i++) {
+                    const sx = obs.x + i * 22;
+                    ctx.fillStyle = '#cfd8dc';
+                    ctx.strokeStyle = '#37474f';
+                    ctx.lineWidth = 2;
+                    ctx.beginPath();
+                    ctx.moveTo(sx, obs.y + obs.height);
+                    ctx.lineTo(sx + 11, obs.y);
+                    ctx.lineTo(sx + 22, obs.y + obs.height);
+                    ctx.closePath();
+                    ctx.fill();
+                    ctx.stroke();
+                }
+            } else if (obs.type === 'boulder') {
+                ctx.save();
+                ctx.translate(obs.x, obs.y + obs.radius);
+                ctx.rotate(obs.rotation);
+
+                ctx.fillStyle = '#75685a';
+                ctx.strokeStyle = '#2e2720';
+                ctx.lineWidth = 2.5;
+                ctx.beginPath();
+                ctx.arc(0, 0, obs.radius, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.stroke();
+
+                // 岩石裂纹装饰
+                ctx.strokeStyle = '#4a4036';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.moveTo(-10, -6);
+                ctx.lineTo(2, 4);
+                ctx.lineTo(12, -3);
+                ctx.stroke();
+                ctx.restore();
+
+            } else if (obs.type === 'pendulum') {
+                const bobX = obs.pivotX + Math.sin(obs.angle) * obs.length;
+                const bobY = obs.pivotY + Math.cos(obs.angle) * obs.length;
+
+                // 铁链
+                ctx.strokeStyle = '#546e7a';
+                ctx.lineWidth = 4;
+                ctx.beginPath();
+                ctx.moveTo(obs.pivotX, obs.pivotY);
+                ctx.lineTo(bobX, bobY);
+                ctx.stroke();
+
+                // 顶部悬挂基座
+                ctx.fillStyle = '#37474f';
+                ctx.beginPath();
+                ctx.arc(obs.pivotX, obs.pivotY, 8, 0, Math.PI * 2);
+                ctx.fill();
+
+                // 摆动刺球
+                ctx.save();
+                ctx.translate(bobX, bobY);
+                ctx.rotate(-obs.angle);
+                ctx.fillStyle = '#455a64';
+                ctx.strokeStyle = '#1c262b';
+                ctx.lineWidth = 2.5;
+                ctx.beginPath();
+                ctx.arc(0, 0, obs.radius, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.stroke();
+
+                // 刺球尖刺
+                ctx.fillStyle = '#eceff1';
+                for (let a = 0; a < 8; a++) {
+                    const rad = (a * Math.PI) / 4;
+                    ctx.beginPath();
+                    ctx.moveTo(Math.cos(rad - 0.2) * obs.radius, Math.sin(rad - 0.2) * obs.radius);
+                    ctx.lineTo(Math.cos(rad) * (obs.radius + 7), Math.sin(rad) * (obs.radius + 7));
+                    ctx.lineTo(Math.cos(rad + 0.2) * obs.radius, Math.sin(rad + 0.2) * obs.radius);
+                    ctx.fill();
+                }
+                ctx.restore();
+
+            } else if (obs.type === 'flame') {
+                // 喷火石雕底座
+                ctx.fillStyle = '#5d4037';
+                ctx.strokeStyle = '#261814';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.roundRect(obs.x, obs.y, obs.width, obs.height, 4);
+                ctx.fill();
+                ctx.stroke();
+
+                // 喷口警戒红光
+                const isWarning = obs.timer > 0.8 && obs.timer <= 1.25;
+                const isFiring = obs.timer > 1.25;
+
+                ctx.fillStyle = isFiring ? '#ff3d00' : (isWarning ? '#ffab00' : '#3e2723');
+                ctx.fillRect(obs.x + 6, obs.y - 3, obs.width - 12, 5);
+
+                if (isFiring) {
+                    const flicker = 0.9 + Math.sin(Date.now() * 0.04) * 0.1;
+                    const fh = obs.flameHeight * flicker;
+                    const grad = ctx.createLinearGradient(0, obs.y, 0, obs.y - fh);
+                    grad.addColorStop(0, '#fff59d');
+                    grad.addColorStop(0.45, '#ff9100');
+                    grad.addColorStop(1, 'rgba(255, 61, 0, 0)');
+
+                    ctx.fillStyle = grad;
+                    ctx.beginPath();
+                    ctx.moveTo(obs.x + 5, obs.y);
+                    ctx.quadraticCurveTo(obs.x + obs.width / 2, obs.y - fh * 1.15, obs.x + obs.width - 5, obs.y);
+                    ctx.closePath();
+                    ctx.fill();
+                }
+            }
+        }
+    }
+
+    loop(timestamp) {
+        if (!this.lastTime) this.lastTime = timestamp;
+        const dt = Math.min(0.05, (timestamp - this.lastTime) / 1000);
+        this.lastTime = timestamp;
+
+        this.update(dt);
+        this.draw();
+
+        requestAnimationFrame((t) => this.loop(t));
+    }
+}
+
+// 页面加载完成后启动游戏实例
+let game = null;
+window.addEventListener('DOMContentLoaded', () => {
+    game = new TempleAdventureGame();
+});
+</script>
+</body>
+</html>
