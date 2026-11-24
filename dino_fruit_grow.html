@@ -1,0 +1,1185 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>恐龙快乐长大记 · Dino Grow</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      user-select: none;
+      -webkit-user-select: none;
+      -webkit-touch-callout: none;
+    }
+
+    html, body {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: #87ceeb;
+      font-family: "PingFang SC", "Microsoft YaHei", "Hiragino Sans GB", system-ui, sans-serif;
+    }
+
+    #gameCanvas {
+      display: block;
+      width: 100vw;
+      height: 100vh;
+      touch-action: none;
+      cursor: pointer;
+    }
+
+    .hud-top {
+      position: fixed;
+      top: 14px;
+      left: 16px;
+      right: 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      pointer-events: none;
+      z-index: 10;
+    }
+
+    .badge-group {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    .pill {
+      background: rgba(255, 255, 255, 0.92);
+      border: 3px solid #48b868;
+      border-radius: 999px;
+      padding: 8px 18px;
+      font-size: 20px;
+      font-weight: 800;
+      color: #234e2c;
+      box-shadow: 0 5px 0 rgba(54, 142, 80, 0.28);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .growth-wrap {
+      background: rgba(255, 255, 255, 0.92);
+      border: 3px solid #ff9f1c;
+      border-radius: 999px;
+      padding: 6px 12px;
+      box-shadow: 0 5px 0 rgba(224, 130, 14, 0.25);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .growth-label {
+      font-size: 16px;
+      font-weight: 800;
+      color: #8a4b00;
+      white-space: nowrap;
+    }
+
+    .growth-bar-bg {
+      width: 130px;
+      height: 18px;
+      background: #ffe8c2;
+      border-radius: 999px;
+      overflow: hidden;
+      border: 2px solid #f4a226;
+    }
+
+    .growth-bar-fill {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, #ffbe0b, #fb5607, #8ac926);
+      border-radius: 999px;
+      transition: width 0.25s ease-out;
+    }
+
+    .btn-group {
+      display: flex;
+      gap: 10px;
+      pointer-events: auto;
+    }
+
+    .icon-btn {
+      width: 54px;
+      height: 54px;
+      border-radius: 50%;
+      border: 3px solid #fff;
+      background: #ff9f1c;
+      color: #fff;
+      font-size: 24px;
+      font-weight: bold;
+      box-shadow: 0 5px 0 #d97706;
+      cursor: pointer;
+      display: grid;
+      place-items: center;
+      transition: transform 0.12s ease;
+    }
+
+    .icon-btn:active {
+      transform: translateY(3px);
+      box-shadow: 0 2px 0 #d97706;
+    }
+
+    .icon-btn.muted {
+      background: #9ca3af;
+      box-shadow: 0 5px 0 #6b7280;
+    }
+
+    .tip-banner {
+      position: fixed;
+      bottom: 18px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(255, 255, 255, 0.9);
+      border: 3px solid #52b788;
+      color: #1b4332;
+      padding: 8px 22px;
+      border-radius: 999px;
+      font-size: 17px;
+      font-weight: 700;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+      pointer-events: none;
+      z-index: 10;
+      white-space: nowrap;
+    }
+
+    @media (max-width: 680px) {
+      .pill {
+        font-size: 16px;
+        padding: 6px 14px;
+      }
+      .growth-bar-bg {
+        width: 84px;
+        height: 14px;
+      }
+      .growth-label {
+        font-size: 14px;
+      }
+      .icon-btn {
+        width: 46px;
+        height: 46px;
+        font-size: 20px;
+      }
+      .tip-banner {
+        font-size: 14px;
+        padding: 6px 16px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="hud-top">
+    <div class="badge-group">
+      <div class="pill">
+        <span>🦕</span>
+        <span id="stageText">小豆丁恐龙</span>
+      </div>
+      <div class="growth-wrap">
+        <span class="growth-label">长大进度</span>
+        <div class="growth-bar-bg">
+          <div class="growth-bar-fill" id="growthBar"></div>
+        </div>
+      </div>
+      <div class="pill">
+        <span>⭐</span>
+        <span id="scoreText">0</span>
+      </div>
+    </div>
+
+    <div class="btn-group">
+      <button class="icon-btn" id="soundBtn" title="声音开关" aria-label="声音开关">🔊</button>
+      <button class="icon-btn" id="resetBtn" title="重新开始" aria-label="重新开始">🔄</button>
+    </div>
+  </div>
+
+  <div class="tip-banner" id="tipBanner">点一点屏幕或拖动小恐龙，去吃亮晶晶的果子吧！</div>
+
+  <canvas id="gameCanvas"></canvas>
+
+  <script>
+    (() => {
+      const canvas = document.getElementById('gameCanvas');
+      const ctx = canvas.getContext('2d');
+
+      const stageTextEl = document.getElementById('stageText');
+      const growthBarEl = document.getElementById('growthBar');
+      const scoreTextEl = document.getElementById('scoreText');
+      const soundBtn = document.getElementById('soundBtn');
+      const resetBtn = document.getElementById('resetBtn');
+      const tipBanner = document.getElementById('tipBanner');
+
+      // 柔和的 Web Audio 音效器（不依赖外部音频文件）
+      class SoundFX {
+        constructor() {
+          this.ctx = null;
+          this.enabled = true;
+        }
+        ensure() {
+          if (!this.enabled) return null;
+          if (!this.ctx) {
+            const AudioCtx = window.AudioContext || window.webkitAudioContext;
+            if (AudioCtx) this.ctx = new AudioCtx();
+          }
+          if (this.ctx && this.ctx.state === 'suspended') {
+            this.ctx.resume().catch(() => {});
+          }
+          return this.ctx;
+        }
+        playTone(freq, endFreq, duration, type = 'sine', gainVal = 0.14, delay = 0) {
+          const ac = this.ensure();
+          if (!ac) return;
+          const now = ac.currentTime + delay;
+          const osc = ac.createOscillator();
+          const gain = ac.createGain();
+          osc.type = type;
+          osc.frequency.setValueAtTime(freq, now);
+          if (endFreq) {
+            osc.frequency.exponentialRampToValueAtTime(Math.max(40, endFreq), now + duration);
+          }
+          gain.gain.setValueAtTime(0.001, now);
+          gain.gain.linearRampToValueAtTime(gainVal, now + 0.02);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + duration);
+          osc.connect(gain);
+          gain.connect(ac.destination);
+          osc.start(now);
+          osc.stop(now + duration + 0.02);
+        }
+        eat() {
+          this.playTone(520, 880, 0.16, 'triangle', 0.16);
+        }
+        grow() {
+          const notes = [523.25, 659.25, 783.99, 1046.5];
+          notes.forEach((n, idx) => {
+            this.playTone(n, n * 1.03, 0.22, 'triangle', 0.15, idx * 0.08);
+          });
+        }
+        bump() {
+          this.playTone(260, 190, 0.18, 'sine', 0.12);
+        }
+      }
+
+      const sfx = new SoundFX();
+
+      soundBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        sfx.enabled = !sfx.enabled;
+        soundBtn.textContent = sfx.enabled ? '🔊' : '🔇';
+        soundBtn.classList.toggle('muted', !sfx.enabled);
+        if (sfx.enabled) sfx.playTone(600, 750, 0.12, 'sine', 0.12);
+      });
+
+      const STAGES = [
+        { name: '小豆丁恐龙', need: 5,  scale: 1.00, body: '#4cc964', belly: '#b7f5c2', spot: '#2d9348', accessory: 'none' },
+        { name: '草地小跳跳', need: 12, scale: 1.24, body: '#38b000', belly: '#ccff33', spot: '#007200', accessory: 'sprout' },
+        { name: '阳光小霸王', need: 22, scale: 1.50, body: '#ff9f1c', belly: '#fff3b0', spot: '#e76f51', accessory: 'spikes' },
+        { name: '彩虹大恐龙', need: 35, scale: 1.78, body: '#4ea8de', belly: '#caf0f8', spot: '#5e60ce', accessory: 'crown' },
+        { name: '森林传说龙', need: 999,scale: 2.05, body: '#9b5de5', belly: '#f1d4ff', spot: '#f15bb5', accessory: 'wings' }
+      ];
+
+      const FOOD_TYPES = [
+        { kind: 'berry',  color: '#ff4d6d', leaf: '#38b000', value: 1, minSize: 0 },
+        { kind: 'mango',  color: '#ffb703', leaf: '#2b9348', value: 1, minSize: 0 },
+        { kind: 'melon',  color: '#70e000', leaf: '#2b9348', value: 2, minSize: 0 },
+        { kind: 'star',   color: '#ffd166', leaf: '#ff9f1c', value: 2, minSize: 0 }
+      ];
+
+      let width = 0, height = 0, dpr = 1, groundY = 0;
+
+      function resize() {
+        dpr = Math.min(window.devicePixelRatio || 1, 2);
+        width = window.innerWidth;
+        height = window.innerHeight;
+        canvas.width = Math.floor(width * dpr);
+        canvas.height = Math.floor(height * dpr);
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        groundY = Math.max(height * 0.78, height - 125);
+        if (dino) {
+          dino.x = Math.min(Math.max(dino.x, 80), width - 80);
+          dino.y = Math.min(Math.max(dino.y, 120), groundY - dino.radius * 0.5);
+        }
+      }
+
+      window.addEventListener('resize', resize);
+
+      const state = {
+        score: 0,
+        stageIndex: 0,
+        time: 0,
+        pointerActive: false,
+        targetX: null,
+        targetY: null,
+        keys: { left: false, right: false, up: false, down: false },
+        foods: [],
+        friends: [],
+        particles: [],
+        popups: [],
+        clouds: [],
+        pteros: [],
+        plants: [],
+        pebbles: [],
+        celebrateTimer: 0
+      };
+
+      const dino = {
+        x: 220,
+        y: 300,
+        vx: 0,
+        vy: 0,
+        facing: 1,
+        radius: 34,
+        eatTimer: 0,
+        bumpTimer: 0,
+        blinkTimer: 0,
+        isBlinking: false,
+        walkPhase: 0,
+        hopOffset: 0
+      };
+
+      function initScenery() {
+        state.clouds = Array.from({ length: 6 }, (_, i) => ({
+          x: (i / 6) * width + Math.random() * 120,
+          y: 55 + Math.random() * (height * 0.24),
+          scale: 0.75 + Math.random() * 0.65,
+          speed: 10 + Math.random() * 14
+        }));
+
+        state.pteros = Array.from({ length: 2 }, (_, i) => ({
+          x: width * (0.25 + i * 0.55),
+          y: 95 + i * 48,
+          dir: i % 2 === 0 ? 1 : -1,
+          speed: 26 + i * 10,
+          wingPhase: Math.random() * Math.PI * 2
+        }));
+
+        state.plants = Array.from({ length: 14 }, (_, i) => ({
+          x: (i / 14) * width + Math.random() * 60,
+          type: i % 3 === 0 ? 'palm' : (i % 3 === 1 ? 'fern' : 'bush'),
+          scale: 0.75 + Math.random() * 0.55,
+          swaySeed: Math.random() * Math.PI * 2
+        }));
+
+        state.pebbles = Array.from({ length: 28 }, () => ({
+          x: Math.random() * width,
+          y: groundY + 14 + Math.random() * (height - groundY - 22),
+          rx: 5 + Math.random() * 10,
+          ry: 3 + Math.random() * 5,
+          color: Math.random() > 0.5 ? '#c68b59' : '#a97142'
+        }));
+      }
+
+      function spawnFood(initial = false) {
+        const template = FOOD_TYPES[Math.floor(Math.random() * FOOD_TYPES.length)];
+        const marginX = Math.max(70, width * 0.08);
+        const minY = Math.max(120, height * 0.26);
+        const maxY = Math.max(minY + 60, groundY - 24);
+        state.foods.push({
+          ...template,
+          x: marginX + Math.random() * Math.max(120, width - marginX * 2),
+          y: minY + Math.random() * (maxY - minY),
+          r: 19 + Math.random() * 4,
+          phase: Math.random() * Math.PI * 2,
+          spawnScale: initial ? 1 : 0.1
+        });
+      }
+
+      function spawnFriend() {
+        const fromLeft = Math.random() < 0.5;
+        const friendColors = [
+          { body: '#ff758f', belly: '#ffe5ec', spot: '#ff4d6d', name: '粉粉龙' },
+          { body: '#48cae4', belly: '#caf0f8', spot: '#0096c7', name: '蓝蓝龙' },
+          { body: '#ffd166', belly: '#fff8d6', spot: '#f4a261', name: '黄黄龙' }
+        ];
+        const pal = friendColors[Math.floor(Math.random() * friendColors.length)];
+        const minY = Math.max(140, height * 0.35);
+        const maxY = Math.max(minY + 50, groundY - 26);
+
+        state.friends.push({
+          ...pal,
+          x: fromLeft ? -50 : width + 50,
+          y: minY + Math.random() * (maxY - minY),
+          vx: (fromLeft ? 1 : -1) * (45 + Math.random() * 35),
+          r: 26 + Math.random() * 8,
+          phase: Math.random() * Math.PI * 2,
+          friendly: true
+        });
+      }
+
+      function addParticles(x, y, colors, count = 14) {
+        for (let i = 0; i < count; i++) {
+          const angle = (Math.PI * 2 * i) / count + (Math.random() - 0.5) * 0.4;
+          const speed = 60 + Math.random() * 150;
+          state.particles.push({
+            x,
+            y,
+            vx: Math.cos(angle) * speed,
+            vy: Math.sin(angle) * speed - 40,
+            size: 5 + Math.random() * 6,
+            color: colors[i % colors.length],
+            life: 0.65 + Math.random() * 0.35,
+            maxLife: 1.0,
+            isStar: i % 2 === 0
+          });
+        }
+      }
+
+      function addPopup(x, y, text, color = '#fb5607') {
+        state.popups.push({
+          x,
+          y,
+          vy: -58,
+          text,
+          color,
+          life: 1.1
+        });
+      }
+
+      function updateHUD() {
+        const curStage = STAGES[state.stageIndex];
+        const prevNeed = state.stageIndex === 0 ? 0 : STAGES[state.stageIndex - 1].need;
+        stageTextEl.textContent = curStage.name;
+        scoreTextEl.textContent = state.score;
+
+        if (state.stageIndex >= STAGES.length - 1) {
+          growthBarEl.style.width = '100%';
+        } else {
+          const span = Math.max(1, curStage.need - prevNeed);
+          const progress = Math.max(0, Math.min(1, (state.score - prevNeed) / span));
+          growthBarEl.style.width = `${Math.round(progress * 100)}%`;
+        }
+      }
+
+      function checkGrowth() {
+        while (state.stageIndex < STAGES.length - 1 && state.score >= STAGES[state.stageIndex].need) {
+          state.stageIndex++;
+          state.celebrateTimer = 1.6;
+          dino.hopOffset = -28;
+          sfx.grow();
+          addParticles(dino.x, dino.y - 20, ['#ffbe0b', '#fb5607', '#8ac926', '#4ea8de', '#f15bb5'], 26);
+          addPopup(dino.x, dino.y - 68, `变身：${STAGES[state.stageIndex].name}！`, '#0077b6');
+          tipBanner.textContent = `太棒啦！长成了「${STAGES[state.stageIndex].name}」！`;
+        }
+        updateHUD();
+      }
+
+      function resetGame() {
+        state.score = 0;
+        state.stageIndex = 0;
+        state.foods = [];
+        state.friends = [];
+        state.particles = [];
+        state.popups = [];
+        state.celebrateTimer = 0;
+        state.targetX = null;
+        state.targetY = null;
+
+        dino.x = width * 0.35;
+        dino.y = Math.min(height * 0.58, groundY - 36);
+        dino.vx = 0;
+        dino.vy = 0;
+        dino.eatTimer = 0;
+        dino.bumpTimer = 0;
+        dino.hopOffset = 0;
+
+        for (let i = 0; i < 9; i++) spawnFood(true);
+        for (let i = 0; i < 2; i++) spawnFriend();
+        tipBanner.textContent = '点一点屏幕或拖动小恐龙，去吃亮晶晶的果子吧！';
+        updateHUD();
+      }
+
+      resetBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        resetGame();
+      });
+
+      // 输入控制（鼠标 / 触摸 / 键盘）
+      function setPointerTarget(clientX, clientY) {
+        state.targetX = Math.min(Math.max(clientX, 55), width - 55);
+        state.targetY = Math.min(Math.max(clientY, 115), groundY - 12);
+      }
+
+      canvas.addEventListener('pointerdown', (e) => {
+        sfx.ensure();
+        state.pointerActive = true;
+        setPointerTarget(e.clientX, e.clientY);
+        addParticles(e.clientX, e.clientY, ['#fff3b0', '#ffd166', '#90e0ef'], 6);
+      });
+
+      canvas.addEventListener('pointermove', (e) => {
+        if (!state.pointerActive) return;
+        setPointerTarget(e.clientX, e.clientY);
+      });
+
+      window.addEventListener('pointerup', () => {
+        state.pointerActive = false;
+      });
+
+      window.addEventListener('keydown', (e) => {
+        const k = e.key.toLowerCase();
+        if (k === 'arrowleft' || k === 'a') state.keys.left = true;
+        if (k === 'arrowright' || k === 'd') state.keys.right = true;
+        if (k === 'arrowup' || k === 'w') state.keys.up = true;
+        if (k === 'arrowdown' || k === 's') state.keys.down = true;
+        if (['arrowleft', 'arrowright', 'arrowup', 'arrowdown'].includes(k)) {
+          state.targetX = null;
+          state.targetY = null;
+        }
+      });
+
+      window.addEventListener('keyup', (e) => {
+        const k = e.key.toLowerCase();
+        if (k === 'arrowleft' || k === 'a') state.keys.left = false;
+        if (k === 'arrowright' || k === 'd') state.keys.right = false;
+        if (k === 'arrowup' || k === 'w') state.keys.up = false;
+        if (k === 'arrowdown' || k === 's') state.keys.down = false;
+      });
+
+      // 绘制辅助函数
+      function drawStar(cx, cy, spikes, outerR, innerR, color) {
+        let rot = (Math.PI / 2) * 3;
+        const step = Math.PI / spikes;
+        ctx.beginPath();
+        ctx.moveTo(cx, cy - outerR);
+        for (let i = 0; i < spikes; i++) {
+          ctx.lineTo(cx + Math.cos(rot) * outerR, cy + Math.sin(rot) * outerR);
+          rot += step;
+          ctx.lineTo(cx + Math.cos(rot) * innerR, cy + Math.sin(rot) * innerR);
+          rot += step;
+        }
+        ctx.closePath();
+        ctx.fillStyle = color;
+        ctx.fill();
+      }
+
+      function drawBackground() {
+        // 天空渐变
+        const sky = ctx.createLinearGradient(0, 0, 0, groundY);
+        sky.addColorStop(0, '#6ec6ff');
+        sky.addColorStop(0.62, '#bfe9ff');
+        sky.addColorStop(1, '#eaf8ff');
+        ctx.fillStyle = sky;
+        ctx.fillRect(0, 0, width, groundY);
+
+        // 温暖太阳与柔和光晕
+        const sunX = width * 0.84;
+        const sunY = Math.max(88, height * 0.14);
+        const sunGlow = ctx.createRadialGradient(sunX, sunY, 12, sunX, sunY, 95);
+        sunGlow.addColorStop(0, 'rgba(255, 243, 130, 0.95)');
+        sunGlow.addColorStop(0.45, 'rgba(255, 214, 70, 0.35)');
+        sunGlow.addColorStop(1, 'rgba(255, 214, 70, 0)');
+        ctx.fillStyle = sunGlow;
+        ctx.beginPath();
+        ctx.arc(sunX, sunY, 95, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.fillStyle = '#ffe066';
+        ctx.beginPath();
+        ctx.arc(sunX, sunY, 34, 0, Math.PI * 2);
+        ctx.fill();
+
+        // 朵朵白云
+        state.clouds.forEach((c) => {
+          ctx.save();
+          ctx.translate(c.x, c.y);
+          ctx.scale(c.scale, c.scale);
+          ctx.fillStyle = 'rgba(255, 255, 255, 0.92)';
+          ctx.beginPath();
+          ctx.arc(0, 0, 24, 0, Math.PI * 2);
+          ctx.arc(22, -6, 28, 0, Math.PI * 2);
+          ctx.arc(46, 0, 22, 0, Math.PI * 2);
+          ctx.arc(22, 10, 24, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.restore();
+        });
+
+        // 远山剪影
+        ctx.fillStyle = '#90be9d';
+        ctx.beginPath();
+        ctx.moveTo(0, groundY);
+        ctx.lineTo(0, groundY - 95);
+        ctx.quadraticCurveTo(width * 0.18, groundY - 175, width * 0.36, groundY - 88);
+        ctx.quadraticCurveTo(width * 0.58, groundY - 190, width * 0.78, groundY - 92);
+        ctx.quadraticCurveTo(width * 0.92, groundY - 145, width, groundY - 82);
+        ctx.lineTo(width, groundY);
+        ctx.closePath();
+        ctx.fill();
+
+        // 中景丘陵
+        ctx.fillStyle = '#74c69d';
+        ctx.beginPath();
+        ctx.moveTo(0, groundY);
+        ctx.lineTo(0, groundY - 46);
+        ctx.quadraticCurveTo(width * 0.25, groundY - 92, width * 0.5, groundY - 42);
+        ctx.quadraticCurveTo(width * 0.78, groundY - 95, width, groundY - 48);
+        ctx.lineTo(width, groundY);
+        ctx.closePath();
+        ctx.fill();
+
+        // 远处飞翔的小翼龙
+        state.pteros.forEach((p) => {
+          ctx.save();
+          ctx.translate(p.x, p.y);
+          ctx.scale(p.dir, 1);
+          const wingY = Math.sin(p.wingPhase) * 10;
+          ctx.strokeStyle = '#5c6b73';
+          ctx.lineWidth = 3.5;
+          ctx.lineCap = 'round';
+          ctx.beginPath();
+          ctx.moveTo(-14, wingY);
+          ctx.quadraticCurveTo(0, -6, 12, 2);
+          ctx.quadraticCurveTo(2, 5, -14, wingY);
+          ctx.stroke();
+          ctx.restore();
+        });
+
+        // 背景植物（棕榈树、蕨类、灌木）
+        state.plants.forEach((pl) => {
+          const sway = Math.sin(state.time * 1.8 + pl.swaySeed) * 3;
+          ctx.save();
+          ctx.translate(pl.x, groundY + 2);
+          ctx.scale(pl.scale, pl.scale);
+          if (pl.type === 'palm') {
+            // 树干
+            ctx.strokeStyle = '#9c6644';
+            ctx.lineWidth = 9;
+            ctx.lineCap = 'round';
+            ctx.beginPath();
+            ctx.moveTo(0, 0);
+            ctx.quadraticCurveTo(sway * 1.5, -45, sway * 2.2, -85);
+            ctx.stroke();
+            // 椰子树叶
+            ctx.save();
+            ctx.translate(sway * 2.2, -85);
+            for (let i = -2; i <= 2; i++) {
+              ctx.save();
+              ctx.rotate(i * 0.45 + sway * 0.02);
+              ctx.fillStyle = i % 2 === 0 ? '#40916c' : '#52b788';
+              ctx.beginPath();
+              ctx.ellipse(18, 0, 20, 6.5, 0, 0, Math.PI * 2);
+              ctx.fill();
+              ctx.restore();
+            }
+            ctx.restore();
+          } else if (pl.type === 'fern') {
+            for (let i = -2; i <= 2; i++) {
+              ctx.save();
+              ctx.rotate(i * 0.34 + sway * 0.025);
+              ctx.fillStyle = '#52b788';
+              ctx.beginPath();
+              ctx.ellipse(0, -18, 6, 20, 0, 0, Math.PI * 2);
+              ctx.fill();
+              ctx.restore();
+            }
+          } else {
+            ctx.fillStyle = '#74c69d';
+            ctx.beginPath();
+            ctx.arc(-10, -8, 12, 0, Math.PI * 2);
+            ctx.arc(8, -10, 14, 0, Math.PI * 2);
+            ctx.arc(22, -6, 10, 0, Math.PI * 2);
+            ctx.fill();
+          }
+          ctx.restore();
+        });
+
+        // 草地边缘与泥土层
+        const soil = ctx.createLinearGradient(0, groundY, 0, height);
+        soil.addColorStop(0, '#80ed99');
+        soil.addColorStop(0.14, '#57cc99');
+        soil.addColorStop(0.16, '#dda15e');
+        soil.addColorStop(1, '#bc6c25');
+        ctx.fillStyle = soil;
+        ctx.fillRect(0, groundY, width, height - groundY);
+
+        // 草丛小簇
+        ctx.strokeStyle = '#38b000';
+        ctx.lineWidth = 3;
+        ctx.lineCap = 'round';
+        for (let gx = 16; gx < width; gx += 46) {
+          const sway = Math.sin(state.time * 2.5 + gx * 0.05) * 3;
+          ctx.beginPath();
+          ctx.moveTo(gx, groundY + 3);
+          ctx.lineTo(gx - 5 + sway, groundY - 7);
+          ctx.moveTo(gx + 4, groundY + 3);
+          ctx.lineTo(gx + 6 + sway, groundY - 9);
+          ctx.stroke();
+        }
+
+        // 地面小石子
+        state.pebbles.forEach((p) => {
+          ctx.fillStyle = p.color;
+          ctx.beginPath();
+          ctx.ellipse(p.x, p.y, p.rx, p.ry, 0, 0, Math.PI * 2);
+          ctx.fill();
+        });
+      }
+
+      function drawFood(f) {
+        const bobY = f.y + Math.sin(state.time * 3.5 + f.phase) * 5;
+        const pulse = (1 + Math.sin(state.time * 5 + f.phase) * 0.08) * f.spawnScale;
+
+        ctx.save();
+        ctx.translate(f.x, bobY);
+        ctx.scale(pulse, pulse);
+
+        // 柔和光圈，方便 5 岁孩子一眼看清目标
+        const glow = ctx.createRadialGradient(0, 0, 4, 0, 0, f.r * 1.55);
+        glow.addColorStop(0, 'rgba(255, 255, 255, 0.75)');
+        glow.addColorStop(1, 'rgba(255, 255, 255, 0)');
+        ctx.fillStyle = glow;
+        ctx.beginPath();
+        ctx.arc(0, 0, f.r * 1.55, 0, Math.PI * 2);
+        ctx.fill();
+
+        if (f.kind === 'star') {
+          drawStar(0, 0, 5, f.r * 1.1, f.r * 0.52, f.color);
+          drawStar(-f.r * 0.35, -f.r * 0.35, 4, 5, 2, '#fff');
+        } else {
+          // 果实主体
+          ctx.fillStyle = f.color;
+          ctx.beginPath();
+          ctx.arc(0, 2, f.r * 0.85, 0, Math.PI * 2);
+          ctx.fill();
+
+          // 高光
+          ctx.fillStyle = 'rgba(255, 255, 255, 0.55)';
+          ctx.beginPath();
+          ctx.arc(-f.r * 0.28, -f.r * 0.22, f.r * 0.24, 0, Math.PI * 2);
+          ctx.fill();
+
+          // 小绿叶
+          ctx.fillStyle = f.leaf;
+          ctx.beginPath();
+          ctx.ellipse(4, -f.r * 0.85, 9, 4.5, -0.45, 0, Math.PI * 2);
+          ctx.fill();
+        }
+
+        ctx.restore();
+      }
+
+      function drawDinoCharacter(x, y, r, palette, options = {}) {
+        const {
+          facing = 1,
+          walkPhase = 0,
+          hopOffset = 0,
+          isEating = false,
+          isBlinking = false,
+          isBumped = false,
+          accessory = 'none',
+          isPlayer = false,
+          celebrate = false
+        } = options;
+
+        ctx.save();
+        ctx.translate(x, y);
+
+        // 地面阴影
+        ctx.fillStyle = 'rgba(27, 67, 50, 0.22)';
+        ctx.beginPath();
+        ctx.ellipse(0, Math.max(24, r * 0.92), r * 0.95, r * 0.22, 0, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.translate(0, hopOffset);
+        if (isBumped) {
+          ctx.rotate(Math.sin(state.time * 40) * 0.14);
+        } else if (celebrate) {
+          ctx.rotate(Math.sin(state.time * 18) * 0.12);
+        }
+
+        ctx.scale(facing, 1);
+
+        // 玩家脚下柔和提示圈
+        if (isPlayer) {
+          ctx.strokeStyle = 'rgba(255, 255, 255, 0.72)';
+          ctx.lineWidth = 3;
+          ctx.setLineDash([7, 6]);
+          ctx.beginPath();
+          ctx.ellipse(0, r * 0.85, r * 0.9, r * 0.22, 0, 0, Math.PI * 2);
+          ctx.stroke();
+          ctx.setLineDash([]);
+        }
+
+        // 背后的小翅膀（最高阶）
+        if (accessory === 'wings') {
+          const flap = Math.sin(state.time * 12) * 0.35;
+          ctx.save();
+          ctx.translate(-r * 0.1, -r * 0.25);
+          ctx.rotate(flap);
+          ctx.fillStyle = '#ffe5ec';
+          ctx.beginPath();
+          ctx.ellipse(-12, -10, 18, 9, -0.5, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.restore();
+        }
+
+        // 尾巴
+        const tailWag = Math.sin(walkPhase * 1.3) * 0.18;
+        ctx.save();
+        ctx.translate(-r * 0.72, r * 0.12);
+        ctx.rotate(tailWag);
+        ctx.fillStyle = palette.body;
+        ctx.beginPath();
+        ctx.moveTo(4, -r * 0.28);
+        ctx.quadraticCurveTo(-r * 0.85, -r * 0.35, -r * 1.05, -r * 0.05);
+        ctx.quadraticCurveTo(-r * 0.7, r * 0.25, 4, r * 0.28);
+        ctx.closePath();
+        ctx.fill();
+        ctx.restore();
+
+        // 背部小刺/小芽
+        if (accessory === 'spikes') {
+          ctx.fillStyle = '#ffd166';
+          [-0.25, 0.05, 0.35].forEach((offset) => {
+            ctx.beginPath();
+            ctx.moveTo(r * offset - 6, -r * 0.65);
+            ctx.lineTo(r * offset, -r * 1.02);
+            ctx.lineTo(r * offset + 6, -r * 0.65);
+            ctx.closePath();
+            ctx.fill();
+          });
+        }
+
+        // 两条小短腿
+        const legSwing = Math.sin(walkPhase) * 8;
+        ctx.fillStyle = palette.spot;
+        ctx.beginPath();
+        ctx.roundRect(-r * 0.38 - legSwing * 0.5, r * 0.42, r * 0.32, r * 0.44, 8);
+        ctx.roundRect(r * 0.12 + legSwing * 0.5, r * 0.42, r * 0.32, r * 0.44, 8);
+        ctx.fill();
+
+        // 圆润身体
+        ctx.fillStyle = palette.body;
+        ctx.beginPath();
+        ctx.ellipse(0, r * 0.08, r * 0.82, r * 0.68, 0, 0, Math.PI * 2);
+        ctx.fill();
+
+        // 浅色小肚皮
+        ctx.fillStyle = palette.belly;
+        ctx.beginPath();
+        ctx.ellipse(r * 0.24, r * 0.18, r * 0.46, r * 0.44, 0.15, 0, Math.PI * 2);
+        ctx.fill();
+
+        // 身体斑点
+        ctx.fillStyle = palette.spot;
+        ctx.beginPath();
+        ctx.arc(-r * 0.25, -r * 0.12, r * 0.13, 0, Math.PI * 2);
+        ctx.arc(-r * 0.05, -r * 0.32, r * 0.09, 0, Math.PI * 2);
+        ctx.fill();
+
+        // 头部
+        const headX = r * 0.52;
+        const headY = -r * 0.42;
+        ctx.fillStyle = palette.body;
+        ctx.beginPath();
+        ctx.arc(headX, headY, r * 0.54, 0, Math.PI * 2);
+        ctx.fill();
+
+        // 头饰：小嫩芽 / 小皇冠
+        if (accessory === 'sprout') {
+          ctx.strokeStyle = '#2b9348';
+          ctx.lineWidth = 3;
+          ctx.beginPath();
+          ctx.moveTo(headX, headY - r * 0.52);
+          ctx.lineTo(headX, headY - r * 0.78);
+          ctx.stroke();
+          ctx.fillStyle = '#80ed99';
+          ctx.beginPath();
+          ctx.ellipse(headX + 7, headY - r * 0.8, 8, 4.5, -0.3, 0, Math.PI * 2);
+          ctx.fill();
+        } else if (accessory === 'crown') {
+          drawStar(headX, headY - r * 0.72, 5, 13, 6, '#ffd166');
+        }
+
+        // 可爱腮红
+        ctx.fillStyle = 'rgba(255, 107, 129, 0.48)';
+        ctx.beginPath();
+        ctx.ellipse(headX + r * 0.16, headY + r * 0.14, r * 0.14, r * 0.09, 0, 0, Math.PI * 2);
+        ctx.fill();
+
+        // 大眼睛
+        const eyeX = headX + r * 0.18;
+        const eyeY = headY - r * 0.08;
+        if (isBlinking) {
+          ctx.strokeStyle = '#1d3557';
+          ctx.lineWidth = 3;
+          ctx.beginPath();
+          ctx.moveTo(eyeX - 6, eyeY);
+          ctx.lineTo(eyeX + 6, eyeY);
+          ctx.stroke();
+        } else {
+          ctx.fillStyle = '#ffffff';
+          ctx.beginPath();
+          ctx.arc(eyeX, eyeY, r * 0.21, 0, Math.PI * 2);
+          ctx.fill();
+
+          ctx.fillStyle = '#1d3557';
+          ctx.beginPath();
+          ctx.arc(eyeX + r * 0.05, eyeY, r * 0.12, 0, Math.PI * 2);
+          ctx.fill();
+
+          ctx.fillStyle = '#ffffff';
+          ctx.beginPath();
+          ctx.arc(eyeX + r * 0.09, eyeY - r * 0.05, r * 0.05, 0, Math.PI * 2);
+          ctx.fill();
+        }
+
+        // 嘴巴（吃东西时张大嘴开心笑）
+        ctx.strokeStyle = '#1d3557';
+        ctx.lineWidth = 2.8;
+        ctx.lineCap = 'round';
+        if (isEating) {
+          ctx.fillStyle = '#ff595e';
+          ctx.beginPath();
+          ctx.arc(headX + r * 0.34, headY + r * 0.22, r * 0.16, 0, Math.PI);
+          ctx.fill();
+          ctx.stroke();
+        } else {
+          ctx.beginPath();
+          ctx.arc(headX + r * 0.24, headY + r * 0.16, r * 0.14, 0.15 * Math.PI, 0.85 * Math.PI);
+          ctx.stroke();
+        }
+
+        ctx.restore();
+      }
+
+      function update(dt) {
+        state.time += dt;
+
+        // 眨眼计时
+        dino.blinkTimer -= dt;
+        if (dino.blinkTimer <= 0) {
+          dino.isBlinking = !dino.isBlinking;
+          dino.blinkTimer = dino.isBlinking ? 0.14 : (2.2 + Math.random() * 2.5);
+        }
+
+        if (dino.eatTimer > 0) dino.eatTimer -= dt;
+        if (dino.bumpTimer > 0) dino.bumpTimer -= dt;
+        if (state.celebrateTimer > 0) state.celebrateTimer -= dt;
+
+        if (dino.hopOffset < 0) {
+          dino.hopOffset = Math.min(0, dino.hopOffset + 140 * dt);
+        }
+
+        // 更新云朵与翼龙
+        state.clouds.forEach((c) => {
+          c.x += c.speed * dt;
+          if (c.x > width + 90) c.x = -90;
+        });
+
+        state.pteros.forEach((p) => {
+          p.x += p.vx * dt;
+          p.wingPhase += dt * 7;
+          const speedSigned = p.speed * p.dir;
+          p.x += speedSigned * dt;
+          if (p.dir === 1 && p.x > width + 60) p.x = -60;
+          if (p.dir === -1 && p.x < -60) p.x = width + 60;
+        });
+
+        // 恐龙移动（键盘或目标点）
+        const curStage = STAGES[state.stageIndex];
+        const moveSpeed = 285;
+        let dx = 0, dy = 0;
+
+        if (state.keys.left) dx -= 1;
+        if (state.keys.right) dx += 1;
+        if (state.keys.up) dy -= 1;
+        if (state.keys.down) dy += 1;
+
+        if (dx !== 0 || dy !== 0) {
+          const len = Math.hypot(dx, dy);
+          dino.vx = (dx / len) * moveSpeed;
+          dino.vy = (dy / len) * moveSpeed;
+          if (dx !== 0) dino.facing = dx > 0 ? 1 : -1;
+        } else if (state.targetX !== null && state.targetY !== null) {
+          const toX = state.targetX - dino.x;
+          const toY = state.targetY - dino.y;
+          const dist = Math.hypot(toX, toY);
+          if (dist > 8) {
+            const stepSpeed = Math.min(moveSpeed, dist * 6.5);
+            dino.vx = (toX / dist) * stepSpeed;
+            dino.vy = (toY / dist) * stepSpeed;
+            if (Math.abs(toX) > 4) dino.facing = toX > 0 ? 1 : -1;
+          } else {
+            dino.vx *= 0.7;
+            dino.vy *= 0.7;
+            if (!state.pointerActive) {
+              state.targetX = null;
+              state.targetY = null;
+            }
+          }
+        } else {
+          dino.vx *= 0.78;
+          dino.vy *= 0.78;
+        }
+
+        dino.x = Math.min(Math.max(dino.x + dino.vx * dt, 55), width - 55);
+        dino.y = Math.min(Math.max(dino.y + dino.vy * dt, 115), groundY - 12);
+
+        const speedNow = Math.hypot(dino.vx, dino.vy);
+        if (speedNow > 12) {
+          dino.walkPhase += dt * 11;
+        } else {
+          dino.walkPhase += dt * 2.5;
+        }
+
+        // 补充食物
+        while (state.foods.length < 9) {
+          spawnFood(false);
+        }
+
+        const playerRadius = dino.radius * curStage.scale;
+
+        // 吃食物检测
+        for (let i = state.foods.length - 1; i >= 0; i--) {
+          const f = state.foods[i];
+          f.spawnScale = Math.min(1, f.spawnScale + dt * 3.5);
+          const dist = Math.hypot(dino.x - f.x, dino.y - f.y);
+          if (dist < playerRadius * 0.85 + f.r) {
+            state.score += f.value;
+            dino.eatTimer = 0.28;
+            dino.hopOffset = -10;
+            sfx.eat();
+            addParticles(f.x, f.y, [f.color, '#ffd166', '#ffffff'], 12);
+            addPopup(f.x, f.y - 16, `+${f.value}`, '#2d9348');
+            state.foods.splice(i, 1);
+            checkGrowth();
+          }
+        }
+
+        // 恐龙小伙伴互动（友好路过，碰到只会温和打招呼或轻轻弹开，绝不失败）
+        for (let i = state.friends.length - 1; i >= 0; i--) {
+          const fr = state.friends[i];
+          fr.x += fr.vx * dt;
+          fr.phase += dt * 7;
+
+          const dist = Math.hypot(dino.x - fr.x, dino.y - fr.y);
+          if (dist < playerRadius * 0.75 + fr.r * 0.75 && dino.bumpTimer <= 0) {
+            dino.bumpTimer = 0.65;
+            const pushDir = dino.x >= fr.x ? 1 : -1;
+            dino.vx = pushDir * 160;
+            dino.hopOffset = -12;
+            sfx.bump();
+            addParticles((dino.x + fr.x) * 0.5, (dino.y + fr.y) * 0.5, ['#bde0fe', '#fff3b0'], 8);
+            addPopup(dino.x, dino.y - 45, '嘿！你好呀~', '#e76f51');
+          }
+
+          if ((fr.vx > 0 && fr.x > width + 90) || (fr.vx < 0 && fr.x < -90)) {
+            state.friends.splice(i, 1);
+          }
+        }
+
+        while (state.friends.length < 2) {
+          spawnFriend();
+        }
+
+        // 粒子与文字气泡更新
+        for (let i = state.particles.length - 1; i >= 0; i--) {
+          const pt = state.particles[i];
+          pt.x += pt.vx * dt;
+          pt.y += pt.vy * dt;
+          pt.vy += 220 * dt;
+          pt.life -= dt;
+          if (pt.life <= 0) state.particles.splice(i, 1);
+        }
+
+        for (let i = state.popups.length - 1; i >= 0; i--) {
+          const pop = state.popups[i];
+          pop.y += pop.vy * dt;
+          pop.life -= dt;
+          if (pop.life <= 0) state.popups.splice(i, 1);
+        }
+      }
+
+      function render() {
+        drawBackground();
+
+        // 目标落点小光环
+        if (state.targetX !== null && state.targetY !== null) {
+          ctx.save();
+          ctx.strokeStyle = 'rgba(255, 159, 28, 0.65)';
+          ctx.lineWidth = 3;
+          ctx.beginPath();
+          ctx.arc(state.targetX, state.targetY, 14 + Math.sin(state.time * 8) * 3, 0, Math.PI * 2);
+          ctx.stroke();
+          ctx.restore();
+        }
+
+        // 食物
+        state.foods.forEach(drawFood);
+
+        // 恐龙小伙伴
+        state.friends.forEach((fr) => {
+          drawDinoCharacter(fr.x, fr.y, fr.r, fr, {
+            facing: fr.vx >= 0 ? 1 : -1,
+            walkPhase: fr.phase,
+            accessory: 'none',
+            isPlayer: false
+          });
+        });
+
+        // 玩家小恐龙
+        const curStage = STAGES[state.stageIndex];
+        drawDinoCharacter(dino.x, dino.y, dino.radius * curStage.scale, curStage, {
+          facing: dino.facing,
+          walkPhase: dino.walkPhase,
+          hopOffset: dino.hopOffset,
+          isEating: dino.eatTimer > 0,
+          isBlinking: dino.isBlinking,
+          isBumped: dino.bumpTimer > 0,
+          accessory: curStage.accessory,
+          isPlayer: true,
+          celebrate: state.celebrateTimer > 0
+        });
+
+        // 粒子特效
+        state.particles.forEach((pt) => {
+          const alpha = Math.max(0, pt.life / pt.maxLife);
+          ctx.save();
+          ctx.globalAlpha = alpha;
+          if (pt.isStar) {
+            drawStar(pt.x, pt.y, 5, pt.size, pt.size * 0.45, pt.color);
+          } else {
+            ctx.fillStyle = pt.color;
+            ctx.beginPath();
+            ctx.arc(pt.x, pt.y, pt.size * 0.6, 0, Math.PI * 2);
+            ctx.fill();
+          }
+          ctx.restore();
+        });
+
+        // 飘字提示
+        state.popups.forEach((pop) => {
+          const alpha = Math.min(1, pop.life * 1.4);
+          ctx.save();
+          ctx.globalAlpha = alpha;
+          ctx.font = '800 22px "PingFang SC", "Microsoft YaHei", sans-serif';
+          ctx.textAlign = 'center';
+          ctx.lineWidth = 5;
+          ctx.strokeStyle = 'rgba(255, 255, 255, 0.95)';
+          ctx.strokeText(pop.text, pop.x, pop.y);
+          ctx.fillStyle = pop.color;
+          ctx.fillText(pop.text, pop.x, pop.y);
+          ctx.restore();
+        });
+      }
+
+      let lastTime = performance.now();
+      function loop(now) {
+        const dt = Math.min(0.05, (now - lastTime) / 1000);
+        lastTime = now;
+        update(dt);
+        render();
+        requestAnimationFrame(loop);
+      }
+
+      resize();
+      initScenery();
+      resetGame();
+      requestAnimationFrame(loop);
+    })();
+  </script>
+</body>
+</html>
