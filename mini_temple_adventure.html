@@ -98,8 +98,8 @@
 
         .hearts-container {
             display: flex;
-            gap: 4px;
-            font-size: 1.25rem;
+            gap: 3px;
+            font-size: 1.1rem;
         }
 
         .heart {
@@ -431,7 +431,7 @@
         }
 
         /* ============================================================
-           横屏触控双区虚拟按键（左下角滑铲 / 右下角跳跃）
+           横屏触控虚拟按键（左右两个大按钮都是跳跃）
            ============================================================ */
         #landscape-controls {
             position: absolute;
@@ -497,7 +497,7 @@
             .badge { padding: 4px 10px; border-radius: 10px; }
             .stat-label { font-size: 0.65rem; }
             .stat-value { font-size: 0.95rem; }
-            .hearts-container { font-size: 1.05rem; }
+            .hearts-container { font-size: 0.95rem; }
             .icon-btn { width: 38px; height: 38px; font-size: 1.05rem; }
             .stone-card { padding: 16px 24px; max-width: 480px; }
             .game-title { font-size: 1.65rem; }
@@ -573,6 +573,8 @@
                             <span class="heart">❤️</span>
                             <span class="heart">❤️</span>
                             <span class="heart">❤️</span>
+                            <span class="heart">❤️</span>
+                            <span class="heart">❤️</span>
                         </div>
                     </div>
                     <!-- 得分 -->
@@ -614,22 +616,22 @@
             <div id="zone-title">神庙外围</div>
         </div>
 
-        <!-- 横屏双手虚拟按键（左下角滑铲 / 右下角跳跃） -->
+        <!-- 低龄模式：左右两个大按钮都是「跳」，按哪个都一样 -->
         <div id="landscape-controls" class="hidden">
-            <button id="btn-touch-slide" class="touch-pad-btn" aria-label="滑铲">
-                <span class="pad-icon">🛡️</span>
-                <span class="pad-label">滑铲 SLIDE</span>
+            <button id="btn-touch-slide" class="touch-pad-btn" aria-label="跳">
+                <span class="pad-icon">🦘</span>
+                <span class="pad-label">跳！JUMP</span>
             </button>
-            <button id="btn-touch-jump" class="touch-pad-btn" aria-label="跳跃">
+            <button id="btn-touch-jump" class="touch-pad-btn" aria-label="跳">
                 <span class="pad-icon">⬆️</span>
-                <span class="pad-label">跳跃 JUMP</span>
+                <span class="pad-label">跳！JUMP</span>
             </button>
         </div>
 
         <!-- 移动端操作提示 -->
         <div id="mobile-touch-hints">
-            <span>左下角 / 下滑：滑铲躲避</span>
-            <span>右下角 / 点击：二段跳跃</span>
+            <span>点一下，跳！</span>
+            <span>点哪里都可以跳</span>
         </div>
     </div>
 
@@ -637,9 +639,9 @@
     <div id="rotate-overlay">
         <div class="rotate-card">
             <div class="phone-rotate-anim">📱</div>
-            <h3 class="game-title" style="font-size: 1.45rem; margin-bottom: 8px;">横屏体验更佳</h3>
+            <h3 class="game-title" style="font-size: 1.45rem; margin-bottom: 8px;">横过来更好玩</h3>
             <p style="font-size: 0.9rem; color: #e6d2b5; line-height: 1.5; margin-bottom: 20px;">
-                旋转手机至横向，获得更开阔的神庙跑酷视野与双手虚拟按键操控！
+                把平板横过来，左右两个大圆按钮，按哪个都会跳！
             </p>
             <button id="dismiss-rotate-btn" class="secondary-btn" style="margin-top: 0;">继续游玩</button>
         </div>
@@ -659,20 +661,12 @@
 
             <div class="controls-guide">
                 <div class="guide-item">
-                    <span class="key-cap">空格 / W / ↑</span>
-                    <span>跳跃 / 二段跳</span>
+                    <span class="key-cap">👉 点一下</span>
+                    <span>小探险家就跳起来啦</span>
                 </div>
                 <div class="guide-item">
-                    <span class="key-cap">S / ↓</span>
-                    <span>低身滑铲</span>
-                </div>
-                <div class="guide-item">
-                    <span class="key-cap">点击 / 上滑</span>
-                    <span>触屏跳跃</span>
-                </div>
-                <div class="guide-item">
-                    <span class="key-cap">向下滑动</span>
-                    <span>触屏滑铲</span>
+                    <span class="key-cap">🪙 捡金币</span>
+                    <span>攒多多的分数</span>
                 </div>
             </div>
 
@@ -694,8 +688,8 @@
     <div id="gameover-modal" class="modal-overlay interactive hidden">
         <div class="stone-card">
             <div id="new-record-tag" class="new-record-badge hidden">🎉 刷新历史最高分！</div>
-            <h2 class="game-title" style="font-size: 2rem;">探险结束</h2>
-            <div class="game-subtitle" id="gameover-reason">被古老机关挡住了去路</div>
+            <h2 class="game-title" style="font-size: 2rem;">玩得真棒！</h2>
+            <div class="game-subtitle" id="gameover-reason">再玩一次吧！</div>
 
             <div class="stats-grid">
                 <div class="stat-box">
@@ -795,10 +789,6 @@ class SoundSystem {
         this.playTone(620, 1080, 0.15, 'sine', 0.12, 0.04);
     }
 
-    playSlide() {
-        this.playTone(220, 95, 0.22, 'sawtooth', 0.09);
-    }
-
     playCoin() {
         this.playTone(987.77, 987.77, 0.07, 'sine', 0.14, 0);       // B5
         this.playTone(1318.51, 1318.51, 0.16, 'sine', 0.14, 0.065); // E6
@@ -884,6 +874,22 @@ class SoundSystem {
 }
 
 const sound = new SoundSystem();
+
+// ============================================================================
+// 低龄模式（约 5 岁）：点一下就跳、慢速不加速、只有一种障碍、不轻易结束
+// 所有难度数值集中在此，调整这一个对象即可改变难度
+// ============================================================================
+const EASY = {
+    speed: 235,          // 固定速度，不随距离递增（原 400 → 720）
+    lives: 5,            // 生命数（原 3）
+    gravity: 1700,       // 重力更小 = 跳得更飘、更好落地（原 2350）
+    jumpForce: -780,     // 跳跃力（原 -760）
+    coyote: 0.20,        // 土狼时间：离地后仍可起跳（原 0.11）
+    jumpBuffer: 0.25,    // 跳跃缓冲：提前按也算数（原 0.13）
+    invincible: 2.5,     // 受击后无敌时长（原 1.5）
+    obstacleRate: 0.42,  // 只有 42% 路段放地刺，其余全是金币
+    spikeHeight: 18      // 地刺更矮，随手一跳就能过（原 26）
+};
 
 // ============================================================================
 // 2. 区域主题配置（随距离切换神庙生态与光照）
@@ -1020,37 +1026,34 @@ class FloatingText {
 }
 
 // ============================================================================
-// 4. Q 版探险家主角类（动画、物理、二段跳、滑铲、无敌闪烁）
+// 4. Q 版探险家主角类（动画、物理、跳跃、无敌闪烁）
 // ============================================================================
 class Explorer {
     constructor(x, groundY) {
         this.x = x;
         this.baseWidth = 42;
         this.baseHeight = 56;
-        this.slideHeight = 30;
 
         this.width = this.baseWidth;
         this.height = this.baseHeight;
         this.y = groundY - this.height;
         this.vy = 0;
 
-        // 物理参数
-        this.gravity = 2350;
-        this.jumpForce = -760;
+        // 物理参数（低龄模式：跳得更飘、判定更宽松）
+        this.gravity = EASY.gravity;
+        this.jumpForce = EASY.jumpForce;
         this.doubleJumpForce = -680;
 
-        // 状态标记
+        // 状态标记（保留二段跳作为「补跳」容错，不再要求孩子主动使用）
         this.isGrounded = true;
         this.jumpCount = 0;
         this.maxJumps = 2;
-        this.isSliding = false;
-        this.slideTimer = 0;
 
-        // 手感增强：土狼时间 & 跳跃缓冲
+        // 手感增强：土狼时间 & 跳跃缓冲（低龄模式放宽）
         this.coyoteTimer = 0;
-        this.coyoteDuration = 0.11;
+        this.coyoteDuration = EASY.coyote;
         this.jumpBufferTimer = 0;
-        this.jumpBufferDuration = 0.13;
+        this.jumpBufferDuration = EASY.jumpBuffer;
 
         // 动画与视觉
         this.runCycle = 0;
@@ -1069,8 +1072,6 @@ class Explorer {
         this.vy = 0;
         this.isGrounded = true;
         this.jumpCount = 0;
-        this.isSliding = false;
-        this.slideTimer = 0;
         this.coyoteTimer = 0;
         this.jumpBufferTimer = 0;
         this.flipAngle = 0;
@@ -1084,41 +1085,7 @@ class Explorer {
         this.jumpBufferTimer = this.jumpBufferDuration;
     }
 
-    startSlide() {
-        if (this.isSliding) {
-            this.slideTimer = Math.max(this.slideTimer, 0.55);
-            return;
-        }
-        // 如果在空中下滑，加速下落
-        if (!this.isGrounded) {
-            this.vy = Math.max(this.vy, 680);
-        }
-        this.isSliding = true;
-        this.slideTimer = 0.62;
-        const bottom = this.y + this.height;
-        this.height = this.slideHeight;
-        this.y = bottom - this.height;
-        this.squashX = 1.25;
-        this.squashY = 0.78;
-        sound.playSlide();
-    }
-
-    stopSlide() {
-        if (!this.isSliding) return;
-        this.isSliding = false;
-        this.slideTimer = 0;
-        const bottom = this.y + this.height;
-        this.height = this.baseHeight;
-        this.y = bottom - this.height;
-        this.squashX = 0.88;
-        this.squashY = 1.12;
-    }
-
     executeJump(spawnParticlesFn) {
-        if (this.isSliding) {
-            this.stopSlide();
-        }
-
         // 第一段跳（地面或土狼时间内）
         if (this.isGrounded || this.coyoteTimer > 0) {
             this.vy = this.jumpForce;
@@ -1147,7 +1114,7 @@ class Explorer {
         return false;
     }
 
-    update(dt, platforms, groundY, speedMultiplier, spawnParticlesFn, holdSlide = false) {
+    update(dt, platforms, groundY, speedMultiplier, spawnParticlesFn) {
         // 恢复挤压拉伸形变
         this.squashX += (1 - this.squashX) * Math.min(1, dt * 14);
         this.squashY += (1 - this.squashY) * Math.min(1, dt * 14);
@@ -1155,24 +1122,6 @@ class Explorer {
         // 无敌闪烁倒计时
         if (this.invincibleTimer > 0) {
             this.invincibleTimer -= dt;
-        }
-
-        // 滑铲计时（按住滑铲键或键盘下键时保持持续低身滑铲）
-        if (holdSlide && !this.isSliding) {
-            this.startSlide();
-        }
-        if (this.isSliding) {
-            if (holdSlide) {
-                this.slideTimer = Math.max(this.slideTimer, 0.15);
-            } else {
-                this.slideTimer -= dt;
-            }
-            if (this.isGrounded && Math.random() < 0.45) {
-                spawnParticlesFn(this.x + 6, this.y + this.height, 1, '#c9b089');
-            }
-            if (this.slideTimer <= 0 && !holdSlide) {
-                this.stopSlide();
-            }
         }
 
         // 土狼时间与跳跃缓冲更新
@@ -1199,7 +1148,6 @@ class Explorer {
         let landed = false;
         if (this.vy >= 0) {
             for (const p of platforms) {
-                if (p.type === 'gap') continue;
                 const withinX = (this.x + this.width * 0.78 > p.x) && (this.x + this.width * 0.22 < p.x + p.width);
                 if (withinX && prevBottom <= p.y + 12 && currBottom >= p.y) {
                     this.y = p.y - this.height;
@@ -1225,7 +1173,7 @@ class Explorer {
         }
 
         // 跑步动画帧与二段跳空翻角度
-        if (this.isGrounded && !this.isSliding) {
+        if (this.isGrounded) {
             this.runCycle += dt * 15 * speedMultiplier;
             if (Math.random() < 0.22) {
                 spawnParticlesFn(this.x + 10, this.y + this.height, 1, '#bfa57d');
@@ -1287,13 +1235,11 @@ class Explorer {
             ctx.translate(0, -this.height / 2);
             ctx.rotate(this.flipAngle);
             ctx.translate(0, this.height / 2);
-        } else if (this.isSliding) {
-            ctx.rotate(-0.22);
         }
 
         ctx.scale(this.squashX, this.squashY);
 
-        const swing = this.isGrounded && !this.isSliding ? Math.sin(this.runCycle) : 0.4;
+        const swing = this.isGrounded ? Math.sin(this.runCycle) : 0.4;
 
         // 1. 棕色探险小背包
         ctx.fillStyle = '#7a441e';
@@ -1455,16 +1401,15 @@ class TempleAdventureGame {
         this.score = 0;
         this.coins = 0;
         this.distance = 0;
-        this.lives = 3;
-        this.maxLives = 3;
+        this.lives = EASY.lives;
+        this.maxLives = EASY.lives;
         this.highScore = parseInt(localStorage.getItem('mini_temple_high_score') || '0', 10);
 
-        this.baseSpeed = 390;
-        this.currentSpeed = 390;
+        this.baseSpeed = EASY.speed;
+        this.currentSpeed = EASY.speed;
         this.zoneIndex = 0;
         this.shakeTimer = 0;
         this.shakeIntensity = 0;
-        this.holdSlide = false;
         this.rotateDismissed = false;
 
         // 道具剩余时间（秒）
@@ -1602,58 +1547,42 @@ class TempleAdventureGame {
         });
 
         // ============================================================
-        // 横屏双区触屏虚拟按键（左下角滑铲 / 右下角跳跃）
+        // 低龄模式：左右两个大按钮都只做一件事 —— 跳
+        // 孩子按哪个都一样，都是跳
         // ============================================================
-        const slideBtn = document.getElementById('btn-touch-slide');
-        const jumpBtn = document.getElementById('btn-touch-jump');
+        const jumpButtons = [
+            document.getElementById('btn-touch-slide'),
+            document.getElementById('btn-touch-jump')
+        ];
 
-        const startSlideHold = (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            if (this.state !== 'PLAYING') return;
-            this.holdSlide = true;
-            slideBtn.classList.add('active');
-            this.player.startSlide();
-        };
-
-        const endSlideHold = (e) => {
+        const pressJump = (btn) => (e) => {
             if (e) {
                 e.preventDefault();
                 e.stopPropagation();
             }
-            this.holdSlide = false;
-            slideBtn.classList.remove('active');
-        };
-
-        slideBtn.addEventListener('touchstart', startSlideHold, { passive: false });
-        slideBtn.addEventListener('touchend', endSlideHold, { passive: false });
-        slideBtn.addEventListener('touchcancel', endSlideHold, { passive: false });
-        slideBtn.addEventListener('mousedown', startSlideHold);
-        slideBtn.addEventListener('mouseup', endSlideHold);
-        slideBtn.addEventListener('mouseleave', endSlideHold);
-
-        const triggerJumpPad = (e) => {
-            e.preventDefault();
-            e.stopPropagation();
             if (this.state !== 'PLAYING') return;
-            jumpBtn.classList.add('active');
+            btn.classList.add('active');
             this.player.bufferJump();
         };
 
-        const releaseJumpPad = (e) => {
+        const releaseJump = (btn) => (e) => {
             if (e) {
                 e.preventDefault();
                 e.stopPropagation();
             }
-            jumpBtn.classList.remove('active');
+            btn.classList.remove('active');
         };
 
-        jumpBtn.addEventListener('touchstart', triggerJumpPad, { passive: false });
-        jumpBtn.addEventListener('touchend', releaseJumpPad, { passive: false });
-        jumpBtn.addEventListener('touchcancel', releaseJumpPad, { passive: false });
-        jumpBtn.addEventListener('mousedown', triggerJumpPad);
-        jumpBtn.addEventListener('mouseup', releaseJumpPad);
-        jumpBtn.addEventListener('mouseleave', releaseJumpPad);
+        for (const btn of jumpButtons) {
+            const down = pressJump(btn);
+            const up = releaseJump(btn);
+            btn.addEventListener('touchstart', down, { passive: false });
+            btn.addEventListener('touchend', up, { passive: false });
+            btn.addEventListener('touchcancel', up, { passive: false });
+            btn.addEventListener('mousedown', down);
+            btn.addEventListener('mouseup', up);
+            btn.addEventListener('mouseleave', up);
+        }
 
         // 键盘控制
         window.addEventListener('keydown', (e) => {
@@ -1668,9 +1597,9 @@ class TempleAdventureGame {
                 }
             } else if (code === 'ArrowDown' || code === 'KeyS') {
                 e.preventDefault();
+                // 低龄模式：下键同样触发跳跃
                 if (this.state === 'PLAYING') {
-                    this.holdSlide = true;
-                    this.player.startSlide();
+                    this.player.bufferJump();
                 }
             } else if (code === 'Escape' || code === 'KeyP') {
                 if (this.state === 'PLAYING' || this.state === 'PAUSED') {
@@ -1679,13 +1608,7 @@ class TempleAdventureGame {
             }
         });
 
-        window.addEventListener('keyup', (e) => {
-            if (e.code === 'ArrowDown' || e.code === 'KeyS') {
-                this.holdSlide = false;
-            }
-        });
-
-        // 触屏与鼠标手势（点击/上滑跳跃，下滑滑铲）
+        // 低龄模式：点一下、上滑、下滑都当作「跳」，怎么划都能过
         let touchStartY = 0;
         let touchHandled = false;
 
@@ -1700,10 +1623,7 @@ class TempleAdventureGame {
             if (this.state !== 'PLAYING' || touchHandled) return;
             e.preventDefault();
             const dy = e.touches[0].clientY - touchStartY;
-            if (dy > 28) {
-                this.player.startSlide();
-                touchHandled = true;
-            } else if (dy < -28) {
+            if (Math.abs(dy) > 28) {
                 this.player.bufferJump();
                 touchHandled = true;
             }
@@ -1752,11 +1672,10 @@ class TempleAdventureGame {
         this.coins = 0;
         this.distance = 0;
         this.lives = this.maxLives;
-        this.baseSpeed = 400;
-        this.currentSpeed = 400;
+        this.baseSpeed = EASY.speed;
+        this.currentSpeed = EASY.speed;
         this.zoneIndex = 0;
         this.shakeTimer = 0;
-        this.holdSlide = false;
 
         this.powerups = { boost: 0, shield: 0, magnet: 0 };
         this.platforms = [];
@@ -1793,7 +1712,6 @@ class TempleAdventureGame {
     togglePause() {
         if (this.state === 'PLAYING') {
             this.state = 'PAUSED';
-            this.holdSlide = false;
             sound.stopBgm();
             document.getElementById('pause-modal').classList.remove('hidden');
             document.getElementById('landscape-controls').classList.add('hidden');
@@ -1806,9 +1724,9 @@ class TempleAdventureGame {
         }
     }
 
-    gameOver(reason = '探险家耗尽了体力') {
+    // 低龄模式：结算统一用鼓励语，不展示「被击中 / 跌落」等挫败措辞
+    gameOver() {
         this.state = 'GAMEOVER';
-        this.holdSlide = false;
         sound.stopBgm();
         document.getElementById('landscape-controls').classList.add('hidden');
 
@@ -1819,7 +1737,7 @@ class TempleAdventureGame {
             localStorage.setItem('mini_temple_high_score', String(this.highScore));
         }
 
-        document.getElementById('gameover-reason').textContent = reason;
+        document.getElementById('gameover-reason').textContent = '再玩一次吧！';
         document.getElementById('final-score').textContent = finalScore;
         document.getElementById('final-distance').textContent = Math.floor(this.distance);
         document.getElementById('final-coins').textContent = this.coins;
@@ -1873,7 +1791,7 @@ class TempleAdventureGame {
     }
 
     // ========================================================================
-    // 程序化关卡生成（地面、断崖、悬浮石台、地刺、巨石、喷火、摆动藤蔓/锤、宝物）
+    // 程序化关卡生成（连续地面、地刺、金币与宝物）
     // ========================================================================
     generateWorldAhead() {
         let rightmostX = 0;
@@ -1883,35 +1801,8 @@ class TempleAdventureGame {
             }
         }
 
-        const difficulty = Math.min(1, this.distance / 1200);
-
         while (rightmostX < this.logicalWidth + 900) {
-            // 决定是否生成断崖深渊
-            const makeGap = this.distance > 40 && Math.random() < (0.22 + difficulty * 0.14);
-
-            if (makeGap) {
-                const gapWidth = 115 + Math.random() * (65 + difficulty * 55);
-                this.platforms.push({
-                    x: rightmostX,
-                    y: this.groundY,
-                    width: gapWidth,
-                    height: this.logicalHeight - this.groundY,
-                    type: 'gap'
-                });
-
-                // 断崖上方生成引导金币弧线
-                const arcCount = 4;
-                for (let i = 0; i < arcCount; i++) {
-                    const t = (i + 0.5) / arcCount;
-                    const cx = rightmostX + t * gapWidth;
-                    const cy = this.groundY - 75 - Math.sin(t * Math.PI) * 55;
-                    this.collectibles.push({
-                        x: cx, y: cy, radius: 13, type: 'coin', phase: i * 0.5
-                    });
-                }
-
-                rightmostX += gapWidth;
-            }
+            // 低龄模式：地面始终连续，不生成断崖深渊
 
             // 生成实心神庙地面段
             const segWidth = 340 + Math.random() * 360;
@@ -1960,74 +1851,25 @@ class TempleAdventureGame {
                 }
             }
 
-            // 在安全距离内放置地面障碍物
-            if (this.distance > 25 && segWidth > 320) {
+            // 低龄模式：只放「地刺」一种障碍，且更矮、出现率更低；其余路段全是金币
+            if (this.distance > 25 && segWidth > 320 && Math.random() < EASY.obstacleRate) {
                 const obsX = segStartX + segWidth * (0.45 + Math.random() * 0.25);
-                const roll = Math.random();
-
-                if (roll < 0.34) {
-                    // 1. 地刺陷阱（需跳跃躲避）
-                    const spikeCount = Math.random() < 0.5 ? 2 : 3;
-                    this.obstacles.push({
-                        type: 'spikes',
-                        x: obsX,
-                        y: this.groundY - 26,
-                        width: spikeCount * 22,
-                        height: 26
-                    });
-                    // 地刺上方金币
-                    this.collectibles.push({
-                        x: obsX + (spikeCount * 22) / 2,
-                        y: this.groundY - 95,
-                        radius: 13,
-                        type: 'coin',
-                        phase: 0
-                    });
-                } else if (roll < 0.64) {
-                    // 2. 悬挂摇摆巨锤 / 藤蔓刺球（需滑铲或高跳）
-                    this.obstacles.push({
-                        type: 'pendulum',
-                        pivotX: obsX,
-                        pivotY: 75,
-                        length: this.groundY - 75 - 46, // 最低点刚好留出滑铲高度
-                        radius: 22,
-                        angle: 0,
-                        speed: 2.6 + difficulty * 1.2,
-                        phase: Math.random() * Math.PI * 2
-                    });
-                    // 地面低空引导金币（鼓励滑铲）
-                    for (let k = -1; k <= 1; k++) {
-                        this.collectibles.push({
-                            x: obsX + k * 34,
-                            y: this.groundY - 18,
-                            radius: 12,
-                            type: 'coin',
-                            phase: k * 0.3
-                        });
-                    }
-                } else if (roll < 0.84) {
-                    // 3. 喷火石雕机关（间歇性喷火）
-                    this.obstacles.push({
-                        type: 'flame',
-                        x: obsX,
-                        y: this.groundY - 28,
-                        width: 34,
-                        height: 28,
-                        flameHeight: 82,
-                        timer: Math.random() * 2.5,
-                        cycle: 2.6
-                    });
-                } else {
-                    // 4. 迎面滚落的古老巨石
-                    this.obstacles.push({
-                        type: 'boulder',
-                        x: obsX + 120,
-                        y: this.groundY - 44,
-                        radius: 22,
-                        vx: -(130 + difficulty * 90),
-                        rotation: 0
-                    });
-                }
+                const spikeCount = 2;
+                this.obstacles.push({
+                    type: 'spikes',
+                    x: obsX,
+                    y: this.groundY - EASY.spikeHeight,
+                    width: spikeCount * 22,
+                    height: EASY.spikeHeight
+                });
+                // 地刺上方金币：引导孩子「跳一下」
+                this.collectibles.push({
+                    x: obsX + (spikeCount * 22) / 2,
+                    y: this.groundY - 95,
+                    radius: 13,
+                    type: 'coin',
+                    phase: 0
+                });
             } else {
                 // 地面一排金币
                 const coinCount = 3 + Math.floor(Math.random() * 3);
@@ -2059,11 +1901,10 @@ class TempleAdventureGame {
             }
         }
 
-        // 随距离渐进提升基础速度
-        const targetBaseSpeed = Math.min(720, 400 + this.distance * 0.24);
-        this.baseSpeed += (targetBaseSpeed - this.baseSpeed) * dt * 2;
-        const speedMultiplier = this.powerups.boost > 0 ? 1.55 : 1.0;
-        this.currentSpeed = this.baseSpeed * speedMultiplier;
+        // 低龄模式：固定慢速，不随距离加速；冲刺道具只保留「免疫碰撞」，不再提速
+        this.baseSpeed = EASY.speed;
+        this.currentSpeed = EASY.speed;
+        const speedMultiplier = 1.0; // 主角动画速度倍率保持恒定
 
         // 距离与得分累加
         const dx = this.currentSpeed * dt;
@@ -2134,11 +1975,10 @@ class TempleAdventureGame {
             this.platforms,
             this.groundY,
             speedMultiplier,
-            (x, y, count, color, shape) => this.spawnParticles(x, y, count, color, shape),
-            this.holdSlide
+            (x, y, count, color, shape) => this.spawnParticles(x, y, count, color, shape)
         );
 
-        // 检查是否掉入断崖深渊
+        // 安全网：万一异常穿地，用绳索把孩子捞回地面
         if (this.player.y > this.logicalHeight + 40) {
             this.handleFallInPit();
         }
@@ -2175,68 +2015,14 @@ class TempleAdventureGame {
             }
         }
 
-        // 更新并检测机关障碍物
+        // 更新并检测机关障碍物（低龄模式只有「地刺」一种）
         for (let i = this.obstacles.length - 1; i >= 0; i--) {
             const obs = this.obstacles[i];
-
-            if (obs.type === 'spikes') {
-                obs.x -= dx;
-                if (this.checkRectOverlap(pBox, obs)) {
-                    this.damagePlayer(obs.x + obs.width / 2, obs.y);
-                }
-                if (obs.x + obs.width < -100) this.obstacles.splice(i, 1);
-
-            } else if (obs.type === 'boulder') {
-                obs.x -= dx - obs.vx * dt;
-                obs.rotation += (obs.vx * dt) / obs.radius;
-                if (this.checkCircleRectOverlap(obs.x, obs.y + obs.radius, obs.radius - 4, pBox)) {
-                    if (this.powerups.boost > 0 || this.powerups.shield > 0) {
-                        this.smashObstacle(obs.x, obs.y + obs.radius);
-                        this.obstacles.splice(i, 1);
-                        continue;
-                    }
-                    this.damagePlayer(obs.x, obs.y);
-                }
-                if (obs.x < -120) this.obstacles.splice(i, 1);
-
-            } else if (obs.type === 'pendulum') {
-                obs.pivotX -= dx;
-                obs.phase += obs.speed * dt;
-                obs.angle = Math.sin(obs.phase) * 0.65;
-                const bobX = obs.pivotX + Math.sin(obs.angle) * obs.length;
-                const bobY = obs.pivotY + Math.cos(obs.angle) * obs.length;
-
-                if (this.checkCircleRectOverlap(bobX, bobY, obs.radius - 4, pBox)) {
-                    if (this.powerups.boost > 0 || this.powerups.shield > 0) {
-                        this.smashObstacle(bobX, bobY);
-                        this.obstacles.splice(i, 1);
-                        continue;
-                    }
-                    this.damagePlayer(bobX, bobY);
-                }
-                if (obs.pivotX < -150) this.obstacles.splice(i, 1);
-
-            } else if (obs.type === 'flame') {
-                obs.x -= dx;
-                obs.timer = (obs.timer + dt) % obs.cycle;
-                const isFiring = obs.timer > 1.25; // 后半周期喷火
-                const baseBox = { x: obs.x, y: obs.y, width: obs.width, height: obs.height };
-
-                if (this.checkRectOverlap(pBox, baseBox)) {
-                    this.damagePlayer(obs.x + obs.width / 2, obs.y);
-                } else if (isFiring) {
-                    const fireBox = {
-                        x: obs.x + 5,
-                        y: obs.y - obs.flameHeight,
-                        width: obs.width - 10,
-                        height: obs.flameHeight
-                    };
-                    if (this.checkRectOverlap(pBox, fireBox)) {
-                        this.damagePlayer(obs.x + obs.width / 2, obs.y - 40);
-                    }
-                }
-                if (obs.x + obs.width < -100) this.obstacles.splice(i, 1);
+            obs.x -= dx;
+            if (this.checkRectOverlap(pBox, obs)) {
+                this.damagePlayer(obs.x + obs.width / 2, obs.y);
             }
+            if (obs.x + obs.width < -100) this.obstacles.splice(i, 1);
         }
 
         // 更新粒子与浮动文字
@@ -2324,7 +2110,7 @@ class TempleAdventureGame {
         }
 
         this.lives -= 1;
-        this.player.invincibleTimer = 1.5;
+        this.player.invincibleTimer = EASY.invincible;
         this.shakeTimer = 0.28;
         this.shakeIntensity = 10;
         sound.playHit();
@@ -2333,28 +2119,22 @@ class TempleAdventureGame {
         this.updateHUD();
 
         if (this.lives <= 0) {
-            this.gameOver('被古老神庙机关击中了');
+            this.gameOver();
         }
     }
 
     handleFallInPit() {
-        this.lives -= 1;
+        // 低龄模式：掉落不扣命，只用绳索把孩子捞回安全地面
         this.shakeTimer = 0.3;
         this.shakeIntensity = 12;
         sound.playHit();
-        this.updateHUD();
 
-        if (this.lives <= 0) {
-            this.gameOver('失足跌入了神庙深渊');
-            return;
-        }
-
-        // 营救回安全地面并赋予短暂无敌与护盾光环
+        // 营救回安全地面并赋予短暂无敌
         this.player.y = 95;
         this.player.vy = 0;
         this.player.jumpCount = 0;
         this.player.invincibleTimer = 2.0;
-        this.addFloatingText(this.player.x + 20, 80, '绳索营救！-1 ❤️', '#ffdf85');
+        this.addFloatingText(this.player.x + 20, 80, '绳索营救！', '#ffdf85');
 
         // 确保脚下有地面可落
         this.platforms.push({
@@ -2373,14 +2153,6 @@ class TempleAdventureGame {
             a.y < b.y + b.height &&
             a.y + a.height > b.y
         );
-    }
-
-    checkCircleRectOverlap(cx, cy, cr, rect) {
-        const closestX = Math.max(rect.x, Math.min(cx, rect.x + rect.width));
-        const closestY = Math.max(rect.y, Math.min(cy, rect.y + rect.height));
-        const dx = cx - closestX;
-        const dy = cy - closestY;
-        return (dx * dx + dy * dy) < (cr * cr);
     }
 
     updateHUD() {
@@ -2481,7 +2253,7 @@ class TempleAdventureGame {
         // 5. 收集物（金币、红/蓝宝石、加速/护盾/磁铁）
         this.drawCollectibles(ctx);
 
-        // 6. 机关障碍物（地刺、巨石、摇摆锤、喷火机关）
+        // 6. 机关障碍物（地刺）
         this.drawObstacles(ctx);
 
         // 7. Q 版探险家主角
@@ -2609,16 +2381,6 @@ class TempleAdventureGame {
 
     drawPlatforms(ctx, zone) {
         for (const p of this.platforms) {
-            if (p.type === 'gap') {
-                // 深渊底部暗影渐变
-                const abyssGrad = ctx.createLinearGradient(0, this.groundY, 0, this.logicalHeight);
-                abyssGrad.addColorStop(0, 'rgba(5, 3, 2, 0.4)');
-                abyssGrad.addColorStop(1, '#050302');
-                ctx.fillStyle = abyssGrad;
-                ctx.fillRect(p.x, this.groundY, p.width, p.height);
-                continue;
-            }
-
             if (p.type === 'ground') {
                 // 泥土/石砖主体
                 ctx.fillStyle = zone.groundMain;
@@ -2753,103 +2515,6 @@ class TempleAdventureGame {
                     ctx.closePath();
                     ctx.fill();
                     ctx.stroke();
-                }
-            } else if (obs.type === 'boulder') {
-                ctx.save();
-                ctx.translate(obs.x, obs.y + obs.radius);
-                ctx.rotate(obs.rotation);
-
-                ctx.fillStyle = '#75685a';
-                ctx.strokeStyle = '#2e2720';
-                ctx.lineWidth = 2.5;
-                ctx.beginPath();
-                ctx.arc(0, 0, obs.radius, 0, Math.PI * 2);
-                ctx.fill();
-                ctx.stroke();
-
-                // 岩石裂纹装饰
-                ctx.strokeStyle = '#4a4036';
-                ctx.lineWidth = 2;
-                ctx.beginPath();
-                ctx.moveTo(-10, -6);
-                ctx.lineTo(2, 4);
-                ctx.lineTo(12, -3);
-                ctx.stroke();
-                ctx.restore();
-
-            } else if (obs.type === 'pendulum') {
-                const bobX = obs.pivotX + Math.sin(obs.angle) * obs.length;
-                const bobY = obs.pivotY + Math.cos(obs.angle) * obs.length;
-
-                // 铁链
-                ctx.strokeStyle = '#546e7a';
-                ctx.lineWidth = 4;
-                ctx.beginPath();
-                ctx.moveTo(obs.pivotX, obs.pivotY);
-                ctx.lineTo(bobX, bobY);
-                ctx.stroke();
-
-                // 顶部悬挂基座
-                ctx.fillStyle = '#37474f';
-                ctx.beginPath();
-                ctx.arc(obs.pivotX, obs.pivotY, 8, 0, Math.PI * 2);
-                ctx.fill();
-
-                // 摆动刺球
-                ctx.save();
-                ctx.translate(bobX, bobY);
-                ctx.rotate(-obs.angle);
-                ctx.fillStyle = '#455a64';
-                ctx.strokeStyle = '#1c262b';
-                ctx.lineWidth = 2.5;
-                ctx.beginPath();
-                ctx.arc(0, 0, obs.radius, 0, Math.PI * 2);
-                ctx.fill();
-                ctx.stroke();
-
-                // 刺球尖刺
-                ctx.fillStyle = '#eceff1';
-                for (let a = 0; a < 8; a++) {
-                    const rad = (a * Math.PI) / 4;
-                    ctx.beginPath();
-                    ctx.moveTo(Math.cos(rad - 0.2) * obs.radius, Math.sin(rad - 0.2) * obs.radius);
-                    ctx.lineTo(Math.cos(rad) * (obs.radius + 7), Math.sin(rad) * (obs.radius + 7));
-                    ctx.lineTo(Math.cos(rad + 0.2) * obs.radius, Math.sin(rad + 0.2) * obs.radius);
-                    ctx.fill();
-                }
-                ctx.restore();
-
-            } else if (obs.type === 'flame') {
-                // 喷火石雕底座
-                ctx.fillStyle = '#5d4037';
-                ctx.strokeStyle = '#261814';
-                ctx.lineWidth = 2;
-                ctx.beginPath();
-                ctx.roundRect(obs.x, obs.y, obs.width, obs.height, 4);
-                ctx.fill();
-                ctx.stroke();
-
-                // 喷口警戒红光
-                const isWarning = obs.timer > 0.8 && obs.timer <= 1.25;
-                const isFiring = obs.timer > 1.25;
-
-                ctx.fillStyle = isFiring ? '#ff3d00' : (isWarning ? '#ffab00' : '#3e2723');
-                ctx.fillRect(obs.x + 6, obs.y - 3, obs.width - 12, 5);
-
-                if (isFiring) {
-                    const flicker = 0.9 + Math.sin(Date.now() * 0.04) * 0.1;
-                    const fh = obs.flameHeight * flicker;
-                    const grad = ctx.createLinearGradient(0, obs.y, 0, obs.y - fh);
-                    grad.addColorStop(0, '#fff59d');
-                    grad.addColorStop(0.45, '#ff9100');
-                    grad.addColorStop(1, 'rgba(255, 61, 0, 0)');
-
-                    ctx.fillStyle = grad;
-                    ctx.beginPath();
-                    ctx.moveTo(obs.x + 5, obs.y);
-                    ctx.quadraticCurveTo(obs.x + obs.width / 2, obs.y - fh * 1.15, obs.x + obs.width - 5, obs.y);
-                    ctx.closePath();
-                    ctx.fill();
                 }
             }
         }
