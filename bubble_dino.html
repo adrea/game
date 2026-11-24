@@ -1,0 +1,1042 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>泡泡飞龙 · 云海大作战 | Bubble Dino</title>
+  <meta name="description" content="泡泡飞龙：拖动会扇翅膀的小恐龙，自动发射泡泡弹，击碎果冻云与泡泡大飞艇，一路升级彩虹武器。" />
+  <style>
+    * {
+      box-sizing: border-box;
+      user-select: none;
+      -webkit-user-select: none;
+      -webkit-touch-callout: none;
+    }
+
+    html, body {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: #6ec6ff;
+      font-family: "PingFang SC", "Microsoft YaHei", "Hiragino Sans GB", system-ui, sans-serif;
+    }
+
+    #gameCanvas {
+      display: block;
+      width: 100vw;
+      height: 100vh;
+      touch-action: none;
+      cursor: grab;
+    }
+
+    .hud-top {
+      position: fixed;
+      top: 12px;
+      left: 14px;
+      right: 14px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      pointer-events: none;
+      z-index: 10;
+    }
+
+    .badge-group {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    .pill {
+      background: rgba(255, 255, 255, 0.92);
+      border: 3px solid #48b868;
+      border-radius: 999px;
+      padding: 6px 15px;
+      font-size: 18px;
+      font-weight: 800;
+      color: #234e2c;
+      box-shadow: 0 4px 0 rgba(54, 142, 80, 0.25);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .power-pill {
+      border-color: #ff9f1c;
+      color: #8a4b00;
+      box-shadow: 0 4px 0 rgba(224, 130, 14, 0.25);
+    }
+
+    .btn-group {
+      display: flex;
+      gap: 8px;
+      pointer-events: auto;
+    }
+
+    .icon-btn {
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      border: 3px solid #fff;
+      background: #ff9f1c;
+      color: #fff;
+      font-size: 21px;
+      font-weight: bold;
+      box-shadow: 0 4px 0 #d97706;
+      cursor: pointer;
+      display: grid;
+      place-items: center;
+    }
+
+    .icon-btn:active {
+      transform: translateY(2px);
+      box-shadow: 0 2px 0 #d97706;
+    }
+
+    .icon-btn.muted {
+      background: #9ca3af;
+      box-shadow: 0 4px 0 #6b7280;
+    }
+
+    .tip-banner {
+      position: fixed;
+      bottom: 14px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(255, 255, 255, 0.9);
+      border: 3px solid #52b788;
+      color: #1b4332;
+      padding: 6px 18px;
+      border-radius: 999px;
+      font-size: 15px;
+      font-weight: 700;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+      pointer-events: none;
+      z-index: 10;
+      white-space: nowrap;
+      transition: opacity 0.4s ease;
+    }
+
+    @media (max-width: 640px) {
+      .pill {
+        font-size: 15px;
+        padding: 5px 12px;
+      }
+      .icon-btn {
+        width: 42px;
+        height: 42px;
+        font-size: 18px;
+      }
+      .tip-banner {
+        font-size: 13px;
+        padding: 5px 14px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="hud-top">
+    <div class="badge-group">
+      <div class="pill">
+        <span>⭐</span>
+        <span id="scoreText">0</span>
+      </div>
+      <div class="pill power-pill">
+        <span>✨</span>
+        <span id="weaponText">泡泡弹 Lv.1</span>
+      </div>
+    </div>
+
+    <div class="btn-group">
+      <button class="icon-btn" id="soundBtn" title="声音开关" aria-label="声音开关">🔊</button>
+      <button class="icon-btn" id="resetBtn" title="重新开始" aria-label="重新开始">🔄</button>
+    </div>
+  </div>
+
+  <div class="tip-banner" id="tipBanner">手指按住屏幕拖动小恐龙，自动发射泡泡打果冻云吧！</div>
+
+  <canvas id="gameCanvas"></canvas>
+
+  <script>
+    (() => {
+      const canvas = document.getElementById('gameCanvas');
+      const ctx = canvas.getContext('2d');
+
+      const scoreTextEl = document.getElementById('scoreText');
+      const weaponTextEl = document.getElementById('weaponText');
+      const soundBtn = document.getElementById('soundBtn');
+      const resetBtn = document.getElementById('resetBtn');
+      const tipBanner = document.getElementById('tipBanner');
+
+      // 柔和的 Web Audio 音效
+      class SoundFX {
+        constructor() {
+          this.ctx = null;
+          this.enabled = true;
+        }
+        ensure() {
+          if (!this.enabled) return null;
+          if (!this.ctx) {
+            const AudioCtx = window.AudioContext || window.webkitAudioContext;
+            if (AudioCtx) this.ctx = new AudioCtx();
+          }
+          if (this.ctx && this.ctx.state === 'suspended') {
+            this.ctx.resume().catch(() => {});
+          }
+          return this.ctx;
+        }
+        playTone(freq, endFreq, duration, type = 'sine', gainVal = 0.1, delay = 0) {
+          const ac = this.ensure();
+          if (!ac) return;
+          const now = ac.currentTime + delay;
+          const osc = ac.createOscillator();
+          const gain = ac.createGain();
+          osc.type = type;
+          osc.frequency.setValueAtTime(freq, now);
+          if (endFreq) {
+            osc.frequency.exponentialRampToValueAtTime(Math.max(40, endFreq), now + duration);
+          }
+          gain.gain.setValueAtTime(0.001, now);
+          gain.gain.linearRampToValueAtTime(gainVal, now + 0.015);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + duration);
+          osc.connect(gain);
+          gain.connect(ac.destination);
+          osc.start(now);
+          osc.stop(now + duration + 0.02);
+        }
+        shoot() {
+          this.playTone(540, 760, 0.07, 'sine', 0.045);
+        }
+        pop() {
+          this.playTone(420, 680, 0.12, 'triangle', 0.11);
+        }
+        powerup() {
+          [523.25, 659.25, 783.99, 1046.5].forEach((n, idx) => {
+            this.playTone(n, n * 1.03, 0.18, 'triangle', 0.13, idx * 0.065);
+          });
+        }
+        shield() {
+          this.playTone(300, 210, 0.18, 'sine', 0.11);
+        }
+      }
+
+      const sfx = new SoundFX();
+
+      soundBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        sfx.enabled = !sfx.enabled;
+        soundBtn.textContent = sfx.enabled ? '🔊' : '🔇';
+        soundBtn.classList.toggle('muted', !sfx.enabled);
+        if (sfx.enabled) sfx.playTone(620, 780, 0.1, 'sine', 0.1);
+      });
+
+      const WEAPON_LEVELS = [
+        { level: 1, name: '泡泡弹 Lv.1', interval: 0.24, color: '#4cc9f0' },
+        { level: 2, name: '双星弹 Lv.2', interval: 0.22, color: '#ff758f' },
+        { level: 3, name: '彩虹扇 Lv.3', interval: 0.20, color: '#ffbe0b' },
+        { level: 4, name: '超级星雨 Lv.4', interval: 0.18, color: '#9b5de5' }
+      ];
+
+      let width = 0, height = 0, dpr = 1;
+
+      function resize() {
+        dpr = Math.min(window.devicePixelRatio || 1, 2);
+        width = window.innerWidth;
+        height = window.innerHeight;
+        canvas.width = Math.floor(width * dpr);
+        canvas.height = Math.floor(height * dpr);
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        if (player) {
+          player.x = Math.min(Math.max(player.x, 42), width - 42);
+          player.y = Math.min(Math.max(player.y, 110), height - 56);
+        }
+      }
+
+      window.addEventListener('resize', resize);
+
+      const state = {
+        score: 0,
+        weaponIdx: 0,
+        powerTimer: 0,
+        time: 0,
+        bgScroll: 0,
+        pointerActive: false,
+        dragOffsetX: 0,
+        dragOffsetY: 0,
+        keys: { left: false, right: false, up: false, down: false },
+        bullets: [],
+        enemies: [],
+        enemyBullets: [],
+        pickups: [],
+        particles: [],
+        popups: [],
+        clouds: [],
+        islands: [],
+        spawnTimer: 0,
+        shootTimer: 0,
+        bossCounter: 0
+      };
+
+      // 固定小巧尺寸的小恐龙主角，绝不会遮挡手机/平板屏幕
+      const player = {
+        x: 200,
+        y: 500,
+        r: 26,
+        shieldTimer: 0,
+        wingPhase: 0,
+        blinkTimer: 2,
+        isBlinking: false
+      };
+
+      function initBackground() {
+        state.clouds = Array.from({ length: 8 }, (_, i) => ({
+          x: Math.random() * width,
+          y: (i / 8) * height,
+          scale: 0.6 + Math.random() * 0.7,
+          speed: 28 + Math.random() * 24
+        }));
+
+        state.islands = Array.from({ length: 4 }, (_, i) => ({
+          x: (0.15 + (i % 2) * 0.68) * width + (Math.random() - 0.5) * 40,
+          y: (i / 4) * height,
+          rx: 55 + Math.random() * 35,
+          ry: 32 + Math.random() * 20,
+          speed: 45
+        }));
+      }
+
+      function addParticles(x, y, colors, count = 12) {
+        for (let i = 0; i < count; i++) {
+          const angle = (Math.PI * 2 * i) / count + (Math.random() - 0.5) * 0.4;
+          const speed = 50 + Math.random() * 140;
+          state.particles.push({
+            x,
+            y,
+            vx: Math.cos(angle) * speed,
+            vy: Math.sin(angle) * speed,
+            size: 4 + Math.random() * 5,
+            color: colors[i % colors.length],
+            life: 0.55 + Math.random() * 0.3,
+            maxLife: 0.85,
+            isStar: i % 2 === 0
+          });
+        }
+      }
+
+      function addPopup(x, y, text, color = '#fb5607') {
+        state.popups.push({
+          x,
+          y,
+          vy: -52,
+          text,
+          color,
+          life: 0.95
+        });
+      }
+
+      function updateHUD() {
+        scoreTextEl.textContent = state.score;
+        weaponTextEl.textContent = WEAPON_LEVELS[state.weaponIdx].name;
+      }
+
+      function resetGame() {
+        state.score = 0;
+        state.weaponIdx = 0;
+        state.powerTimer = 0;
+        state.bullets = [];
+        state.enemies = [];
+        state.enemyBullets = [];
+        state.pickups = [];
+        state.particles = [];
+        state.popups = [];
+        state.spawnTimer = 0.4;
+        state.bossCounter = 0;
+
+        player.x = width * 0.5;
+        player.y = height * 0.78;
+        player.shieldTimer = 1.2;
+
+        tipBanner.style.opacity = '1';
+        updateHUD();
+      }
+
+      resetBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        resetGame();
+      });
+
+      // 触屏与鼠标相对拖动控制：手指不用挡住小恐龙也能精准移动
+      canvas.addEventListener('pointerdown', (e) => {
+        sfx.ensure();
+        state.pointerActive = true;
+        tipBanner.style.opacity = '0';
+        const dist = Math.hypot(e.clientX - player.x, e.clientY - player.y);
+        if (dist < 75) {
+          // 如果手指直接按在恐龙附近，保持相对偏移拖动
+          state.dragOffsetX = player.x - e.clientX;
+          state.dragOffsetY = player.y - e.clientY;
+        } else {
+          // 如果点在空白处，恐龙平滑靠近点击位置
+          state.dragOffsetX = 0;
+          state.dragOffsetY = -28; // 略微在指尖上方，避免手指遮挡恐龙
+          player.x = Math.min(Math.max(e.clientX, 38), width - 38);
+          player.y = Math.min(Math.max(e.clientY - 28, 105), height - 48);
+        }
+      });
+
+      canvas.addEventListener('pointermove', (e) => {
+        if (!state.pointerActive) return;
+        const nx = e.clientX + state.dragOffsetX;
+        const ny = e.clientY + state.dragOffsetY;
+        player.x = Math.min(Math.max(nx, 38), width - 38);
+        player.y = Math.min(Math.max(ny, 105), height - 48);
+      });
+
+      window.addEventListener('pointerup', () => {
+        state.pointerActive = false;
+      });
+
+      window.addEventListener('keydown', (e) => {
+        const k = e.key.toLowerCase();
+        if (k === 'arrowleft' || k === 'a') state.keys.left = true;
+        if (k === 'arrowright' || k === 'd') state.keys.right = true;
+        if (k === 'arrowup' || k === 'w') state.keys.up = true;
+        if (k === 'arrowdown' || k === 's') state.keys.down = true;
+      });
+
+      window.addEventListener('keyup', (e) => {
+        const k = e.key.toLowerCase();
+        if (k === 'arrowleft' || k === 'a') state.keys.left = false;
+        if (k === 'arrowright' || k === 'd') state.keys.right = false;
+        if (k === 'arrowup' || k === 'w') state.keys.up = false;
+        if (k === 'arrowdown' || k === 's') state.keys.down = false;
+      });
+
+      function firePlayerBullets() {
+        const w = WEAPON_LEVELS[state.weaponIdx];
+        const x = player.x;
+        const y = player.y - player.r - 4;
+        const speed = -560;
+
+        if (w.level === 1) {
+          state.bullets.push({ x, y, vx: 0, vy: speed, r: 9, color: w.color, dmg: 1 });
+        } else if (w.level === 2) {
+          state.bullets.push({ x: x - 12, y, vx: 0, vy: speed, r: 9, color: w.color, dmg: 1 });
+          state.bullets.push({ x: x + 12, y, vx: 0, vy: speed, r: 9, color: w.color, dmg: 1 });
+        } else if (w.level === 3) {
+          state.bullets.push({ x, y, vx: 0, vy: speed, r: 10, color: '#ffbe0b', dmg: 1 });
+          state.bullets.push({ x: x - 10, y, vx: -95, vy: speed * 0.96, r: 9, color: '#ff758f', dmg: 1 });
+          state.bullets.push({ x: x + 10, y, vx: 95, vy: speed * 0.96, r: 9, color: '#4cc9f0', dmg: 1 });
+        } else {
+          [-160, -80, 0, 80, 160].forEach((vx, idx) => {
+            const cols = ['#ff595e', '#ffca3a', '#8ac926', '#1982c4', '#9b5de5'];
+            state.bullets.push({ x, y, vx, vy: speed * 0.96, r: 10, color: cols[idx], dmg: 1 });
+          });
+        }
+        sfx.shoot();
+      }
+
+      function spawnEnemy() {
+        state.bossCounter++;
+        const margin = 48;
+        const x = margin + Math.random() * Math.max(80, width - margin * 2);
+
+        // 每 12 波出现一个可爱的小Boss（飞艇泡泡龙）
+        if (state.bossCounter % 12 === 0) {
+          state.enemies.push({
+            kind: 'boss',
+            x: width * 0.5,
+            y: -60,
+            vx: 65,
+            vy: 42,
+            targetY: Math.min(185, height * 0.24),
+            r: 44,
+            hp: 18,
+            maxHp: 18,
+            color: '#9b5de5',
+            shootCooldown: 1.8,
+            phase: 0
+          });
+          addPopup(width * 0.5, 135, '泡泡大飞艇来啦！', '#7209b7');
+          return;
+        }
+
+        const types = [
+          { kind: 'jelly', r: 24, hp: 2, vy: 85,  vx: 0,  color: '#ff758f', score: 10 },
+          { kind: 'cloud', r: 28, hp: 3, vy: 68,  vx: 35, color: '#90e0ef', score: 15 },
+          { kind: 'starball', r: 21, hp: 1, vy: 110, vx: -40, color: '#ffd166', score: 10 }
+        ];
+        const t = types[Math.floor(Math.random() * types.length)];
+        state.enemies.push({
+          ...t,
+          x,
+          y: -40,
+          vx: (Math.random() < 0.5 ? 1 : -1) * t.vx,
+          maxHp: t.hp,
+          phase: Math.random() * Math.PI * 2
+        });
+      }
+
+      function spawnPickup(x, y) {
+        const isPower = Math.random() < 0.48;
+        state.pickups.push({
+          x,
+          y,
+          vy: 95,
+          r: 18,
+          kind: isPower ? 'power' : 'star',
+          phase: Math.random() * Math.PI * 2
+        });
+      }
+
+      function drawStar(cx, cy, spikes, outerR, innerR, color) {
+        let rot = (Math.PI / 2) * 3;
+        const step = Math.PI / spikes;
+        ctx.beginPath();
+        ctx.moveTo(cx, cy - outerR);
+        for (let i = 0; i < spikes; i++) {
+          ctx.lineTo(cx + Math.cos(rot) * outerR, cy + Math.sin(rot) * outerR);
+          rot += step;
+          ctx.lineTo(cx + Math.cos(rot) * innerR, cy + Math.sin(rot) * innerR);
+          rot += step;
+        }
+        ctx.closePath();
+        ctx.fillStyle = color;
+        ctx.fill();
+      }
+
+      function drawBackground() {
+        // 蔚蓝天空与海面渐变
+        const bg = ctx.createLinearGradient(0, 0, 0, height);
+        bg.addColorStop(0, '#56cfe1');
+        bg.addColorStop(0.55, '#72efdd');
+        bg.addColorStop(1, '#80ffdb');
+        ctx.fillStyle = bg;
+        ctx.fillRect(0, 0, width, height);
+
+        // 柔和的阳光波纹
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.16)';
+        for (let y = (state.bgScroll % 90) - 90; y < height; y += 90) {
+          ctx.fillRect(0, y, width, 16);
+        }
+
+        // 绿色小岛屿装饰
+        state.islands.forEach((isl) => {
+          ctx.save();
+          ctx.translate(isl.x, isl.y);
+          ctx.fillStyle = '#ffe8a3';
+          ctx.beginPath();
+          ctx.ellipse(0, 0, isl.rx + 10, isl.ry + 8, 0, 0, Math.PI * 2);
+          ctx.fill();
+
+          ctx.fillStyle = '#52b788';
+          ctx.beginPath();
+          ctx.ellipse(0, -2, isl.rx, isl.ry, 0, 0, Math.PI * 2);
+          ctx.fill();
+
+          // 小树点缀
+          ctx.fillStyle = '#2d6a4f';
+          ctx.beginPath();
+          ctx.arc(-12, -6, 11, 0, Math.PI * 2);
+          ctx.arc(10, -4, 9, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.restore();
+        });
+
+        // 飘过的白云
+        state.clouds.forEach((c) => {
+          ctx.save();
+          ctx.translate(c.x, c.y);
+          ctx.scale(c.scale, c.scale);
+          ctx.fillStyle = 'rgba(255, 255, 255, 0.72)';
+          ctx.beginPath();
+          ctx.arc(0, 0, 20, 0, Math.PI * 2);
+          ctx.arc(18, -5, 24, 0, Math.PI * 2);
+          ctx.arc(38, 0, 19, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.restore();
+        });
+      }
+
+      // 俯视角飞行小恐龙（带可爱小翅膀，尺寸小巧不遮挡屏幕）
+      function drawPlayerDino() {
+        const { x, y, r } = player;
+        ctx.save();
+        ctx.translate(x, y);
+
+        // 无敌护盾光圈
+        if (player.shieldTimer > 0) {
+          ctx.save();
+          ctx.strokeStyle = 'rgba(255, 255, 255, 0.9)';
+          ctx.fillStyle = 'rgba(255, 255, 255, 0.25)';
+          ctx.lineWidth = 3;
+          ctx.beginPath();
+          ctx.arc(0, 0, r + 13 + Math.sin(state.time * 16) * 2, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.stroke();
+          ctx.restore();
+        }
+
+        // 扇动的小翅膀
+        const flap = Math.sin(player.wingPhase) * 0.35;
+        [-1, 1].forEach((side) => {
+          ctx.save();
+          ctx.translate(side * (r * 0.65), 2);
+          ctx.rotate(side * flap);
+          ctx.fillStyle = '#ffe5ec';
+          ctx.beginPath();
+          ctx.ellipse(side * 12, 0, 15, 8, side * 0.25, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.restore();
+        });
+
+        // 小尾巴
+        const tailWag = Math.sin(state.time * 10) * 4;
+        ctx.fillStyle = '#38b000';
+        ctx.beginPath();
+        ctx.moveTo(-8, r * 0.7);
+        ctx.lineTo(tailWag, r * 1.35);
+        ctx.lineTo(8, r * 0.7);
+        ctx.closePath();
+        ctx.fill();
+
+        // 圆润恐龙身体
+        ctx.fillStyle = '#4cc964';
+        ctx.beginPath();
+        ctx.ellipse(0, 2, r * 0.85, r * 0.95, 0, 0, Math.PI * 2);
+        ctx.fill();
+
+        // 背部条纹
+        ctx.fillStyle = '#2d9348';
+        ctx.beginPath();
+        ctx.ellipse(0, 6, r * 0.35, r * 0.45, 0, 0, Math.PI * 2);
+        ctx.fill();
+
+        // 恐龙小脑袋
+        ctx.fillStyle = '#57cc99';
+        ctx.beginPath();
+        ctx.arc(0, -r * 0.55, r * 0.62, 0, Math.PI * 2);
+        ctx.fill();
+
+        // 腮红
+        ctx.fillStyle = 'rgba(255, 107, 129, 0.5)';
+        ctx.beginPath();
+        ctx.arc(-11, -r * 0.48, 4.5, 0, Math.PI * 2);
+        ctx.arc(11, -r * 0.48, 4.5, 0, Math.PI * 2);
+        ctx.fill();
+
+        // 大眼睛
+        [-8, 8].forEach((ex) => {
+          const ey = -r * 0.66;
+          if (player.isBlinking) {
+            ctx.strokeStyle = '#1d3557';
+            ctx.lineWidth = 2.5;
+            ctx.beginPath();
+            ctx.moveTo(ex - 4, ey);
+            ctx.lineTo(ex + 4, ey);
+            ctx.stroke();
+          } else {
+            ctx.fillStyle = '#fff';
+            ctx.beginPath();
+            ctx.arc(ex, ey, 5.5, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.fillStyle = '#1d3557';
+            ctx.beginPath();
+            ctx.arc(ex, ey - 1, 3, 0, Math.PI * 2);
+            ctx.fill();
+          }
+        });
+
+        ctx.restore();
+      }
+
+      function drawEnemy(e) {
+        ctx.save();
+        ctx.translate(e.x, e.y);
+        const wobble = 1 + Math.sin(state.time * 7 + e.phase) * 0.06;
+        ctx.scale(wobble, 2 - wobble);
+
+        if (e.kind === 'boss') {
+          // 可爱泡泡大飞艇 Boss
+          ctx.fillStyle = '#9b5de5';
+          ctx.beginPath();
+          ctx.ellipse(0, 0, e.r * 1.15, e.r * 0.85, 0, 0, Math.PI * 2);
+          ctx.fill();
+
+          ctx.fillStyle = '#f15bb5';
+          ctx.beginPath();
+          ctx.arc(0, -e.r * 0.72, 14, 0, Math.PI * 2);
+          ctx.fill();
+
+          // 萌萌大眼睛
+          [-16, 16].forEach((ex) => {
+            ctx.fillStyle = '#fff';
+            ctx.beginPath();
+            ctx.arc(ex, -4, 9, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.fillStyle = '#240046';
+            ctx.beginPath();
+            ctx.arc(ex, -2, 4.5, 0, Math.PI * 2);
+            ctx.fill();
+          });
+
+          // 血条
+          const barW = 68;
+          ctx.fillStyle = 'rgba(255,255,255,0.8)';
+          ctx.fillRect(-barW / 2, -e.r - 18, barW, 8);
+          ctx.fillStyle = '#ffbe0b';
+          ctx.fillRect(-barW / 2, -e.r - 18, barW * (e.hp / e.maxHp), 8);
+        } else if (e.kind === 'cloud') {
+          // 软绵绵调皮小云朵
+          ctx.fillStyle = '#ffffff';
+          ctx.beginPath();
+          ctx.arc(-12, 2, e.r * 0.62, 0, Math.PI * 2);
+          ctx.arc(12, 2, e.r * 0.62, 0, Math.PI * 2);
+          ctx.arc(0, -8, e.r * 0.72, 0, Math.PI * 2);
+          ctx.fill();
+
+          ctx.fillStyle = '#48cae4';
+          ctx.beginPath();
+          ctx.arc(-7, -2, 3.2, 0, Math.PI * 2);
+          ctx.arc(7, -2, 3.2, 0, Math.PI * 2);
+          ctx.fill();
+        } else {
+          // Q弹果冻球
+          ctx.fillStyle = e.color;
+          ctx.beginPath();
+          ctx.arc(0, 0, e.r, 0, Math.PI * 2);
+          ctx.fill();
+
+          ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
+          ctx.beginPath();
+          ctx.arc(-e.r * 0.3, -e.r * 0.3, e.r * 0.25, 0, Math.PI * 2);
+          ctx.fill();
+
+          // 可爱表情
+          ctx.fillStyle = '#2b2d42';
+          ctx.beginPath();
+          ctx.arc(-6, -2, 2.8, 0, Math.PI * 2);
+          ctx.arc(6, -2, 2.8, 0, Math.PI * 2);
+          ctx.fill();
+        }
+
+        ctx.restore();
+      }
+
+      function update(dt) {
+        state.time += dt;
+        state.bgScroll += 65 * dt;
+
+        // 眨眼与扇翅膀
+        player.wingPhase += dt * 15;
+        player.blinkTimer -= dt;
+        if (player.blinkTimer <= 0) {
+          player.isBlinking = !player.isBlinking;
+          player.blinkTimer = player.isBlinking ? 0.14 : (2.2 + Math.random() * 2);
+        }
+        if (player.shieldTimer > 0) player.shieldTimer -= dt;
+
+        // 武器强化时间（时间到只降一级，保留爽快感）
+        if (state.weaponIdx > 0) {
+          state.powerTimer -= dt;
+          if (state.powerTimer <= 0) {
+            state.weaponIdx = Math.max(0, state.weaponIdx - 1);
+            state.powerTimer = state.weaponIdx > 0 ? 9 : 0;
+            updateHUD();
+          }
+        }
+
+        // 键盘辅助移动
+        const keySpeed = 340;
+        if (state.keys.left) player.x -= keySpeed * dt;
+        if (state.keys.right) player.x += keySpeed * dt;
+        if (state.keys.up) player.y -= keySpeed * dt;
+        if (state.keys.down) player.y += keySpeed * dt;
+        player.x = Math.min(Math.max(player.x, 38), width - 38);
+        player.y = Math.min(Math.max(player.y, 105), height - 48);
+
+        // 滚动背景元素
+        state.clouds.forEach((c) => {
+          c.y += c.speed * dt;
+          if (c.y > height + 40) {
+            c.y = -40;
+            c.x = Math.random() * width;
+          }
+        });
+
+        state.islands.forEach((isl) => {
+          isl.y += isl.speed * dt;
+          if (isl.y > height + 70) {
+            isl.y = -70;
+            isl.x = 60 + Math.random() * Math.max(80, width - 120);
+          }
+        });
+
+        // 自动发射泡泡弹
+        const curWeapon = WEAPON_LEVELS[state.weaponIdx];
+        state.shootTimer -= dt;
+        if (state.shootTimer <= 0) {
+          firePlayerBullets();
+          state.shootTimer = curWeapon.interval;
+        }
+
+        // 刷新目标
+        state.spawnTimer -= dt;
+        if (state.spawnTimer <= 0) {
+          spawnEnemy();
+          state.spawnTimer = 1.15;
+        }
+
+        // 更新我方子弹
+        for (let i = state.bullets.length - 1; i >= 0; i--) {
+          const b = state.bullets[i];
+          b.x += b.vx * dt;
+          b.y += b.vy * dt;
+          if (b.y < -30 || b.x < -30 || b.x > width + 30) {
+            state.bullets.splice(i, 1);
+          }
+        }
+
+        // 更新敌方目标与碰撞
+        for (let i = state.enemies.length - 1; i >= 0; i--) {
+          const e = state.enemies[i];
+          if (e.kind === 'boss') {
+            if (e.y < e.targetY) {
+              e.y += e.vy * dt;
+            } else {
+              e.x += e.vx * dt;
+              if (e.x < 70 || e.x > width - 70) e.vx *= -1;
+            }
+            // Boss 发射慢速大颗彩虹泡泡（很容易躲开，也可被打掉）
+            e.shootCooldown -= dt;
+            if (e.shootCooldown <= 0) {
+              e.shootCooldown = 2.1;
+              [-60, 0, 60].forEach((vx) => {
+                state.enemyBullets.push({
+                  x: e.x,
+                  y: e.y + e.r * 0.6,
+                  vx,
+                  vy: 145,
+                  r: 11
+                });
+              });
+            }
+          } else {
+            e.x += e.vx * dt;
+            e.y += e.vy * dt;
+            if (e.x < 36 || e.x > width - 36) e.vx *= -1;
+          }
+
+          // 子弹命中检测
+          let destroyed = false;
+          for (let j = state.bullets.length - 1; j >= 0; j--) {
+            const b = state.bullets[j];
+            if (Math.hypot(b.x - e.x, b.y - e.y) < b.r + e.r) {
+              state.bullets.splice(j, 1);
+              e.hp -= b.dmg;
+              addParticles(b.x, b.y, [e.color, '#ffffff'], 4);
+              if (e.hp <= 0) {
+                destroyed = true;
+                state.score += e.score || 50;
+                updateHUD();
+                sfx.pop();
+                addParticles(e.x, e.y, [e.color, '#ffd166', '#90e0ef'], e.kind === 'boss' ? 28 : 14);
+                addPopup(e.x, e.y, `+${e.score || 50}`, '#ff9f1c');
+                if (e.kind === 'boss' || Math.random() < 0.34) {
+                  spawnPickup(e.x, e.y);
+                }
+                break;
+              }
+            }
+          }
+
+          if (destroyed) {
+            state.enemies.splice(i, 1);
+            continue;
+          }
+
+          // 与小恐龙碰撞：触发无敌护盾弹开，零挫败感
+          if (Math.hypot(player.x - e.x, player.y - e.y) < player.r + e.r * 0.78) {
+            if (player.shieldTimer <= 0) {
+              player.shieldTimer = 1.6;
+              sfx.shield();
+              addParticles(player.x, player.y, ['#ffffff', '#bde0fe'], 12);
+              addPopup(player.x, player.y - 36, '护盾弹开啦！', '#0077b6');
+            }
+            if (e.kind !== 'boss') {
+              state.enemies.splice(i, 1);
+              continue;
+            }
+          }
+
+          if (e.y > height + 60) {
+            state.enemies.splice(i, 1);
+          }
+        }
+
+        // Boss 慢速泡泡
+        for (let i = state.enemyBullets.length - 1; i >= 0; i--) {
+          const eb = state.enemyBullets[i];
+          eb.x += eb.vx * dt;
+          eb.y += eb.vy * dt;
+          if (Math.hypot(eb.x - player.x, eb.y - player.y) < eb.r + player.r * 0.75) {
+            if (player.shieldTimer <= 0) {
+              player.shieldTimer = 1.5;
+              sfx.shield();
+              addPopup(player.x, player.y - 34, '泡泡弹开啦！', '#0077b6');
+            }
+            state.enemyBullets.splice(i, 1);
+            continue;
+          }
+          if (eb.y > height + 30) state.enemyBullets.splice(i, 1);
+        }
+
+        // 掉落道具（星星 / 彩虹升级糖果）
+        for (let i = state.pickups.length - 1; i >= 0; i--) {
+          const p = state.pickups[i];
+          p.y += p.vy * dt;
+          p.phase += dt * 6;
+          if (Math.hypot(p.x - player.x, p.y - player.y) < p.r + player.r + 6) {
+            if (p.kind === 'power') {
+              state.weaponIdx = Math.min(WEAPON_LEVELS.length - 1, state.weaponIdx + 1);
+              state.powerTimer = 11;
+              sfx.powerup();
+              addParticles(p.x, p.y, ['#ffbe0b', '#ff595e', '#8ac926', '#4cc9f0'], 18);
+              addPopup(player.x, player.y - 42, `武器升级：${WEAPON_LEVELS[state.weaponIdx].name}！`, '#d90429');
+            } else {
+              state.score += 25;
+              sfx.pop();
+              addParticles(p.x, p.y, ['#ffd166', '#ffffff'], 12);
+              addPopup(p.x, p.y - 20, '+25 星星', '#f77f00');
+            }
+            updateHUD();
+            state.pickups.splice(i, 1);
+            continue;
+          }
+          if (p.y > height + 40) state.pickups.splice(i, 1);
+        }
+
+        // 粒子与飘字
+        for (let i = state.particles.length - 1; i >= 0; i--) {
+          const pt = state.particles[i];
+          pt.x += pt.vx * dt;
+          pt.y += pt.vy * dt;
+          pt.life -= dt;
+          if (pt.life <= 0) state.particles.splice(i, 1);
+        }
+
+        for (let i = state.popups.length - 1; i >= 0; i--) {
+          const pop = state.popups[i];
+          pop.y += pop.vy * dt;
+          pop.life -= dt;
+          if (pop.life <= 0) state.popups.splice(i, 1);
+        }
+      }
+
+      function render() {
+        drawBackground();
+
+        // 掉落道具
+        state.pickups.forEach((p) => {
+          ctx.save();
+          ctx.translate(p.x, p.y);
+          const s = 1 + Math.sin(p.phase) * 0.1;
+          ctx.scale(s, s);
+          if (p.kind === 'power') {
+            ctx.fillStyle = '#ff595e';
+            ctx.beginPath();
+            ctx.arc(0, 0, p.r, 0, Math.PI * 2);
+            ctx.fill();
+            drawStar(0, 0, 5, p.r * 0.72, p.r * 0.35, '#ffbe0b');
+          } else {
+            drawStar(0, 0, 5, p.r, p.r * 0.48, '#ffd166');
+          }
+          ctx.restore();
+        });
+
+        // 我方泡泡弹
+        state.bullets.forEach((b) => {
+          ctx.save();
+          ctx.fillStyle = b.color;
+          ctx.beginPath();
+          ctx.arc(b.x, b.y, b.r, 0, Math.PI * 2);
+          ctx.fill();
+
+          ctx.fillStyle = 'rgba(255, 255, 255, 0.75)';
+          ctx.beginPath();
+          ctx.arc(b.x - b.r * 0.3, b.y - b.r * 0.3, b.r * 0.32, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.restore();
+        });
+
+        // Boss 慢速泡泡
+        state.enemyBullets.forEach((eb) => {
+          ctx.save();
+          ctx.fillStyle = 'rgba(241, 91, 181, 0.78)';
+          ctx.strokeStyle = '#ffffff';
+          ctx.lineWidth = 2.5;
+          ctx.beginPath();
+          ctx.arc(eb.x, eb.y, eb.r, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.stroke();
+          ctx.restore();
+        });
+
+        // 敌方目标
+        state.enemies.forEach(drawEnemy);
+
+        // 小恐龙主角
+        drawPlayerDino();
+
+        // 粒子
+        state.particles.forEach((pt) => {
+          const alpha = Math.max(0, pt.life / pt.maxLife);
+          ctx.save();
+          ctx.globalAlpha = alpha;
+          if (pt.isStar) {
+            drawStar(pt.x, pt.y, 5, pt.size, pt.size * 0.45, pt.color);
+          } else {
+            ctx.fillStyle = pt.color;
+            ctx.beginPath();
+            ctx.arc(pt.x, pt.y, pt.size * 0.6, 0, Math.PI * 2);
+            ctx.fill();
+          }
+          ctx.restore();
+        });
+
+        // 飘字
+        state.popups.forEach((pop) => {
+          const alpha = Math.min(1, pop.life * 1.4);
+          ctx.save();
+          ctx.globalAlpha = alpha;
+          ctx.font = '800 20px "PingFang SC", "Microsoft YaHei", sans-serif';
+          ctx.textAlign = 'center';
+          ctx.lineWidth = 4.5;
+          ctx.strokeStyle = 'rgba(255, 255, 255, 0.95)';
+          ctx.strokeText(pop.text, pop.x, pop.y);
+          ctx.fillStyle = pop.color;
+          ctx.fillText(pop.text, pop.x, pop.y);
+          ctx.restore();
+        });
+      }
+
+      let lastTime = performance.now();
+      function loop(now) {
+        const dt = Math.min(0.05, (now - lastTime) / 1000);
+        lastTime = now;
+        update(dt);
+        render();
+        requestAnimationFrame(loop);
+      }
+
+      resize();
+      initBackground();
+      resetGame();
+      requestAnimationFrame(loop);
+    })();
+  </script>
+</body>
+</html>
