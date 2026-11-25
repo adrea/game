@@ -1658,6 +1658,8 @@ function buildHintEggs(){
   const maze = S.maze;
   const reach = maze.reachSet || reachableCells(maze);
   const spots = [];
+  // 同一条无向边只算一个位置：否则两个彩蛋会抢同一条边的正反 key，互相覆盖后其中一个彻底丢失
+  const usedEdges = new Set();
   for (let y = 1; y <= maze.ch; y++)
     for (let x = 1; x <= maze.cw; x++){
       if (!maze.open(x, y) || !reach.has(x + ',' + y)) continue;
@@ -1666,6 +1668,9 @@ function buildHintEggs(){
       for (const c of ex){
         const nx = x + c.dv[0], ny = y + c.dv[1];
         if (!reach.has(nx + ',' + ny)) continue;
+        const ek = edgeKey(x, y, nx, ny);
+        if (usedEdges.has(ek)) continue;
+        usedEdges.add(ek);
         spots.push([x, y, c.dv[0], c.dv[1]]);
       }
     }
@@ -1675,7 +1680,10 @@ function buildHintEggs(){
   evEggs.forEach((id, i) => {
     if (i < spots.length){
       const [x, y, dx, dy] = spots[i];
+      // 同一条边双向登记：无论从哪一侧经过都能触发，
+      // 否则玩家先从另一侧走过该格，这格就会被记成“死路”，彩蛋永远拿不到
       map.set(x + ',' + y + '|' + dx + ',' + dy, id);
+      map.set((x + dx) + ',' + (y + dy) + '|' + (-dx) + ',' + (-dy), id);
     } else leftover.push(id);
   });
 
@@ -1749,6 +1757,19 @@ function afterMove(){
   if (forward.length === 0){ arriveDeadEnd(); return; }
 
   const freshForward = forward.filter(c => !S.deadDir.has((x + c.dv[0]) + ',' + (y + c.dv[1])));
+
+  // 所有前方支路都被证伪：可能是“死路记忆”把还没找到彩蛋的老区域封死了
+  // 只要彩蛋没集齐，就清空死路记忆重新探索一遍（把来路临时标死，避免立刻原路返回）
+  if (freshForward.length === 0 && S.collected.size < S.totalEggs && S.deadDir.size > 0){
+    S.deadDir.clear();
+    if (prev) S.deadDir.add(prev[0] + ',' + prev[1]);
+    const retry = forward.filter(c => !S.deadDir.has((x + c.dv[0]) + ',' + (y + c.dv[1])));
+    if (retry.length){
+      S.pending = false;
+      doMove(retry[0].dv[0], retry[0].dv[1]);
+      return;
+    }
+  }
 
   // 所有前方支路都被证伪：死路
   if (freshForward.length === 0){ arriveDeadEnd(); return; }
@@ -1999,7 +2020,9 @@ function doMove(ddx, ddy){
 
       // 2. 岔路隐藏事件（串行排队，不再与路障卡片冲突）
       if (evEgg && !S.collected.has(evEgg.id)){
+        // 双向登记，两个方向的 key 一起清掉
         S.hintEggs.delete(fromX + ',' + fromY + '|' + ddx + ',' + ddy);
+        S.hintEggs.delete(nx + ',' + ny + '|' + (-ddx) + ',' + (-ddy));
         enqueueFlow({ type:'event', egg:evEgg });
       }
 
@@ -3442,10 +3465,12 @@ function closeEggCard(){
   S.cardOpen = false;
   S.cardPreview = false;
 
-  // 来自图鉴的预览卡片关闭后，不触碰游戏行驶队列
-  if (wasPreview) return;
   if (allCollected()) { finishGame(); return; }
-  if (S.running) setTimeout(() => runFlowQueue(), 180);
+
+  // 预览卡片关闭后不打断行驶，但队列若被它挡住（还有待处理的开箱/事件）要继续跑，
+  // 否则卡在队列里会让后面的彩蛋永远拿不到
+  if (wasPreview && !S.flowQueue.length) return;
+  if (S.running) setTimeout(() => runFlowQueue(), wasPreview ? 60 : 180);
 }
 
 const SRC_GROUP = { '撞碎路障':'crate', '荒野宝箱':'box', '发现宝箱':'box', '隐藏事件':'event', '来自图鉴':null };
@@ -3702,8 +3727,6 @@ window.addEventListener('load', () => {
   lastT = performance.now();
   requestAnimationFrame(loop);
 });
-
-window.__DBG = { S, exits, toRelativeChoice, updateRadar, drawMinimap, startGame, chooseDir, openGallery, closeGallery };
 })();
 </script>
 </body>
