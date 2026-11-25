@@ -1441,6 +1441,7 @@ const S = {
   totalEggs:EGGS.length,
   // 巡航与操作优化状态
   wasMoving:false,
+  cameFrom:null,       // 刚刚离开的格子，用于判断“来路”（不能靠 route 推断）
   boostToggle:false,
   boostHold:false,
   queuedRel:null,      // 预读相对方向 'left'|'straight'|'right'|'back'
@@ -1620,6 +1621,7 @@ function startGame(levelName){
   S.finished = false;
   S.wasMoving = false;
   S.queuedRel = null;
+  S.cameFrom = null;
   S.route = [[S.pos[0], S.pos[1]]];
   S.deadDir = new Set();
   S.cratesBroken = 0;
@@ -1721,7 +1723,9 @@ function willCellStop(nx, ny, fromX, fromY, hitCrate, evEgg){
 function afterMove(){
   if (!S.running || S.finished) return;
   const [x, y] = S.pos;
-  const prev = getPrevCell();
+  // 用真实来路判断“背后”，不能用 route 推断：掉头导致 route 弹栈后，
+  // route[len-2] 指向的是前方而不是来路，会把刚退出来的格子当成新路重新开回去。
+  const prev = S.cameFrom || getPrevCell();
   const ex = exits(x, y);
 
   // 主动预约了“下一格掉头”
@@ -1789,10 +1793,8 @@ function arriveDeadEnd(){
   S.wrong++;
   S.wasMoving = false;
   S.queuedRel = null;
-  if (S.route.length >= 2) {
-    const dead = S.route[S.route.length - 1];
-    S.deadDir.add(dead[0] + ',' + dead[1]);
-  }
+  // 用当前位置标记死路（掉头后 route 末尾未必就是当前格）
+  S.deadDir.add(S.pos[0] + ',' + S.pos[1]);
   SFX.deadEnd();
   refreshHUD();
   drawMinimap();
@@ -1814,6 +1816,9 @@ function backtrackStep(){
   if (S.route.length <= 1) {
     S.pos = [S.maze.start[0], S.maze.start[1]];
     S.route = [[S.pos[0], S.pos[1]]];
+    // 回到起点相当于重新出发：清掉来路与“已证伪”记录，否则起点唯一的出口会被判成死路而原地打转
+    S.cameFrom = null;
+    S.deadDir = new Set();
     showToast('回到起点', '请重新选择方向', 'warn');
     setTimeout(() => { if (S.running) afterMove(); }, 450);
     return;
@@ -1938,6 +1943,9 @@ function doMove(ddx, ddy){
   const fromX = S.pos[0], fromY = S.pos[1];
   const nx = fromX + ddx, ny = fromY + ddy;
   if (!S.maze.open(nx, ny)) return;
+
+  // 记录真实来路：掉头（原路退回）时 route 会弹栈，靠 route 推断“上一格”会指错方向
+  S.cameFrom = [fromX, fromY];
 
   const bar = barrierTo(fromX, fromY, [ddx, ddy]);
   let hitCrate = null, crateEgg = null;
