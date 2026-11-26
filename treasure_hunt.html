@@ -417,7 +417,8 @@
 
   /* ============ 惊喜宝藏贴纸卡（明亮绘本卡片） ============ */
   #eggCard {
-    position:absolute; inset:0; z-index:80;
+    /* 必须高于 #gallery(90)：从贴纸册点开贴纸时卡片要盖在册子上 */
+    position:absolute; inset:0; z-index:92;
     display:flex; align-items:center; justify-content:center;
     background: rgba(25,58,108,.56);
     backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
@@ -467,6 +468,17 @@
     transition: transform .12s, box-shadow .12s;
   }
   .egg-ok:active { transform:translateY(3px); box-shadow:0 2px 0 color-mix(in srgb, var(--rc) 62%, #1a2235); }
+  .egg-say {
+    cursor:pointer; display:inline-flex; align-items:center; gap:6px;
+    padding:7px 16px; margin:0 auto 12px; border-radius:99px;
+    background: linear-gradient(180deg,#e9fdf2,#b2f2cf);
+    border:2px solid #7ce0a8;
+    box-shadow:0 3px 0 #169c4c;
+    color:#0b7a3c; font-size:13px; font-weight:900; letter-spacing:.5px;
+    font-family:inherit;
+    transition: transform .12s, box-shadow .12s;
+  }
+  .egg-say:active { transform:translateY(2px); box-shadow:0 1px 0 #169c4c; }
 
   /* ============ 宝藏贴纸册（图鉴面板） ============ */
   #gallery {
@@ -497,6 +509,19 @@
     transition: transform .12s;
   }
   .gal-close:active { transform:translateY(3px); box-shadow:0 1px 0 #c92a2a; }
+  .gal-voice {
+    cursor:pointer; display:flex; align-items:center; gap:5px; flex-shrink:0;
+    font-size:12.5px; font-weight:900; color:#0b7a3c;
+    background: linear-gradient(180deg,#e9fdf2,#b2f2cf);
+    border:2px solid #7ce0a8; box-shadow:0 3px 0 #169c4c; border-radius:99px;
+    padding:6px 11px;
+    transition: transform .12s, box-shadow .12s, background .15s;
+  }
+  .gal-voice:active { transform:translateY(2px); box-shadow:0 1px 0 #169c4c; }
+  .gal-voice.off {
+    background: linear-gradient(180deg,#f5f7fb,#e3e9f2);
+    border-color:#c3ccdb; box-shadow:0 3px 0 #98a3b5; color:#6b7a92;
+  }
   .gal-body { flex:1; overflow-y:auto; padding:0 16px 12px; -webkit-overflow-scrolling:touch; touch-action:pan-y; }
   .gal-group {
     margin-bottom:18px;
@@ -571,7 +596,21 @@
     .egg-bar { width:30px; }
     #uiDistChip { display:none; }
     .gal-grid { grid-template-columns:repeat(auto-fill, minmax(78px, 1fr)); gap:8px; }
+    .gal-head { gap:7px; padding:0 12px 12px; }
     .gal-head h2 { font-size:17.5px; }
+    .gal-voice { padding:6px 8px; font-size:11px; }
+    .gal-voice .vt { display:none; }
+  }
+
+  @media (max-height: 560px) {
+    .egg-inner { padding:16px 18px 14px; }
+    .egg-rar { margin-bottom:8px; }
+    .egg-art { width:88px; height:88px; margin-bottom:10px; }
+    .egg-name { font-size:19px; margin-bottom:5px; }
+    .egg-desc { font-size:13px; line-height:1.6; margin-bottom:8px; }
+    .egg-say { padding:6px 14px; margin-bottom:8px; }
+    .egg-src { margin-bottom:10px; }
+    .egg-ok { padding:11px; }
   }
 
   @media (max-height: 380px) {
@@ -637,6 +676,7 @@
     <div class="gal-head">
       <h2>📖 宝藏贴纸册</h2>
       <span class="cnt" id="galCnt">0 / 22</span>
+      <div class="gal-voice" id="galVoice" role="button" title="打开/关闭中文语音朗读"><span class="vi">🔊</span><span class="vt">朗读</span></div>
       <div class="gal-close" id="galClose">✕</div>
     </div>
     <div class="gal-body" id="galBody"></div>
@@ -767,6 +807,116 @@ const SFX = (() => {
     },
     win(){
       [523, 659, 784, 1046, 1318].forEach((n, i) => tone(n, 0.34, 'triangle', 0.12, i * 0.09));
+    }
+  };
+})();
+
+/* ==================================================================
+   0.5 中文语音朗读（Web Speech API）
+   命中彩蛋卡或翻阅贴纸册时，朗读「贴纸名 + 一句趣味短句」。
+   ================================================================== */
+const VOICE = (() => {
+  const synth = (typeof window !== 'undefined' && 'speechSynthesis' in window) ? window.speechSynthesis : null;
+  const canSpeak = !!(synth && typeof window.SpeechSynthesisUtterance === 'function');
+  let on = canSpeak && loadPrefs().voiceOn !== false;
+  let zh = null;
+  let unlocked = false;
+  let timer = null;
+
+  // 优先挑一个中文（普通话）音色，实在没有再退回系统默认
+  function pickVoice(){
+    if (!canSpeak) return null;
+    let list = [];
+    try { list = synth.getVoices() || []; } catch { list = []; }
+    if (!list.length) return null;
+    const all = list.filter(v => {
+      const s = (v.lang || '') + ' ' + (v.name || '');
+      return /zh[-_]?CN|zh[-_]?Hans|cmn|Chinese|普通话|中文|國語|国语/i.test(s);
+    });
+    if (!all.length) return null;
+    const wish = ['Tingting','Ting-Ting','婷婷','Xiaoxiao','晓晓','Yaoyao','瑶瑶','Huihui','慧慧',
+                  'Kangkang','Google 普通话','Meijia','美佳','Liang','Yating'];
+    for (const w of wish){
+      const hit = all.find(v => (v.name || '').indexOf(w) >= 0);
+      if (hit) return hit;
+    }
+    return all.find(v => /CN|Hans/i.test(v.lang || '')) || all[0];
+  }
+  function refresh(){ const v = pickVoice(); if (v) zh = v; }
+  if (canSpeak){
+    refresh();
+    try { synth.addEventListener('voiceschanged', refresh); }
+    catch { synth.onvoiceschanged = refresh; }
+  }
+
+  function stop(){
+    clearTimeout(timer);
+    if (!canSpeak) return;
+    try { synth.cancel(); } catch {}
+  }
+
+  // delay：先让「叮咚」音效响一下再开口
+  function say(text, delay){
+    if (!canSpeak || !on || SFX.isMuted()) return;
+    const str = String(text == null ? '' : text).replace(/\s+/g, ' ').trim();
+    if (!str) return;
+    clearTimeout(timer);
+    const fire = () => {
+      if (!on || SFX.isMuted()) return;
+      try {
+        const u = new SpeechSynthesisUtterance(str);
+        if (!zh) refresh();
+        if (zh) u.voice = zh;
+        u.lang = (zh && zh.lang) || 'zh-CN';
+        u.rate = 0.92;   // 放慢一点，4–6 岁更容易听懂
+        u.pitch = 1.12;  // 略高更亲切
+        u.volume = 1;
+        // Chrome 在 cancel() 后立刻 speak() 有概率吞掉这一句，打断时留一点点空档
+        if (synth.speaking || synth.pending){
+          synth.cancel();
+          setTimeout(() => { try { synth.speak(u); } catch {} }, 90);
+        } else {
+          synth.speak(u);
+          if (synth.paused) synth.resume();
+        }
+      } catch {}
+    };
+    if (delay) timer = setTimeout(fire, delay);
+    else fire();
+  }
+
+  // iOS / Safari 要求首次发声发生在用户手势里，用一句静音话「解锁」
+  function unlock(){
+    if (!canSpeak || unlocked) return;
+    unlocked = true;
+    refresh();
+    try {
+      const u = new SpeechSynthesisUtterance('。');
+      if (zh) u.voice = zh;
+      u.lang = 'zh-CN'; u.volume = 0; u.rate = 1;
+      synth.speak(u);
+    } catch {}
+  }
+
+  return {
+    supported: canSpeak,
+    isOn: () => !!on,
+    unlock,
+    say,
+    stop,
+    toggle(){
+      if (!canSpeak) return false;
+      on = !on;
+      savePrefs({ voiceOn: on });
+      if (!on) stop();
+      else { unlock(); say('语音朗读打开啦', 60); }
+      return on;
+    },
+    // 朗读一张贴纸：名称 + 趣味短句
+    speakEgg(egg, delay){
+      if (!egg) return;
+      const line = EGG_SAY[egg.id] || egg.desc || '';
+      say(egg.name + '。' + line, delay);
     }
   };
 })();
@@ -1055,6 +1205,32 @@ const EGGS = [
       <circle cx="50" cy="34" r="3.4" fill="#fff"/>
       <path d="M40 40 Q44 43 48 40" stroke="#fff" stroke-width="2" fill="none" stroke-linecap="round"/>`) }
 ];
+
+/* 语音朗读脚本：比 desc 更口语、更短，专给还不太识字的小朋友听 */
+const EGG_SAY = {
+  gear:      '从水马里滚出来的铜齿轮，转呀转，还带着一点机油味。',
+  bolt:      '被撞了八百次也不肯弯的六角螺栓，它可真倔强！',
+  screw:     '埋在铁轨下面好多年的道钉，虽然锈了，还是很结实。',
+  traffic:   '它本来应该站在路口，不知道怎么跑到荒野里来了，它好想回家。',
+  canary:    '站在信号灯上的小铜鸟，一唱歌，就是火车的鸣笛声。',
+  hammer:    '听说一锤就能敲平一座小山，敲路障更是不在话下。',
+  goldtrain: '传说这节金色车厢会唱歌，只在废墟里出现哦。',
+  lantern:   '一直亮着的小绿灯，好像还在等谁回家。',
+  ticket:    '一张很旧很旧的车票，背面写着一句话：一定要回来。',
+  compass:   '它的指针总是朝着同一个方向，跟着走，会到什么地方呢？',
+  doll:      '掉了一只眼睛还在笑的布娃娃，它是荒野里最勇敢的。',
+  musicbox:  '拧上发条，它会唱一首摇篮曲，然后轻轻叹一口气。',
+  crown:     '荒野之王留下的王冠，他只当了三十七天国王。',
+  rainbow:   '雨刚刚停，彩虹就架在两条铁轨中间，快看呀！',
+  dog:       '它每次都追着火车跑，今天它终于追赢啦！',
+  fireworks: '不知道是谁放的烟花，每次你经过，它就准时亮起来。',
+  aurora:    '一整条铁轨都变成绿色了，你确定自己不是在做梦吗？',
+  koi:       '铁轨下面竟然有条河，锦鲤跳起来看了你一眼。',
+  snowman:   '戴着列车长帽的小雪人，已经在这里站了三个冬天。',
+  ghost:     '它一点也不吓人，只是想看看火车长什么样子。',
+  star:      '它本来在很远很远的地方，是被夜班火车的汽笛声吸引下来的。',
+  mailbox:   '它问你有没有带信，还说：下次带一封来吧。'
+};
 
 /* ==================================================================
    2. 迷宫生成 + 路障 + 宝箱
@@ -1601,6 +1777,7 @@ function spawnEggBurst(wx, wy, col){
 function startGame(levelName){
   S.level = levelName;
   savePrefs({ level: levelName });
+  VOICE.unlock();   // 借这次点击/按键解锁移动端语音
   const cfg = LEVELS[levelName];
   S.maze = genMaze(cfg.cw, cfg.ch);
   S.speed = cfg.speed;
@@ -3436,6 +3613,19 @@ function refreshHUD(){
   document.getElementById('uiEggBar').style.width = ((n / S.totalEggs) * 100) + '%';
   document.getElementById('btnSound').textContent = SFX.isMuted() ? '🔇' : '🔊';
   document.getElementById('btnBoost').classList.toggle('active', S.boostToggle || S.boostHold);
+  syncVoiceBtn();
+}
+
+/* 图鉴顶部「朗读 / 静读」开关 */
+function syncVoiceBtn(){
+  const el = document.getElementById('galVoice');
+  if (!el) return;
+  const on = VOICE.isOn();
+  if (el.dataset.on === String(on)) return;
+  el.dataset.on = String(on);
+  el.classList.toggle('off', !on);
+  el.innerHTML = `<span class="vi">${on ? '🔊' : '🔇'}</span><span class="vt">${on ? '朗读' : '静读'}</span>`;
+  el.title = on ? '关闭中文语音朗读' : '打开中文语音朗读';
 }
 
 let eggCardTimer = null;
@@ -3449,6 +3639,7 @@ function showEggCard(egg, sourceLabel, isPreview){
     <div class="egg-art">${egg.art}</div>
     <div class="egg-name">${egg.name}</div>
     <div class="egg-desc">${egg.desc}</div>
+    <button class="egg-say" id="eggSay">🔊 再听一遍</button>
     <div class="egg-src">获得方式 · ${escapeHtml(sourceLabel)}　|　图鉴 ${S.collected.size}/${S.totalEggs}</div>
     <button class="egg-ok" id="eggOk">${isPreview ? '关 闭 (空格/Esc)' : '收 下 (空格/Enter)'}</button>
   `;
@@ -3456,8 +3647,19 @@ function showEggCard(egg, sourceLabel, isPreview){
   S.cardOpen = true;
   S.cardPreview = !!isPreview;
   bindTap(document.getElementById('eggOk'), closeEggCard);
+  bindTap(document.getElementById('eggSay'), () => replayEggSpeech(egg));
+  // 卡片弹入 + 叮咚音效之后开口，朗读名称与趣味短句
+  VOICE.speakEgg(egg, 280);
   clearTimeout(eggCardTimer);
   if (!isPreview) eggCardTimer = setTimeout(closeEggCard, 8000);
+}
+
+/* 「再听一遍」：语音若关着就顺手打开；整体静音时提示按键位置 */
+function replayEggSpeech(egg){
+  if (!VOICE.supported){ showToast('这个浏览器不支持朗读', '换用 Safari / Chrome 试试', 'warn'); return; }
+  if (SFX.isMuted()){ showToast('声音关着呢', '点右上角 🔊 打开', 'warn'); return; }
+  if (!VOICE.isOn()){ VOICE.toggle(); syncVoiceBtn(); }
+  VOICE.speakEgg(egg, 0);
 }
 
 function closeEggCard(){
@@ -3511,6 +3713,10 @@ function openGallery(){
   body.innerHTML = html;
   document.getElementById('gallery').classList.add('show');
   S.galleryOpen = true;
+  syncVoiceBtn();
+  VOICE.say(gotSet.size
+    ? `宝藏贴纸册。你已经收集了 ${gotSet.size} 个宝藏贴纸，点一点贴纸，就能听它说话。`
+    : '宝藏贴纸册。还没有贴纸呢，快去找宝藏吧！', 260);
   body.querySelectorAll('.gal-item.got').forEach(el => {
     bindTap(el, () => {
       const e = eggById(el.dataset.egg);
@@ -3629,6 +3835,7 @@ document.addEventListener('keydown', e => {
   if (key === 'v' || key === 'V'){
     e.preventDefault();
     SFX.toggle();
+    if (SFX.isMuted()) VOICE.stop();
     refreshHUD();
     return;
   }
@@ -3684,12 +3891,21 @@ bindTap(document.getElementById('btnConfirmCancel'), closeRestartConfirm);
 bindTap(document.getElementById('btnConfirmOk'), () => { closeRestartConfirm(); resetCard(); startGame(S.level); });
 bindTap(document.getElementById('uiEggChip'), openGallery);
 bindTap(document.getElementById('galClose'), closeGallery);
+bindTap(document.getElementById('galVoice'), () => {
+  if (!VOICE.supported){ showToast('这个浏览器不支持朗读', '换用 Safari / Chrome 试试', 'warn'); return; }
+  VOICE.toggle();
+  refreshHUD();
+});
 bindTap(document.getElementById('btnMap'), () => {
   S.mapOpen = !S.mapOpen;
   savePrefs({ mapOpen: S.mapOpen });
   syncMapVisibility();
 });
-bindTap(document.getElementById('btnSound'), () => { SFX.toggle(); refreshHUD(); });
+bindTap(document.getElementById('btnSound'), () => {
+  SFX.toggle();
+  if (SFX.isMuted()) VOICE.stop();  // 整体静音时也闭嘴
+  refreshHUD();
+});
 bindTap(document.getElementById('btnBoost'), () => { S.boostToggle = !S.boostToggle; refreshHUD(); });
 bindTap(document.getElementById('btnUturn'), () => {
   if (!S.running || S.pending) return;
