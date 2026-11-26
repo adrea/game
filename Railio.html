@@ -23,26 +23,36 @@
     box-shadow:0 4px 0 rgba(0,0,0,.15); }
   .mini.home { background:#a5d6a7; }
   .mini:active { transform:scale(.92); }
+  /* 手机竖屏：顶栏挤在一起会折行，这里统一缩小一档并禁止换行 */
+  @media (max-width:560px){
+    #topbar { gap:6px; left:8px; top:8px; }
+    .mode { font-size:15px; padding:10px 12px; border-radius:14px; white-space:nowrap; }
+    .mini { width:44px; height:44px; font-size:18px; border-radius:13px; }
+    .tool { min-width:64px; font-size:23px; padding:7px 4px; }
+    .tool span { font-size:13px; }
+  }
 
   #toolbar { position:absolute; left:50%; bottom:14px; transform:translateX(-50%);
-    display:flex; gap:8px; background:rgba(255,255,255,.92); padding:8px;
-    border-radius:22px; box-shadow:0 8px 22px rgba(0,0,0,.18); max-width:96vw;
-    overflow-x:auto; }
+    display:flex; flex-wrap:wrap; justify-content:center; gap:8px;
+    background:rgba(255,255,255,.92); padding:8px;
+    border-radius:22px; box-shadow:0 8px 22px rgba(0,0,0,.18);
+    width:max-content; max-width:min(96vw,700px); }
   .tool { display:flex; flex-direction:column; align-items:center; gap:2px;
-    min-width:74px; padding:8px 6px; border-radius:16px; background:transparent; font-size:26px; }
+    min-width:70px; padding:8px 6px; border-radius:16px; background:transparent; font-size:26px; }
   .tool span { font-size:14px; }
   .tool.active { background:#bbdefb; box-shadow:inset 0 0 0 3px #42a5f5; }
   .tool:active { transform:scale(.93); }
   .tool.danger { color:#c62828; }
+  .tool.dim { opacity:.45; }
 
   #whistle { position:absolute; right:18px; bottom:22px; font-size:24px;
     padding:18px 26px; border-radius:26px; background:#ff7043; color:#fff;
     box-shadow:0 6px 0 #d84315, 0 10px 20px rgba(0,0,0,.2); display:none; }
   #whistle:active { transform:scale(.93); }
 
-  #asm { position:absolute; inset:0; background:rgba(38,50,56,.45);
+  #asm, #tpl { position:absolute; inset:0; background:rgba(38,50,56,.45);
     display:flex; align-items:center; justify-content:center; pointer-events:auto; }
-  #asm.hidden { display:none; }
+  #asm.hidden, #tpl.hidden { display:none; }
   .panel { width:min(660px,94vw); max-height:88vh; overflow-y:auto; background:#fffdf7;
     border-radius:26px; padding:20px 22px 22px; box-shadow:0 20px 60px rgba(0,0,0,.3); }
   .panel h2 { font-size:24px; color:#4e342e; margin-bottom:10px; }
@@ -72,9 +82,21 @@
   .panelBtns button { flex:1; font-size:20px; padding:14px 0; border-radius:18px; color:#fff; }
   #btnGo { background:#43a047; box-shadow:0 5px 0 #2e7032; }
   #btnBack { background:#90a4ae; box-shadow:0 5px 0 #607d8b; }
+  #tpl #btnTplClose { background:#90a4ae; box-shadow:0 5px 0 #607d8b; color:#fff; }
   .panelBtns button:active { transform:scale(.96); }
 
-  #toast { position:absolute; left:50%; bottom:96px; transform:translateX(-50%);
+  .panel .sub { font-size:14px; color:#00695c; line-height:1.5; margin-bottom:6px; }
+  #tplList { display:flex; flex-direction:column; gap:10px; margin-top:6px; }
+  .tplItem { display:flex; align-items:center; gap:12px; padding:8px 12px 8px 8px;
+    border-radius:18px; background:#fff; border:2px solid #dcedc8; cursor:pointer;
+    transition:transform .08s; }
+  .tplItem:active { transform:scale(.97); border-color:#aed581; }
+  .tplItem canvas { width:150px; height:86px; border-radius:12px; background:#e8f5d0; flex:0 0 auto; }
+  .tplText { display:flex; flex-direction:column; gap:4px; min-width:0; }
+  .tplText b { font-size:19px; color:#4e342e; }
+  .tplText span { font-size:13px; color:#6d4c41; line-height:1.4; }
+
+  #toast { position:absolute; left:50%; bottom:172px; transform:translateX(-50%);
     background:rgba(38,50,56,.88); color:#fff; font-size:16px; font-weight:600;
     padding:10px 20px; border-radius:16px; opacity:0; transition:opacity .25s;
     pointer-events:none; white-space:nowrap; max-width:92vw; }
@@ -95,6 +117,8 @@
     <button data-page-node-id="SGOJErBVNgqTqy0sGsMzmg" class="tool" data-tool="hand"><!--pnid:QWTXeuPZYnyZYo1b3Ub89r-->✋<span data-page-node-id="0iWXwekC9TvW0PTzIU4mEF"><!--pnid:J8O4rIAnx8DivF1ZUJaMYU-->移动</span></button>
     <button data-page-node-id="rfGMhazotjWziDE2xoThgw" class="tool" data-tool="station"><!--pnid:vPe4b5Jl33Q7TNe5sQxDBb-->🚉<span data-page-node-id="EghLDTHAI25lq0T5pCFks6"><!--pnid:Wrmd5w5wuOHQY2By35lOEv-->车站</span></button>
     <button data-page-node-id="ZhpeO2nmuZSVLecwcODsY7" class="tool" data-tool="erase"><!--pnid:g9H2gVCqpuDzFDvDFTx9eT-->🧽<span data-page-node-id="FaX308GTFmFL2m0WXCY3JA"><!--pnid:CDRBkmc6QQgn27OrfBJYwN-->擦除</span></button>
+    <button class="tool" id="btnTpl">✨<span>轨道模板</span></button>
+    <button class="tool dim" id="btnUndo">↩️<span>撤销</span></button>
     <button data-page-node-id="LCbbWW3ew2397axClT71Dy" class="tool" id="btnFit"><!--pnid:7AAaRWG234fLUz3yE2cZDN-->🔍<span data-page-node-id="9FyiV5DWT3DRBGU3sCWcj5"><!--pnid:uNYBMjWtVdTsGU9HlcFhlv-->看全轨道</span></button>
     <button data-page-node-id="FWVgo0YVlYfsK3rHdl20Ev" class="tool danger" id="btnClear"><!--pnid:ix0S7To02X9dujd0jeb837-->🧹<span data-page-node-id="ZGdPQOUeE1mxkKg6Sjv8es"><!--pnid:PCympIFBml56EMSTuBFqMA-->清空</span></button>
   </div>
@@ -118,6 +142,16 @@
       <div data-page-node-id="Fo4rPNpME4KRk72XKIcGcP" class="panelBtns">
         <button data-page-node-id="gLQq9D1vjfH0Ye5iJwhggV" id="btnGo"><!--pnid:FkfUfYvRhbmgGhFqnKJsvt-->🚦 出发！</button>
         <button data-page-node-id="WSLdbCzqxE7TB7Shq0mhIo" id="btnBack"><!--pnid:bEEy1v1TSuk7CUa9L9HvXC-->🛠️ 返回拼轨道</button>
+      </div>
+    </div>
+  </div>
+  <div class="hidden" id="tpl">
+    <div class="panel">
+      <h2>✨ 一键铺轨道</h2>
+      <div class="sub">选一个模板，马上铺好一整圈就能开火车；铺好以后还能用 ↩️ 撤销换回来。</div>
+      <div id="tplList"></div>
+      <div class="panelBtns">
+        <button id="btnTplClose">🛠️ 我自己拼</button>
       </div>
     </div>
   </div>
@@ -200,14 +234,17 @@ const sWhistle= ()=>{ tone(587,.9,"triangle",.16); tone(740,.9,"triangle",.12);
 const sKachi  = ()=>tone(170,.03,"square",.045);
 
 /* ================= 网格操作 ================= */
-function recomputeDirs(x,y){
-  const c = cells.get(key(x,y)); if(!c) return;
+function dirsFor(map,x,y){
   const d = [];
   for(const dir of DIRS){
     const v = DIRV[dir];
-    if(cells.get(key(x+v.x, y+v.y))) d.push(dir);
+    if(map.get(key(x+v.x, y+v.y))) d.push(dir);
   }
-  c.dirs = d.length ? d : ["E","W"];
+  return d.length ? d : ["E","W"];
+}
+function recomputeDirs(x,y){
+  const c = cells.get(key(x,y)); if(!c) return;
+  c.dirs = dirsFor(cells,x,y);
 }
 function recomputeAround(x,y){
   recomputeDirs(x,y);
@@ -230,6 +267,162 @@ function delCell(x,y){
   recomputeAround(x,y);
   redrawCellArea(x,y);
   return true;
+}
+
+/* ================= 撤销（一键反悔） ================= */
+const UNDO_LIMIT = 60;
+const undoStack = [];
+let pendingSnap = null, strokeDirty = false;
+
+function snapshotCells(){
+  const arr = [];
+  for(const [k,c] of cells) arr.push([k, c.t]);
+  return arr;
+}
+function pushSnap(snap){
+  undoStack.push(snap || snapshotCells());
+  while(undoStack.length > UNDO_LIMIT) undoStack.shift();
+  refreshUndo();
+}
+function refreshUndo(){
+  const btn = document.getElementById("btnUndo");
+  if(btn) btn.classList.toggle("dim", undoStack.length === 0);
+}
+function beginStroke(){
+  pendingSnap = snapshotCells();
+  strokeDirty = false;
+}
+function commitStroke(){
+  if(strokeDirty && pendingSnap) pushSnap(pendingSnap);
+  pendingSnap = null; strokeDirty = false;
+}
+function restoreCells(snap){
+  cells.clear();
+  for(const [k,t] of snap) cells.set(k, { t:t, dirs:[] });
+  for(const k of cells.keys()){
+    const p = k.split(",");
+    recomputeDirs(+p[0], +p[1]);
+  }
+  redrawAllLayer();
+  saveSoon();
+}
+function doUndo(){
+  if(!undoStack.length){ sErase(); toast("现在没有可以撤销的啦 🙂"); return; }
+  restoreCells(undoStack.pop());
+  refreshUndo(); sErase(); toast("已经撤销，回到上一步啦 ↩️");
+}
+
+/* ================= 预设轨道模板 ================= */
+const TEMPLATES = [
+  {
+    id:"ring", name:"环形线", desc:"一圈小环线，铺好马上就能开火车",
+    make(){
+      const W=7, H=5, a=[];
+      for(let x=0;x<W;x++){ a.push([x,0]); a.push([x,H-1]); }
+      for(let y=1;y<H-1;y++){ a.push([0,y]); a.push([W-1,y]); }
+      return { cells:a, stations:[[3,0]] };
+    }
+  },
+  {
+    id:"eight", name:"8 字线", desc:"两个圈连在一起，火车会在路口自己拐弯",
+    make(){
+      const W=7, a=[];
+      for(let x=0;x<W;x++){ a.push([x,0]); a.push([x,2]); a.push([x,4]); a.push([x,6]); }
+      a.push([0,1],[W-1,1],[0,5],[W-1,5]);
+      a.push([3,3]);                       // 中间的小连接段，把上下两个圈连起来
+      return { cells:a, stations:[[3,0]] };
+    }
+  },
+  {
+    id:"oval", name:"长跑道", desc:"大一圈的椭圆，火车能跑好久好久",
+    make(){
+      const W=11, H=7, a=[];
+      for(let x=0;x<W;x++){ a.push([x,0]); a.push([x,H-1]); }
+      for(let y=1;y<H-1;y++){ a.push([0,y]); a.push([W-1,y]); }
+      return { cells:a, stations:[[5,0],[5,H-1]] };
+    }
+  }
+];
+function tplBounds(list){
+  let x0=1e9,y0=1e9,x1=-1e9,y1=-1e9;
+  for(const [x,y] of list){
+    if(x<x0) x0=x; if(x>x1) x1=x;
+    if(y<y0) y0=y; if(y>y1) y1=y;
+  }
+  return { x0, y0, x1, y1, w:x1-x0+1, h:y1-y0+1 };
+}
+function applyTemplate(tpl){
+  const made = tpl.make();
+  const b = tplBounds(made.cells);
+  // 放在当前视野中间，并且不超出地图边界
+  let ox = Math.round(cam.x/CELL - b.w/2) - b.x0;
+  let oy = Math.round(cam.y/CELL - b.h/2) - b.y0;
+  ox = Math.max(-b.x0, Math.min(MW-1-b.x1, ox));
+  oy = Math.max(-b.y0, Math.min(MH-1-b.y1, oy));
+  const stSet = new Set(made.stations.map(s=>key(s[0]+ox, s[1]+oy)));
+  pushSnap();                            // 铺模板之前先存档，随时可以撤销回来
+  cells.clear();
+  for(const [x,y] of made.cells){
+    const k = key(x+ox, y+oy);
+    cells.set(k, { t: stSet.has(k) ? "station" : "track", dirs:[] });
+  }
+  for(const k of cells.keys()){
+    const p = k.split(",");
+    recomputeDirs(+p[0], +p[1]);
+  }
+  redrawAllLayer(); fitView(); saveSoon();
+  closeTpl(); sChime();
+  toast(tpl.name + "铺好啦！去开火车吧 🚂");
+}
+function drawTplPreview(canvas, tpl){
+  const cw = canvas.clientWidth, ch = canvas.clientHeight;
+  if(cw < 4 || ch < 4){ requestAnimationFrame(()=>drawTplPreview(canvas, tpl)); return; }
+  const d = window.devicePixelRatio || 1;
+  canvas.width = cw*d; canvas.height = ch*d;
+  const g = canvas.getContext("2d");
+  g.setTransform(d,0,0,d,0,0);
+  g.clearRect(0,0,cw,ch);
+  const made = tpl.make();
+  const map = new Map();
+  for(const [x,y] of made.cells) map.set(key(x,y), { t:"track", dirs:[] });
+  for(const [x,y] of made.stations){ const c = map.get(key(x,y)); if(c) c.t = "station"; }
+  const b = tplBounds(made.cells);
+  const cs = Math.min((cw-10)/b.w, (ch-10)/b.h);      // 每格在预览里的像素
+  const k = cs/CELL;
+  const bcx = (b.x0+b.x1+1)/2*CELL, bcy = (b.y0+b.y1+1)/2*CELL;
+  g.setTransform(d*k,0,0,d*k, d*(cw/2-bcx*k), d*(ch/2-bcy*k));
+  for(const [x,y] of made.cells){
+    const c = map.get(key(x,y));
+    c.dirs = dirsFor(map,x,y);
+    grassBase(g,x,y);
+    drawTrackCell(g,x,y,c.dirs);
+    if(c.t==="station") drawStationDeco(g,x,y);
+  }
+}
+function buildTemplateUI(){
+  const list = document.getElementById("tplList");
+  list.innerHTML = "";
+  for(const tpl of TEMPLATES){
+    const item = document.createElement("div");
+    item.className = "tplItem";
+    const c = document.createElement("canvas");
+    const txt = document.createElement("div");
+    txt.className = "tplText";
+    const bEl = document.createElement("b"); bEl.textContent = tpl.name;
+    const sEl = document.createElement("span"); sEl.textContent = tpl.desc;
+    txt.appendChild(bEl); txt.appendChild(sEl);
+    item.appendChild(c); item.appendChild(txt);
+    list.appendChild(item);
+    drawTplPreview(c, tpl);
+    item.addEventListener("click", ()=>{ sPlace(); applyTemplate(tpl); });
+  }
+}
+function openTpl(){
+  document.getElementById("tpl").classList.remove("hidden");
+  buildTemplateUI();                     // 先显示再画预览（隐藏时取不到宽度）
+}
+function closeTpl(){
+  document.getElementById("tpl").classList.add("hidden");
 }
 
 /* ================= 地图层绘制 ================= */
@@ -659,6 +852,7 @@ function applyTool(px,py){
   if(tool==="station")changed = putCell(gx,gy,"station");
   if(tool==="erase")  changed = delCell(gx,gy);
   if(changed){
+    if(pendingSnap) strokeDirty = true;   // 一笔画完才记一次撤销，不会占满记录
     if(tool==="erase") sErase(); else sPlace();
     // 放置点靠近屏幕边缘 → 视角自动朝那边移动（轨道可以一直往外拼）
     if(px<80)        camT.x -= 110;
@@ -681,6 +875,7 @@ cv.addEventListener("pointerdown", e=>{
     dragging = true; dragPX=e.clientX; dragPY=e.clientY;
   }else{
     painting = true; lastPaintKey="";
+    beginStroke();
     applyTool(e.clientX, e.clientY);
   }
 });
@@ -695,7 +890,7 @@ cv.addEventListener("pointermove", e=>{
     applyTool(e.clientX, e.clientY);
   }
 });
-const stopPaint = ()=>{ painting=false; dragging=false; };
+const stopPaint = ()=>{ if(painting) commitStroke(); painting=false; dragging=false; };
 cv.addEventListener("pointerup", stopPaint);
 cv.addEventListener("pointercancel", stopPaint);
 
@@ -721,7 +916,7 @@ function setMode(m){
   whistleEl.style.display = m==="run" ? "block" : "none";
   if(m==="build"){
     train.active = false; puffs = [];
-    toast("点一点，铺轨道！轨道会自动转弯哦 🛤️");
+    toast("点一点，铺轨道！不会拼就点 ✨ 轨道模板 🛤️", 2800);
   }else{
     if(cells.size < 2){
       toast("轨道太短啦！先去拼一点轨道吧 🛤️");
@@ -765,14 +960,22 @@ function fitView(){
 let clearArm = 0;
 $("btnClear").addEventListener("click", function(){
   if(Date.now()-clearArm < 2600){
+    pushSnap();                          // 清空也存一份，点 ↩️ 就能找回来
     cells.clear(); redrawAllLayer(); saveSoon();
     this.innerHTML = "🧹<span>清空</span>"; clearArm=0;
-    toast("已清空，重新拼吧！🧹");
+    toast("已清空，想找回来就点 ↩️ 撤销 🧹", 2800);
   }else{
     clearArm = Date.now();
     this.innerHTML = "❓<span>再点一次确认</span>";
     setTimeout(()=>{ if(Date.now()-clearArm>=2600) this.innerHTML="🧹<span>清空</span>"; }, 2700);
   }
+});
+$("btnTpl").addEventListener("click", ()=>{ sClick(); openTpl(); });
+$("btnTplClose").addEventListener("click", ()=>{ sClick(); closeTpl(); });
+$("tpl").addEventListener("click", e=>{ if(e.target === $("tpl")) closeTpl(); });
+$("btnUndo").addEventListener("click", ()=>{ sClick(); doUndo(); });
+window.addEventListener("keydown", e=>{
+  if((e.ctrlKey || e.metaKey) && (e.key==="z" || e.key==="Z")){ e.preventDefault(); doUndo(); }
 });
 whistleEl.addEventListener("click", ()=>{ sWhistle(); bubble("呜——！"); });
 
@@ -909,6 +1112,7 @@ function seedDefault(){
   buildParts();
   renderComp();
   drawDial(0);
+  refreshUndo();
   setMode("build");
   requestAnimationFrame(loop);
 })();
