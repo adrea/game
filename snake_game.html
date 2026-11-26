@@ -50,6 +50,23 @@
     box-shadow: 0 3px 0 rgba(0,0,0,.12);
     white-space: nowrap;
   }
+  /* 回乐园 */
+  .topbar .home {
+    border: none;
+    cursor: pointer;
+    font-family: inherit;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    background: #FFF3FB;
+    color: #7A5C9E;
+  }
+  .topbar .home:active { transform: translateY(2px); box-shadow: 0 1px 0 rgba(0,0,0,.12); }
+  /* 窄屏只留图标，避免状态栏换行挤压棋盘 */
+  @media (max-width: 520px) {
+    .topbar .home-label { display: none; }
+  }
+
   #gameWrap {
     --board: 360px;                /* 由 JS 写入实际棋盘边长，面板内文字按此缩放 */
     position: relative;
@@ -207,6 +224,7 @@
 <body>
   <h1>🌈 彩虹小蛇大冒险 🌈</h1>
   <div class="topbar">
+    <button class="chip home" id="homeBtn" type="button" title="回到游戏乐园" aria-label="回到游戏乐园">🏠<span class="home-label"> 回乐园</span></button>
     <div class="chip">🍬 得分 <span id="score">0</span></div>
     <div class="chip">🚩 第 <span id="level">1</span> 关</div>
     <div class="chip">🎯 目标 <span id="goal">5</span></div>
@@ -631,6 +649,16 @@
   // 字体加载完成后行高会变，补算一次
   if (document.fonts && document.fonts.ready) document.fonts.ready.then(fitCanvas);
   window.addEventListener('load', fitCanvas);
+})();
+</script>
+<script>
+/* 回乐园：统一返回游戏乐园首页 */
+(function(){
+  var btn = document.getElementById('homeBtn');
+  if(!btn) return;
+  function goHome(e){ e.preventDefault(); e.stopPropagation(); location.href = 'index.html'; }
+  btn.addEventListener('pointerdown', goHome, true);
+  btn.addEventListener('click', goHome, true);
 })();
 </script>
 </body>

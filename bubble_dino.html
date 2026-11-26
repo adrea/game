@@ -101,6 +101,11 @@
       box-shadow: 0 4px 0 #6b7280;
     }
 
+    .icon-btn.home {
+      background: #4cc38a;
+      box-shadow: 0 4px 0 #2f9666;
+    }
+
     .tip-banner {
       position: fixed;
       bottom: 14px;
@@ -151,6 +156,7 @@
     </div>
 
     <div class="btn-group">
+      <button class="icon-btn home" id="homeBtn" title="回乐园" aria-label="回到游戏乐园">🏠</button>
       <button class="icon-btn" id="soundBtn" title="声音开关" aria-label="声音开关">🔊</button>
       <button class="icon-btn" id="resetBtn" title="重新开始" aria-label="重新开始">🔄</button>
     </div>
@@ -1036,6 +1042,16 @@
       initBackground();
       resetGame();
       requestAnimationFrame(loop);
+    })();
+  </script>
+  <script>
+    /* 回乐园：统一返回游戏乐园首页 */
+    (function () {
+      const btn = document.getElementById('homeBtn');
+      if (!btn) return;
+      const goHome = (e) => { e.preventDefault(); e.stopPropagation(); location.href = 'index.html'; };
+      btn.addEventListener('pointerdown', goHome, true);
+      btn.addEventListener('click', goHome, true);
     })();
   </script>
 </body>

@@ -603,6 +603,7 @@
 
             <div class="hud-right">
                 <div class="hud-row">
+                    <button id="home-btn" class="icon-btn interactive" title="回乐园" aria-label="回到游戏乐园">🏠</button>
                     <button id="fullscreen-btn" class="icon-btn interactive" title="全屏 / 横屏切换" aria-label="全屏切换">⛶</button>
                     <button id="mute-btn" class="icon-btn interactive" title="音效开关" aria-label="音效开关">🔊</button>
                     <button id="pause-btn" class="icon-btn interactive" title="暂停游戏" aria-label="暂停游戏">⏸️</button>
@@ -671,6 +672,7 @@
             </div>
 
             <button id="start-btn" class="primary-btn">开始探险</button>
+            <button id="home-btn-start" class="secondary-btn">🏠 回乐园</button>
         </div>
     </div>
 
@@ -681,6 +683,7 @@
             <p class="game-subtitle">稍作休整，准备继续前行</p>
             <button id="resume-btn" class="primary-btn">继续冒险</button>
             <button id="restart-from-pause-btn" class="secondary-btn">重新开始</button>
+            <button id="home-btn-pause" class="secondary-btn">🏠 回乐园</button>
         </div>
     </div>
 
@@ -711,6 +714,7 @@
             </div>
 
             <button id="retry-btn" class="primary-btn">再来一局</button>
+            <button id="home-btn-over" class="secondary-btn">🏠 回乐园</button>
         </div>
     </div>
 </div>
@@ -2537,6 +2541,18 @@ let game = null;
 window.addEventListener('DOMContentLoaded', () => {
     game = new TempleAdventureGame();
 });
+</script>
+<script>
+/* 回乐园：统一返回游戏乐园首页 */
+(function(){
+    function goHome(e){ e.preventDefault(); e.stopPropagation(); location.href = 'index.html'; }
+    ['home-btn','home-btn-start','home-btn-pause','home-btn-over'].forEach(function(id){
+        var btn = document.getElementById(id);
+        if(!btn) return;
+        btn.addEventListener('pointerdown', goHome, true);
+        btn.addEventListener('click', goHome, true);
+    });
+})();
 </script>
 </body>
 </html>

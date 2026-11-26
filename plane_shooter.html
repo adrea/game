@@ -79,6 +79,26 @@
 
   .icon-btn:active { transform: translateY(3px); box-shadow: 0 1px 0 rgba(29, 53, 87, 0.18); }
 
+  .icon-btn.home { background: #b8f2d0; }
+
+  /* 回乐园（开始 / 结算面板内） */
+  .home-link {
+    display: block;
+    margin: 12px auto 0;
+    padding: 9px 20px;
+    border: none;
+    border-radius: 999px;
+    background: #e8f6ff;
+    color: #1d3557;
+    font-family: inherit;
+    font-size: clamp(14px, 3.6vw, 17px);
+    font-weight: 800;
+    cursor: pointer;
+    box-shadow: 0 3px 0 rgba(29, 53, 87, 0.16);
+  }
+
+  .home-link:active { transform: translateY(2px); box-shadow: 0 1px 0 rgba(29, 53, 87, 0.16); }
+
   /* ---------- 操作提示 ---------- */
   .tip {
     position: fixed;
@@ -217,6 +237,7 @@
     <div class="pill power" id="powerPill" hidden><span>🔥</span><span id="powerTimeEl">6</span>s</div>
   </div>
   <div class="hud-right">
+    <button class="icon-btn home" id="homeBtn" title="回乐园" aria-label="回到游戏乐园">🏠</button>
     <button class="icon-btn" id="soundBtn" aria-label="声音开关">🔊</button>
     <button class="icon-btn" id="restartBtn" aria-label="重新开始">🔄</button>
   </div>
@@ -237,6 +258,7 @@
       <div class="score-item"><span>最高分</span><strong id="bestStart">0</strong></div>
     </div>
     <button class="big-btn" id="startBtn">开始起飞</button>
+    <button class="home-link" data-home>🏠 回乐园</button>
   </div>
 </div>
 
@@ -249,6 +271,7 @@
       <div class="score-item"><span>最高分</span><strong id="bestScore">0</strong></div>
     </div>
     <button class="big-btn" id="againBtn">再飞一次</button>
+    <button class="home-link" data-home>🏠 回乐园</button>
   </div>
 </div>
 
@@ -1289,6 +1312,23 @@
   // 菜单里也显示一架小飞机做点缀
   state.mode = 'READY';
   requestAnimationFrame(loop);
+})();
+</script>
+<script>
+/* 回乐园：统一返回游戏乐园首页 */
+(function () {
+  function goHome(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    location.href = 'index.html';
+  }
+  function bind(el) {
+    el.addEventListener('pointerdown', goHome, true);
+    el.addEventListener('click', goHome, true);
+  }
+  var btn = document.getElementById('homeBtn');
+  if (btn) bind(btn);
+  document.querySelectorAll('[data-home]').forEach(bind);
 })();
 </script>
 </body>

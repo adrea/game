@@ -25,6 +25,10 @@
   .chip{background:var(--panel);border:1px solid var(--line);border-radius:9px;padding:6px 11px;
     font-size:12px;letter-spacing:.5px;backdrop-filter:blur(8px)}
   .chip b{color:var(--gold);font-size:14px;font-weight:600;margin-left:4px;font-variant-numeric:tabular-nums}
+  /* 回乐园 */
+  #homeBtn{pointer-events:auto;cursor:pointer;font-family:inherit;color:var(--gold);letter-spacing:.5px;
+    display:flex;align-items:center;gap:4px;line-height:1.25}
+  #homeBtn:active{transform:translateY(1px)}
 
   /* ---------- 控制面板 ---------- */
   #panel{position:fixed;right:14px;top:14px;width:264px;z-index:20;
@@ -93,6 +97,7 @@
 <div data-page-node-id="NmomQWvjrax6hL5rlc9BaB" id="stage"><canvas data-page-node-id="8HGoYsVO88QmV5zvoGJGjK" id="cv"></canvas></div>
 
 <div data-page-node-id="ALtKnqzVqWtPs2jPKValcX" id="hud">
+  <button class="chip" id="homeBtn" type="button" title="回到游戏乐园" aria-label="回到游戏乐园">🏠 回乐园</button>
   <div data-page-node-id="yPI7vNl5Du7zSqwdKsEY0S" class="chip"><!--pnid:iJl7IQI1ApP49C6K0czy8W-->存活火车<b data-page-node-id="TTwUAkpzlRefeaH8x4Y0wE" id="s-live"><!--pnid:L6wz2bwg1pF24DfBc6JcCF-->0</b></div>
   <div data-page-node-id="oQxelCnv48DDV6bNHla644" class="chip"><!--pnid:79d2slpss3lET0jCNoNFL6-->累计脱轨<b data-page-node-id="Y4i2Xdihdl3d6nCOaTA7Uw" id="s-derail"><!--pnid:jEHPN0MTvpwhvbOmtlqTAM-->0</b></div>
   <div data-page-node-id="GkmZRXrcU5M8lFhYzgVFeZ" class="chip"><!--pnid:FMIm9HS0Ohuk6yXlqgrhnw-->脱轨/分<b data-page-node-id="Qh84TFlMuhZTmNyh27eYLg" id="s-rate"><!--pnid:oDtJqGl86CpThZSdnqvkNI-->0</b></div>
@@ -1176,6 +1181,16 @@ const UI = (()=>{
 /* ========================= 10. BOOT ========================= */
 window.BAGUA = { CFG, TRIGRAMS, Track, Train, Game, FX, Renderer, Utils, Sound };
 Game.init();
+</script>
+<script>
+/* 回乐园：统一返回游戏乐园首页 */
+(function(){
+  var btn = document.getElementById('homeBtn');
+  if(!btn) return;
+  function goHome(e){ e.preventDefault(); e.stopPropagation(); location.href = 'index.html'; }
+  btn.addEventListener('pointerdown', goHome, true);
+  btn.addEventListener('click', goHome, true);
+})();
 </script>
 </body>
 </html>

@@ -21,6 +21,7 @@
   .mode:active { transform:scale(.94); }
   .mini { font-size:22px; width:52px; height:52px; border-radius:16px; background:#fff;
     box-shadow:0 4px 0 rgba(0,0,0,.15); }
+  .mini.home { background:#a5d6a7; }
   .mini:active { transform:scale(.92); }
 
   #toolbar { position:absolute; left:50%; bottom:14px; transform:translateX(-50%);
@@ -84,6 +85,7 @@
 <canvas data-page-node-id="KDEYR0v37UVoVJQdWhn8oR" id="cv"></canvas>
 <div data-page-node-id="NNIEJq9rGjhEmRGit877Ld" id="ui">
   <div data-page-node-id="GckSBbNgpyBmRSpQeFwDm6" id="topbar">
+    <button class="mini home" id="homeBtn" title="回到游戏乐园" aria-label="回到游戏乐园">🏠</button>
     <button data-page-node-id="MGECRpQ6FhouTM2780RluY" class="mode active" id="btnBuild"><!--pnid:ibFPDtd9LPF2f4cAddKsnZ-->🛤️ ① 拼轨道</button>
     <button data-page-node-id="UjF0PnnZlrwqZiQLOv7VsZ" class="mode" id="btnRun"><!--pnid:shhToNI09jyDb5alp4JmOI-->🚂 ② 开火车</button>
     <button data-page-node-id="r0RCHByyZJZmcD0LcRbeuD" class="mini" id="btnSound" title="声音开关"><!--pnid:F0Q3maAlnoOv8qU8RO8Lfa-->🔊</button>
@@ -921,6 +923,16 @@ window.addEventListener("orientationchange", function(){
   clearTimeout(refitTimer);
   refitTimer = setTimeout(function(){ resize(); fitView(); }, 220);
 });
+</script>
+<script>
+/* 回乐园：统一返回游戏乐园首页 */
+(function(){
+  var btn = document.getElementById('homeBtn');
+  if(!btn) return;
+  function goHome(e){ e.preventDefault(); e.stopPropagation(); location.href = 'index.html'; }
+  btn.addEventListener('pointerdown', goHome, true);
+  btn.addEventListener('click', goHome, true);
+})();
 </script>
 </body>
 </html>

@@ -23,6 +23,8 @@
   .game-title { font-size: 1.3rem; color: #fff; text-shadow: 2px 2px 4px rgba(0,0,0,0.3); margin-bottom: 6px; letter-spacing: 1px; }
   .game-info { display: flex; justify-content: center; gap: 8px; flex-wrap: wrap; }
   .info-badge { background: rgba(255,255,255,0.9); padding: 4px 13px; border-radius: 20px; font-size: 0.85rem; color: #3E2723; font-weight: 600; box-shadow: 0 2px 6px rgba(0,0,0,0.15); }
+  .info-badge.home-badge { border: none; cursor: pointer; font-family: inherit; background: #fff3c4; color: #8a5a00; }
+  .info-badge.home-badge:active { transform: translateY(1px); }
   .game-main { flex: 1 1 auto; min-height: 0; width: 100%; display: flex; flex-direction: column; align-items: center; gap: 8px; }
   .canvas-wrap { position: relative; flex: 1 1 auto; min-height: 0; width: 100%; max-width: 980px; display: flex; align-items: center; justify-content: center; }
   canvas { display: block; border-radius: 16px; box-shadow: 0 6px 20px rgba(0,0,0,0.25); touch-action: none; background: #e8f5e9; }
@@ -78,6 +80,7 @@
   <header class="game-header">
     <h1 class="game-title">🚂🚄 多车轨道画线 · 交叉点大挑战</h1>
     <div class="game-info">
+      <button id="homeBtn" class="info-badge home-badge" type="button" title="回到游戏乐园" aria-label="回到游戏乐园">🏠 回乐园</button>
       <span id="levelName" class="info-badge">第 1 关 · 5 辆火车</span>
       <span id="timer" class="info-badge">⏱ 0s</span>
       <span id="drawingInfo" class="info-badge">✏️ <span id="drawingColor">从🚂火车位置开始画</span></span>
@@ -110,6 +113,7 @@
     <div class="win-buttons">
       <button id="btnWinReplay" class="btn btn-secondary">🔁 再玩一次</button>
       <button id="btnWinNext" class="btn btn-primary" style="display:none">下一关 ➡️</button>
+      <button id="btnWinHome" class="btn btn-secondary">🏠 回乐园</button>
     </div>
   </div>
 </div>
@@ -4483,4 +4487,15 @@ pre {
   }
 }
 
-</style><style>.list-item-active svg { visibility: visible }</style><div id="app" data-v-app=""><!----></div></template></div></body></html>
+</style><style>.list-item-active svg { visibility: visible }</style><div id="app" data-v-app=""><!----></div></template></div><script>
+/* 回乐园：统一返回游戏乐园首页 */
+(function(){
+  function goHome(e){ e.preventDefault(); e.stopPropagation(); location.href = 'index.html'; }
+  ['homeBtn','btnWinHome'].forEach(function(id){
+    var btn = document.getElementById(id);
+    if(!btn) return;
+    btn.addEventListener('pointerdown', goHome, true);
+    btn.addEventListener('click', goHome, true);
+  });
+})();
+</script></body></html>

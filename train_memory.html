@@ -294,6 +294,7 @@
 <body data-page-node-id="duDGp7Q5ONyK86ZdGymuYA">
 <div data-page-node-id="6cX8bewhzQFaQ7SLJ45bLw" id="app">
   <div data-page-node-id="9OSw5FJZpppV0dCF4bhX6N" class="topbar hidden" id="topbar">
+    <button class="icon-btn" data-home type="button" aria-label="回到游戏乐园" title="回到游戏乐园">🏠</button>
     <div data-page-node-id="eu3ZEC9L43NoVQpktWEQtX" class="progress"><div data-page-node-id="yvgLkXxyCeFsZWQ5XrA3J6" class="progress-fill" id="progressFill"></div><div data-page-node-id="AIkXlZRPo0mOpo1lJtewcY" class="stops" id="stops"></div></div>
     <button data-page-node-id="MC7ZhndsGjDZthPnl4HFgQ" aria-label="声音开关" class="icon-btn" id="btnSound"></button>
   </div>
@@ -981,6 +982,7 @@ function viewWelcome(){
     <button class="btn" data-act="toSetup">填写我家的信息</button>
     <button class="btn ghost" data-act="demo">先用示例试玩</button>
     <button class="link-btn" data-act="demo">信息只保存在这台设备上，不会上传</button>
+    <button class="link-btn" data-home>🏠 回乐园</button>
   </div>`;
 }
 
@@ -1017,6 +1019,7 @@ function viewSetup(){
     <button class="btn ghost" data-act="testSound">测试声音</button>
     <div class="diag" id="diag"></div>
     ${S.cfg ? `<button class="btn ghost" data-act="backIntro">返回游戏</button>` : ``}
+    <button class="link-btn" data-home>🏠 回乐园</button>
   </div>`;
 }
 
@@ -1031,6 +1034,7 @@ function viewIntro(){
     </div>
     <button class="btn" data-act="start">出发！</button>
     <button class="link-btn" data-act="toSetup">家长修改信息</button>
+    <button class="link-btn" data-home>🏠 回乐园</button>
   </div>`;
 }
 
@@ -1107,6 +1111,7 @@ function viewWin(){
     </div>
     <button class="btn" data-act="start">再玩一次</button>
     <button class="link-btn" data-act="toSetup">家长修改信息</button>
+    <button class="link-btn" data-home>🏠 回乐园</button>
   </div>`;
 }
 
@@ -1576,6 +1581,20 @@ if(ttsSupported()){
   setTimeout(refreshVoices, 2500);
 }
 
+})();
+</script>
+<script>
+/* 回乐园：统一返回游戏乐园首页（用事件委托，兼容 JS 动态渲染的界面） */
+(function(){
+  function onDown(e){
+    var t = e.target && e.target.closest ? e.target.closest('[data-home]') : null;
+    if(!t) return;
+    e.preventDefault();
+    e.stopPropagation();
+    location.href = 'index.html';
+  }
+  document.addEventListener('pointerdown', onDown, true);
+  document.addEventListener('click', onDown, true);
 })();
 </script>
 </body>

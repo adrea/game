@@ -124,6 +124,13 @@
     box-shadow: 0 6px 0 #d97b00; text-shadow: 1px 1px 0 #fff2b0;
   }
   .start-btn:active { transform: translateY(5px); box-shadow: 0 1px 0 #d97b00; }
+  .ghost-home {
+    margin-top: 12px; padding: 8px 24px; border: 3px solid #ffc93c; border-radius: 999px;
+    background: #fff; color: #8a5d00; font-family: inherit;
+    font-size: clamp(15px, 2.4vw, 19px); font-weight: 900; cursor: pointer;
+    box-shadow: 0 4px 0 #e0a81f;
+  }
+  .ghost-home:active { transform: translateY(3px); box-shadow: 0 1px 0 #e0a81f; }
   .tip { font-size: clamp(12px,2vw,17px); font-weight: 800; color: #a8702c; line-height: 1.5; }
   .tip b { color: #e8402c; }
   @media (max-width: 680px) {
@@ -164,6 +171,7 @@
       <div class="bar-label" id="barLabel">乖乖火车 · 12 秒后变怪物</div>
       <div class="bar"><div id="barFill"></div></div>
     </div>
+    <button class="icon-btn" id="homeBtn" title="回到游戏乐园" aria-label="回到游戏乐园">🏠</button>
     <button class="icon-btn" id="btnMute" title="声音开关" aria-label="声音开关"></button>
     <button class="icon-btn" id="btnReset" title="重新开始">↻</button>
   </div>
@@ -184,6 +192,7 @@
             <li>吃到黄色星星得 1 分，每 <b>5 颗</b>星星还会自动变一次身</li>
           </ul>
           <button class="start-btn" id="btnStart">出发！</button>
+          <div><button class="ghost-home" id="homeBtnCover" type="button">🏠 回乐园</button></div>
         </div>
       </div>
     </div>
@@ -1122,6 +1131,18 @@
   applyForm('train', true);
   updateScore(false);
   requestAnimationFrame(frame);
+})();
+</script>
+<script>
+/* 回乐园：统一返回游戏乐园首页 */
+(function(){
+  function goHome(e){ e.preventDefault(); e.stopPropagation(); location.href = 'index.html'; }
+  ['homeBtn','homeBtnCover'].forEach(function(id){
+    var btn = document.getElementById(id);
+    if(!btn) return;
+    btn.addEventListener('pointerdown', goHome, true);
+    btn.addEventListener('click', goHome, true);
+  });
 })();
 </script>
 </body>

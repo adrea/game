@@ -567,6 +567,7 @@
     #hud { gap:5px; padding-left:8px; padding-right:8px; }
     .chip { padding:5px 10px; font-size:12px; }
     .chip b { font-size:13.5px; }
+    .btn-ico { width:38px; height:38px; border-radius:13px; font-size:16px; }
     .egg-bar { width:30px; }
     #uiDistChip { display:none; }
     .gal-grid { grid-template-columns:repeat(auto-fill, minmax(78px, 1fr)); gap:8px; }
@@ -588,6 +589,7 @@
   <canvas id="cv"></canvas>
 
   <div id="hud">
+    <div class="btn-ico" data-home title="回到游戏乐园" role="button" aria-label="回到游戏乐园">🏠</div>
     <div class="chip" id="uiDistChip">🚂 <b id="uiDist">0</b> m</div>
     <div class="chip egg-chip" id="uiEggChip" title="点击打开彩蛋图鉴">
       🥚 <b id="uiEggs">0/22</b>
@@ -668,6 +670,7 @@
       </div>
       <div class="lv-row" id="lvRow"></div>
       <div class="start-btn" id="btnStart">🚂 出发寻宝！</div>
+      <div class="start-btn" data-home role="button" style="margin-top:10px;background:linear-gradient(180deg,#8fd694,#4caf50);border-color:#d3f9d8;box-shadow:0 6px 0 #2e7d32,0 12px 22px rgba(46,125,50,.28);">🏠 回乐园</div>
     </div>
   </div>
 </div>
@@ -2320,6 +2323,7 @@ function finishGame(){
       </p>
       <div class="start-btn" id="btnGallery" style="margin-bottom:10px">查看图鉴</div>
       <div class="start-btn" id="btnAgain" style="background:linear-gradient(180deg,#5cc0ff,#228be6);border-color:#d0ebff;box-shadow:0 6px 0 #145fa8">再玩一趟！</div>
+      <div class="start-btn" data-home role="button" style="margin-top:10px;background:linear-gradient(180deg,#8fd694,#4caf50);border-color:#d3f9d8;box-shadow:0 6px 0 #2e7d32">🏠 回乐园</div>
     `;
     bindTap(document.getElementById('btnGallery'), () => openGallery());
     bindTap(document.getElementById('btnAgain'), () => { resetCard(); startGame(S.level); });
@@ -3727,6 +3731,20 @@ window.addEventListener('load', () => {
   lastT = performance.now();
   requestAnimationFrame(loop);
 });
+})();
+</script>
+<script>
+/* 回乐园：统一返回游戏乐园首页（事件委托，兼容动态渲染的面板） */
+(function(){
+  function onDown(e){
+    var t = e.target && e.target.closest ? e.target.closest('[data-home]') : null;
+    if(!t) return;
+    e.preventDefault();
+    e.stopPropagation();
+    location.href = 'index.html';
+  }
+  document.addEventListener('pointerdown', onDown, true);
+  document.addEventListener('click', onDown, true);
 })();
 </script>
 </body>

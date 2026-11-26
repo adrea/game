@@ -165,6 +165,18 @@
   #soundBtn:active { transform: translateY(3px); box-shadow: 0 1px 0 rgba(0,0,0,.12); }
   #soundBtn.off { background: rgba(228,228,228,.92); }
   #soundBtn.inplay { display: none; }
+  /* 回乐园 */
+  #homeBtn {
+    position: fixed; left: 14px; bottom: 16px; z-index: 30;
+    width: 54px; height: 54px; padding: 0;
+    display: flex; align-items: center; justify-content: center;
+    border: 3px solid #fff; border-radius: 50%;
+    background: rgba(255,255,255,.9); cursor: pointer;
+    font-size: 24px; line-height: 1;
+    box-shadow: 0 4px 0 rgba(0,0,0,.12);
+    pointer-events: auto;
+  }
+  #homeBtn:active { transform: translateY(3px); box-shadow: 0 1px 0 rgba(0,0,0,.12); }
   /* 平板 / 大屏：说明与结算卡片放宽，字号放大 */
   @media (min-width: 720px) {
     .card { width: min(88vw, 760px); max-width: none; }
@@ -183,6 +195,8 @@
 <canvas data-page-node-id="pRiKHHwEp3a9leVRkfUfdJ" id="game"></canvas>
 
 <button id="soundBtn" type="button" aria-label="声音开关" title="声音开关"></button>
+
+<button id="homeBtn" type="button" aria-label="回到游戏乐园" title="回到游戏乐园">🏠</button>
 
 <div data-page-node-id="ftPCmgU3Gq0XCLlRdhFFB3" id="hud">
   <div data-page-node-id="E7KqpHHsakRiXJNSzoePDk" class="hud-row">
@@ -1894,6 +1908,16 @@
       };
     }
   };
+})();
+</script>
+<script>
+/* 回乐园：统一返回游戏乐园首页 */
+(function(){
+  var btn = document.getElementById('homeBtn');
+  if(!btn) return;
+  function goHome(e){ e.preventDefault(); e.stopPropagation(); location.href = 'index.html'; }
+  btn.addEventListener('pointerdown', goHome, true);
+  btn.addEventListener('click', goHome, true);
 })();
 </script>
 </body>
