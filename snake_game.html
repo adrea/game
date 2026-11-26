@@ -62,6 +62,10 @@
     color: #7A5C9E;
   }
   .topbar .home:active { transform: translateY(2px); box-shadow: 0 1px 0 rgba(0,0,0,.12); }
+  /* 声音 / 温柔模式开关 */
+  .topbar .toggle { padding: 5px 10px; }
+  .topbar .toggle.off { background: #EDE8F7; color: #B4A6CC; box-shadow: 0 3px 0 rgba(0,0,0,.08); }
+  .chip.empty { opacity: .55; }
   /* 窄屏只留图标，避免状态栏换行挤压棋盘 */
   @media (max-width: 520px) {
     .topbar .home-label { display: none; }
@@ -228,13 +232,16 @@
     <div class="chip">🍬 得分 <span id="score">0</span></div>
     <div class="chip">🚩 第 <span id="level">1</span> 关</div>
     <div class="chip">🎯 目标 <span id="goal">5</span></div>
+    <div class="chip" id="shieldChip">🛡️ 护盾 <span id="shieldN">1</span></div>
+    <button class="chip home toggle" id="modeBtn" type="button" title="温柔模式开关" aria-label="温柔模式开关">🛡️<span class="home-label" id="modeLabel"> 温柔模式</span></button>
+    <button class="chip home toggle" id="soundBtn" type="button" title="声音开关" aria-label="声音开关">🔊</button>
   </div>
   <div id="gameWrap">
     <canvas id="game" width="480" height="480"></canvas>
     <div class="overlay" id="overlay">
       <div class="big" id="ovEmoji">🐍</div>
       <div class="msg" id="ovTitle">彩虹小蛇大冒险</div>
-      <div class="msg" id="ovText">帮小蛇吃到糖果吧！<br>在画面上滑动手指，或按下面的方向键～</div>
+      <div class="msg" id="ovText">帮小蛇吃到糖果吧！<br>在画面上滑动手指，或按下面的方向键～<br>🛡️ 每关自带 1 次护盾，撞墙也不怕～</div>
       <button class="btn" id="startBtn">开始玩啦 🎉</button>
     </div>
   </div>
@@ -270,6 +277,77 @@
   const topbarEl = document.querySelector('.topbar');
   const controlsEl = document.querySelector('.controls');
   const gameWrap = document.getElementById('gameWrap');
+  const soundBtn = document.getElementById('soundBtn');
+  const modeBtn = document.getElementById('modeBtn');
+  const modeLabel = document.getElementById('modeLabel');
+  const shieldChip = document.getElementById('shieldChip');
+  const shieldN = document.getElementById('shieldN');
+
+  /* ============ 偏好设置（声音 / 温柔模式） ============ */
+  const PREF_KEY = 'rainbow_snake_prefs_v1';
+  const prefs = { muted: false, gentle: true };        // 温柔模式默认开启，更适合小朋友
+  try {
+    const saved = JSON.parse(localStorage.getItem(PREF_KEY) || '{}');
+    if (typeof saved.muted === 'boolean') prefs.muted = saved.muted;
+    if (typeof saved.gentle === 'boolean') prefs.gentle = saved.gentle;
+  } catch (e) { /* 隐私模式或 file:// 限制，忽略即可 */ }
+  function savePrefs() {
+    try { localStorage.setItem(PREF_KEY, JSON.stringify(prefs)); } catch (e) {}
+  }
+
+  /* ============ 音效（Web Audio 合成，无外部音频文件） ============ */
+  let actx = null;
+  function ensureAudio() {
+    if (prefs.muted) return null;
+    const AC = window.AudioContext || window.webkitAudioContext;
+    if (!AC) return null;
+    if (!actx) { try { actx = new AC(); } catch (e) { return null; } }
+    if (actx.state === 'suspended') actx.resume();   // iOS/Safari 需在用户手势里恢复
+    return actx;
+  }
+  function tone(freq, dur, type, vol, delay, freqEnd) {
+    const a = ensureAudio();
+    if (!a) return;
+    const t0 = a.currentTime + (delay || 0);
+    const osc = a.createOscillator(), g = a.createGain();
+    osc.type = type || 'triangle';
+    osc.frequency.setValueAtTime(freq, t0);
+    if (freqEnd) osc.frequency.exponentialRampToValueAtTime(freqEnd, t0 + dur);
+    g.gain.setValueAtTime(0.0001, t0);
+    g.gain.linearRampToValueAtTime(vol || 0.16, t0 + 0.012);
+    g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+    osc.connect(g); g.connect(a.destination);
+    osc.start(t0); osc.stop(t0 + dur + 0.03);
+  }
+  const PENTA = [523.25, 587.33, 659.25, 783.99, 880.00];
+  function sfx(kind) {
+    if (prefs.muted) return;
+    if (kind === 'eat') {
+      // 每吃一颗就往上爬一个音阶，连吃越多越兴奋
+      const step = Math.max(0, eaten - 1);
+      const f = PENTA[step % PENTA.length] * (step >= PENTA.length ? 2 : 1);
+      tone(f, 0.11, 'triangle', 0.15);
+      tone(f * 1.5, 0.15, 'sine', 0.09, 0.05);
+    } else if (kind === 'level') {
+      [523.25, 659.25, 783.99, 1046.5].forEach((f, i) => tone(f, 0.26, 'triangle', 0.17, i * 0.11));
+      tone(1046.5, 0.5, 'sine', 0.10, 0.5);
+    } else if (kind === 'win') {
+      [659.25, 783.99, 987.77, 1318.5].forEach((f, i) => tone(f, 0.3, 'triangle', 0.17, i * 0.12));
+      tone(1046.5, 0.75, 'sine', 0.11, 0.6);
+      tone(1318.5, 0.75, 'sine', 0.09, 0.6);
+    } else if (kind === 'shield') {
+      tone(196, 0.22, 'sine', 0.13, 0, 150);          // 柔和的一“咚”，不吓人
+      tone(880, 0.12, 'sine', 0.10, 0.05);
+      tone(1318.5, 0.18, 'sine', 0.08, 0.12);         // 护盾亮起的闪光
+    } else if (kind === 'over') {
+      [392, 329.63, 261.63].forEach((f, i) => tone(f, 0.3, 'sine', 0.13, i * 0.16, f * 0.92));
+    } else if (kind === 'start') {
+      tone(523.25, 0.11, 'triangle', 0.14);
+      tone(783.99, 0.16, 'triangle', 0.12, 0.09);
+    } else if (kind === 'ui') {
+      tone(660, 0.07, 'sine', 0.09);
+    }
+  }
 
   // 关卡配置：吃满 goal 颗糖过关。越后面速度越快、障碍越多
   const LEVELS = [
@@ -286,6 +364,11 @@
   let snake, dir, nextDir, food, walls, timer, running = false, dead = false;
   let queue = [];   // 待执行方向队列（最多 2 个），让连续拐弯不丢指令
 
+  /* ============ 温柔模式：每关 1 次护盾 + 撞墙前停顿等待拐弯 ============ */
+  const GRACE_MS = 2600;                            // 护盾触发后的思考时间
+  let shield = 0;
+  const grace = { active: false, endAt: 0, timer: 0, raf: 0 };
+
   function resetLevel() {
     const cfg = LEVELS[level];
     eaten = 0;
@@ -295,6 +378,8 @@
     dir = {x: 1, y: 0};
     nextDir = dir;
     queue = [];
+    shield = prefs.gentle ? 1 : 0;      // 每关自带 1 次护盾
+    updateShield();
     // 生成障碍（避开出生行）
     walls = [];
     let tries = 0;
@@ -329,6 +414,12 @@
     }
     starRow.innerHTML = '收集糖果：' + s;
     requestAnimationFrame(fitCanvas);   // 星星行高度可能变化，重算画布尺寸
+  }
+
+  function updateShield() {
+    shieldN.textContent = Math.max(0, shield);
+    shieldChip.style.display = prefs.gentle ? '' : 'none';
+    shieldChip.classList.toggle('empty', shield <= 0);
   }
 
   // 与 CSS 中的断点保持一致：宽屏横屏（棋盘左、按键右）、矮横屏（同布局但更紧凑）
@@ -449,6 +540,54 @@
       ctx.fillStyle = '#333';
       ctx.beginPath(); ctx.arc(x + dx*1.5, y + dy*1.5, 2.8, 0, Math.PI*2); ctx.fill();
     });
+
+    if (grace.active) drawGrace();     // 护盾暂停中的光圈与提示条
+  }
+
+  // 护盾触发时：蛇头亮起光圈 + 顶部提示条 + 倒计时，等小朋友拐弯
+  function drawGrace() {
+    const head = snake[0];
+    const cx = head.x*CELL + CELL/2, cy = head.y*CELL + CELL/2;
+    const t = performance.now();
+    const pulse = (Math.sin(t / 160) + 1) / 2;
+
+    ctx.save();
+    ctx.strokeStyle = 'rgba(255,201,60,' + (0.5 + pulse * 0.5) + ')';
+    ctx.lineWidth = 5;
+    ctx.beginPath(); ctx.arc(cx, cy, CELL * 0.52 + pulse * 4, 0, Math.PI * 2); ctx.stroke();
+    ctx.strokeStyle = 'rgba(255,255,255,.9)';
+    ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.arc(cx, cy, CELL * 0.52 + pulse * 4, 0, Math.PI * 2); ctx.stroke();
+    ctx.restore();
+
+    // 提示条放在蛇头的另一侧，避免正好遮住小蛇
+    const bw = BASE - 32, bh = 56, bx = 16;
+    const by = head.y < ROWS / 2 ? BASE - bh - 14 : 14;
+    roundRect(bx, by, bw, bh, 16);
+    ctx.fillStyle = 'rgba(255,255,255,.94)';
+    ctx.fill();
+    ctx.strokeStyle = '#FFC93C';
+    ctx.lineWidth = 3;
+    ctx.stroke();
+
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillStyle = '#7A5C9E';
+    ctx.font = 'bold 21px "PingFang SC","Microsoft YaHei",sans-serif';
+    ctx.fillText('🛡️ 护盾挡住啦！快拐个弯～', BASE/2, by + 23);
+
+    const ratio = Math.max(0, Math.min(1, (grace.endAt - t) / GRACE_MS));
+    const pw = bw - 32;
+    roundRect(bx + 16, by + 41, pw, 7, 4);
+    ctx.fillStyle = 'rgba(0,0,0,.08)';
+    ctx.fill();
+    if (ratio > 0.01) {
+      roundRect(bx + 16, by + 41, Math.max(4, pw * ratio), 7, 4);
+      ctx.fillStyle = '#FF8AC2';
+      ctx.fill();
+    }
+    ctx.textAlign = 'start';
+    ctx.textBaseline = 'alphabetic';
   }
 
   function roundRect(x, y, w, h, r) {
@@ -461,15 +600,120 @@
     ctx.closePath();
   }
 
+  // 目标格是否撞到（墙、障碍、自己）。ignoreTail：温柔模式下允许走进正在移开的尾格
+  function isBlocked(x, y, ignoreTail) {
+    if (x < 0 || x >= COLS || y < 0 || y >= ROWS) return true;
+    if (walls.some(w => w.x === x && w.y === y)) return true;
+    const n = ignoreTail ? snake.length - 1 : snake.length;
+    for (let i = 0; i < n; i++) if (snake[i].x === x && snake[i].y === y) return true;
+    return false;
+  }
+
+  // 从某个格子出发能连通多少空地（最多数 40 格），用来挑最安全的方向
+  function freeArea(sx, sy) {
+    const seen = new Set([sx + ',' + sy]);
+    const q = [[sx, sy]];
+    let count = 0;
+    const DIRS4 = [[1, 0], [-1, 0], [0, 1], [0, -1]];
+    while (q.length && count < 40) {
+      const cur = q.shift();
+      count++;
+      for (let i = 0; i < 4; i++) {
+        const nx = cur[0] + DIRS4[i][0], ny = cur[1] + DIRS4[i][1];
+        const key = nx + ',' + ny;
+        if (seen.has(key)) continue;
+        if (nx < 0 || nx >= COLS || ny < 0 || ny >= ROWS) continue;
+        if (walls.some(w => w.x === nx && w.y === ny)) continue;
+        if (snake.some((s, k) => k < snake.length - 1 && s.x === nx && s.y === ny)) continue;
+        seen.add(key);
+        q.push([nx, ny]);
+      }
+    }
+    return count;
+  }
+
+  // 停顿结束时自动帮小蛇挑一条最宽敞的活路（左转 / 右转 / 掉头 / 直行里最安全的）
+  function pickSafeDir() {
+    const head = snake[0];
+    const cands = [
+      {x: dir.y, y: -dir.x},
+      {x: -dir.y, y: dir.x},
+      {x: -dir.x, y: -dir.y},
+      {x: dir.x, y: dir.y}
+    ];
+    let best = null, bestScore = -1;
+    cands.forEach(c => {
+      if (isBlocked(head.x + c.x, head.y + c.y, true)) return;
+      const s = freeArea(head.x + c.x, head.y + c.y);
+      if (s > bestScore) { bestScore = s; best = c; }
+    });
+    return best;
+  }
+
+  function startGrace() {
+    queue = [];                       // 丢掉会撞的那个方向，等新指令
+    grace.active = true;
+    grace.endAt = performance.now() + GRACE_MS;
+    clearInterval(timer);
+    timer = null;
+    clearTimeout(grace.timer);
+    grace.timer = setTimeout(endGrace, GRACE_MS);
+    cancelAnimationFrame(grace.raf);
+    grace.raf = requestAnimationFrame(animateGrace);
+    sfx('shield');
+  }
+
+  function animateGrace() {
+    if (!grace.active) return;
+    draw();
+    grace.raf = requestAnimationFrame(animateGrace);
+  }
+
+  function stopGrace() {
+    grace.active = false;
+    clearTimeout(grace.timer);
+    grace.timer = 0;
+    cancelAnimationFrame(grace.raf);
+    grace.raf = 0;
+  }
+
+  function resumeAfterGrace() {
+    stopGrace();
+    draw();
+    if (running) startLoop();
+  }
+
+  function endGrace() {
+    if (!grace.active) return;
+    if (!running) { stopGrace(); draw(); return; }
+    const safe = pickSafeDir();
+    if (!safe) {                      // 真的被围死了，才结束这一局
+      stopGrace();
+      running = false;
+      dead = true;
+      gameOver();
+      return;
+    }
+    dir = safe;
+    nextDir = safe;
+    queue = [];
+    resumeAfterGrace();
+  }
+
   function step() {
-    if (!running) return;
+    if (!running || grace.active) return;
     if (queue.length) { dir = queue.shift(); nextDir = dir; }
     const head = {x: snake[0].x + dir.x, y: snake[0].y + dir.y};
+    const willEat = head.x === food.x && head.y === food.y;
 
-    // 撞墙、撞障碍、撞自己 → 温柔结束
-    if (head.x < 0 || head.x >= COLS || head.y < 0 || head.y >= ROWS ||
-        walls.some(w => w.x === head.x && w.y === head.y) ||
-        snake.some(s => s.x === head.x && s.y === head.y)) {
+    // 撞墙、撞障碍、撞自己：温柔模式先用护盾挡一下，再温柔结束
+    if (isBlocked(head.x, head.y, prefs.gentle && !willEat)) {
+      if (prefs.gentle && shield > 0) {
+        shield--;
+        updateShield();
+        startGrace();
+        return;
+      }
       running = false;
       dead = true;
       gameOver();
@@ -477,10 +721,11 @@
     }
 
     snake.unshift(head);
-    if (head.x === food.x && head.y === food.y) {
+    if (willEat) {
       eaten++;
       score++;
       updateScore();
+      sfx('eat');
       confettiPop(food.x*CELL+CELL/2, food.y*CELL+CELL/2);
       if (eaten >= LEVELS[level].goal) {
         running = false;
@@ -509,6 +754,16 @@
   function setDir(d) {
     const nd = DIRS[d];
     if (!nd) return;
+    // 护盾停顿中：选到安全方向就立刻继续，选到还会撞的方向则忽略
+    if (grace.active) {
+      if (nd.x === -dir.x && nd.y === -dir.y) return;
+      if (isBlocked(snake[0].x + nd.x, snake[0].y + nd.y, true)) return;
+      dir = nd;
+      nextDir = nd;
+      queue = [];
+      resumeAfterGrace();
+      return;
+    }
     const base = queue.length ? queue[queue.length - 1] : dir;
     if (nd.x === base.x && nd.y === base.y) return;          // 同方向，忽略
     if (nd.x === -base.x && nd.y === -base.y) return;        // 反向，忽略
@@ -520,6 +775,7 @@
   document.querySelectorAll('.pad').forEach(btn => {
     const press = e => {
       e.preventDefault();                 // 阻止 click 延迟、长按菜单、双击缩放
+      ensureAudio();                      // 在用户手势里解锁音频
       setDir(btn.dataset.dir);
       btn.classList.add('pressed');
       setTimeout(() => btn.classList.remove('pressed'), 90);
@@ -537,7 +793,7 @@
       ArrowUp: 'up', ArrowDown: 'down', ArrowLeft: 'left', ArrowRight: 'right',
       w: 'up', s: 'down', a: 'left', d: 'right'
     };
-    if (keys[e.key]) { e.preventDefault(); setDir(keys[e.key]); }
+    if (keys[e.key]) { e.preventDefault(); ensureAudio(); setDir(keys[e.key]); }
   });
 
   // 触屏手势：在 touchmove 阶段即时转向，每滑过 20px 判定一次，
@@ -565,6 +821,50 @@
   canvas.addEventListener('touchend', () => { touchStart = null; }, {passive: true});
   canvas.addEventListener('touchcancel', () => { touchStart = null; }, {passive: true});
 
+  /* ============ 顶部开关：🔊 音效 / 🛡️ 温柔模式 ============ */
+  function syncToggles() {
+    soundBtn.textContent = prefs.muted ? '🔇' : '🔊';
+    soundBtn.classList.toggle('off', prefs.muted);
+    soundBtn.title = prefs.muted ? '打开音效' : '关闭音效';
+    modeBtn.classList.toggle('off', !prefs.gentle);
+    modeLabel.textContent = prefs.gentle ? ' 温柔模式' : ' 严格模式';
+    modeBtn.title = prefs.gentle
+      ? '温柔模式：每关 1 次护盾，撞墙会先停下等你拐弯（点击关闭）'
+      : '严格模式：撞到就结束（点击开启温柔模式）';
+  }
+
+  function bindTap(el, fn) {
+    if (window.PointerEvent) {
+      el.addEventListener('pointerdown', e => { e.preventDefault(); e.stopPropagation(); fn(); });
+    } else {
+      el.addEventListener('click', e => { e.preventDefault(); e.stopPropagation(); fn(); });
+    }
+  }
+
+  bindTap(soundBtn, () => {
+    prefs.muted = !prefs.muted;
+    savePrefs();
+    syncToggles();
+    if (!prefs.muted) { ensureAudio(); sfx('ui'); }
+  });
+
+  bindTap(modeBtn, () => {
+    ensureAudio();
+    prefs.gentle = !prefs.gentle;
+    savePrefs();
+    if (prefs.gentle) {
+      shield = Math.max(shield, 1);        // 中途打开也立刻送 1 个护盾
+    } else {
+      if (grace.active) endGrace();        // 先安全落地，再切到严格模式
+      shield = 0;
+    }
+    updateShield();
+    syncToggles();
+    sfx('ui');
+  });
+
+  syncToggles();
+
   function showOverlay(emoji, title, text, btnText, handler) {
     ovEmoji.textContent = emoji;
     ovTitle.textContent = title;
@@ -577,12 +877,15 @@
 
   function levelClear() {
     if (level >= LEVELS.length - 1) {
+      sfx('win');
       showOverlay('🏆', '全部通关啦！', '小蛇太棒啦，吃了 ' + score + ' 颗糖果！<br>你是最厉害的小玩家～', '再玩一次 🎉', () => {
         level = 0; score = 0; dead = false;
         startGame();
       });
     } else {
-      showOverlay('🎉', '过关啦！', '下一关是「' + LEVELS[level+1].name + '」，糖果会跑得更快哦！', '继续冒险 ➡️', () => {
+      sfx('level');
+      showOverlay('🎉', '过关啦！', '下一关是「' + LEVELS[level+1].name + '」，糖果会跑得更快哦！'
+        + (prefs.gentle ? '<br>🛡️ 新关卡又有 1 个护盾啦～' : ''), '继续冒险 ➡️', () => {
         level++;
         startGame();
       });
@@ -590,18 +893,25 @@
   }
 
   function gameOver() {
-    showOverlay('💛', '哎呀，撞到啦！', '没关系，再来一次就好！<br>已经吃到了 ' + eaten + ' 颗糖果～', '重新开始 🔁', () => {
+    sfx('over');
+    const tip = prefs.gentle
+      ? '这关的护盾用完啦，别灰心～'
+      : '想轻松一点？点顶部的 🛡️ 打开温柔模式吧～';
+    showOverlay('💛', '哎呀，撞到啦！', tip + '<br>已经吃到了 ' + eaten + ' 颗糖果～', '重新开始 🔁', () => {
       dead = false;
       startGame();
     });
   }
 
   function startGame() {
+    stopGrace();
+    ensureAudio();                     // 由点击触发，顺便解锁音频
     hideOverlay();
     resetLevel();
     draw();
     running = true;
     startLoop();
+    sfx('start');
   }
 
   startBtn.onclick = () => startGame();
