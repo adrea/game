@@ -1,0 +1,1569 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>彩虹小火车木琴 · Rainbow Xylophone</title>
+<style>
+  * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+
+  :root {
+    --sky-top: #79d2ff;
+    --sky-mid: #c5f0ff;
+    --meadow: #b8f1b0;
+    --wood-light: #e5a967;
+    --wood-mid: #c9823c;
+    --wood-dark: #8c521c;
+    --ink: #4a2e1b;
+    --card-bg: rgba(255, 255, 255, 0.92);
+    --shadow-soft: 0 8px 20px rgba(74, 46, 27, 0.14);
+  }
+
+  html, body {
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    font-family: -apple-system, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans CJK SC", sans-serif;
+    background: linear-gradient(180deg, var(--sky-top) 0%, var(--sky-mid) 58%, var(--meadow) 100%);
+    color: var(--ink);
+  }
+
+  #fxCanvas {
+    position: fixed;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 30;
+  }
+
+  .app {
+    position: relative;
+    z-index: 10;
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    height: 100%;
+    max-width: 1120px;
+    margin: 0 auto;
+    padding: clamp(8px, 1.5vh, 16px) clamp(10px, 2vw, 22px);
+    gap: clamp(6px, 1.2vh, 14px);
+  }
+
+  /* 顶部栏 */
+  .topbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  .brand {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--card-bg);
+    padding: 6px 14px;
+    border-radius: 999px;
+    box-shadow: 0 4px 0 rgba(74, 46, 27, 0.12);
+  }
+
+  .brand-icon {
+    font-size: clamp(20px, 3vw, 28px);
+    line-height: 1;
+  }
+
+  .brand-title {
+    font-size: clamp(16px, 2.3vw, 22px);
+    font-weight: 800;
+    letter-spacing: 0.04em;
+    color: #5d351a;
+  }
+
+  .mode-tabs {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(255, 255, 255, 0.72);
+    padding: 4px;
+    border-radius: 999px;
+    box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.08);
+  }
+
+  .mode-btn {
+    border: none;
+    background: transparent;
+    color: #6b462a;
+    font-size: clamp(13px, 1.6vw, 15px);
+    font-weight: 800;
+    padding: 7px 14px;
+    border-radius: 999px;
+    cursor: pointer;
+    transition: transform 0.12s, background 0.15s, color 0.15s;
+    white-space: nowrap;
+  }
+
+  .mode-btn.active {
+    background: linear-gradient(180deg, #ffca3a 0%, #ff9f1c 100%);
+    color: #fff;
+    text-shadow: 0 1px 2px rgba(120, 60, 0, 0.35);
+    box-shadow: 0 3px 0 #d97706;
+  }
+
+  .mode-btn:active {
+    transform: translateY(2px);
+  }
+
+  .top-right {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .star-badge {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    background: #fff8dc;
+    border: 2px solid #ffd166;
+    padding: 5px 12px;
+    border-radius: 999px;
+    font-size: clamp(14px, 1.8vw, 17px);
+    font-weight: 800;
+    color: #b45309;
+    box-shadow: 0 3px 0 rgba(217, 119, 6, 0.25);
+  }
+
+  .icon-btn {
+    width: 40px;
+    height: 40px;
+    border: none;
+    border-radius: 50%;
+    background: var(--card-bg);
+    box-shadow: 0 4px 0 rgba(74, 46, 27, 0.14);
+    font-size: 20px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform 0.1s;
+  }
+
+  .icon-btn:active {
+    transform: translateY(3px);
+  }
+
+  /* 舞台区：小火车 + 歌谱 / 提示 + 音色控制 */
+  .stage-card {
+    background: var(--card-bg);
+    border-radius: 26px;
+    padding: clamp(8px, 1.4vh, 14px) clamp(12px, 2vw, 20px);
+    box-shadow: var(--shadow-soft), 0 5px 0 rgba(74, 46, 27, 0.08);
+    display: flex;
+    flex-direction: column;
+    gap: clamp(6px, 1vh, 10px);
+  }
+
+  .stage-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+
+  .mascot-box {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
+    flex: 1 1 220px;
+  }
+
+  .train-mascot {
+    width: clamp(54px, 7vw, 72px);
+    height: clamp(44px, 5.8vw, 58px);
+    flex: 0 0 auto;
+    transition: transform 0.15s ease;
+  }
+
+  .train-mascot.bounce {
+    transform: translateY(-7px) scale(1.06);
+  }
+
+  .speech-bubble {
+    background: #fff9e6;
+    border: 2px solid #ffe08a;
+    border-radius: 18px;
+    padding: 7px 13px;
+    font-size: clamp(13px, 1.6vw, 16px);
+    font-weight: 700;
+    color: #5c3a1e;
+    line-height: 1.35;
+    flex: 1;
+    min-width: 0;
+  }
+
+  /* 音色选择器 */
+  .timbre-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+
+  .timbre-btn {
+    border: 2px solid #f0dec8;
+    background: #fff;
+    border-radius: 14px;
+    padding: 5px 10px;
+    font-size: clamp(12px, 1.4vw, 14px);
+    font-weight: 700;
+    color: #6b462a;
+    cursor: pointer;
+    transition: transform 0.1s, border-color 0.15s, background 0.15s;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .timbre-btn.active {
+    border-color: #ff8c42;
+    background: #fff3e6;
+    color: #c2410c;
+    box-shadow: 0 3px 0 rgba(234, 88, 12, 0.22);
+  }
+
+  .timbre-btn:active {
+    transform: translateY(2px);
+  }
+
+  /* 子模式控制条 */
+  .sub-controls {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    flex-wrap: wrap;
+    padding-top: 2px;
+  }
+
+  .pill-group {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+
+  .action-btn {
+    border: none;
+    border-radius: 14px;
+    padding: 7px 13px;
+    font-size: clamp(12px, 1.5vw, 14px);
+    font-weight: 800;
+    cursor: pointer;
+    transition: transform 0.1s, opacity 0.15s;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    color: #fff;
+    box-shadow: 0 3px 0 rgba(0, 0, 0, 0.18);
+  }
+
+  .action-btn:active {
+    transform: translateY(2px);
+  }
+
+  .action-btn:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+    transform: none;
+  }
+
+  .btn-coral { background: linear-gradient(180deg, #ff7070, #ef4444); }
+  .btn-blue  { background: linear-gradient(180deg, #4db8ff, #2563eb); }
+  .btn-green { background: linear-gradient(180deg, #4ade80, #16a34a); }
+  .btn-amber { background: linear-gradient(180deg, #fbbf24, #d97706); }
+  .btn-purple{ background: linear-gradient(180deg, #a78bfa, #7c3aed); }
+
+  .song-chip {
+    border: 2px solid #e5d5c5;
+    background: #fff;
+    color: #5c3a1e;
+    border-radius: 999px;
+    padding: 5px 12px;
+    font-size: clamp(12px, 1.4vw, 14px);
+    font-weight: 800;
+    cursor: pointer;
+    transition: all 0.12s;
+  }
+
+  .song-chip.active {
+    background: #fef3c7;
+    border-color: #f59e0b;
+    color: #b45309;
+    box-shadow: 0 2px 0 rgba(245, 158, 11, 0.28);
+  }
+
+  /* 音符预览轨道（跟灯 / 听音模式） */
+  .note-strip {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    overflow: hidden;
+    padding: 6px 10px;
+    background: #f5f9ff;
+    border-radius: 16px;
+    border: 2px dashed #c7dff7;
+    min-height: 44px;
+    flex-wrap: nowrap;
+  }
+
+  .note-dot {
+    min-width: 34px;
+    height: 30px;
+    padding: 0 8px;
+    border-radius: 10px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+    font-weight: 900;
+    color: #fff;
+    flex: 0 0 auto;
+    transition: transform 0.15s, opacity 0.15s;
+    box-shadow: 0 2px 0 rgba(0, 0, 0, 0.16);
+  }
+
+  .note-dot.done {
+    opacity: 0.35;
+    transform: scale(0.88);
+  }
+
+  .note-dot.current {
+    transform: scale(1.16);
+    outline: 3px solid #f59e0b;
+    outline-offset: 2px;
+  }
+
+  .note-dot.mystery {
+    background: #94a3b8 !important;
+  }
+
+  .hidden {
+    display: none !important;
+  }
+
+  /* 木琴主体区 */
+  .xylo-stage {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    padding: clamp(4px, 1vh, 12px) 0;
+  }
+
+  .xylo-frame {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    max-height: 420px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: clamp(5px, 1.1vw, 14px);
+    padding: clamp(12px, 2vh, 22px) clamp(10px, 2vw, 24px);
+    touch-action: none;
+  }
+
+  /* 木质底座横梁 */
+  .wood-rail {
+    position: absolute;
+    left: 1%;
+    right: 1%;
+    height: clamp(16px, 3vh, 26px);
+    background: linear-gradient(180deg, var(--wood-light) 0%, var(--wood-mid) 65%, var(--wood-dark) 100%);
+    border-radius: 14px;
+    box-shadow: 0 6px 12px rgba(74, 46, 27, 0.25);
+    z-index: 1;
+    pointer-events: none;
+  }
+
+  .wood-rail.top {
+    top: 24%;
+    transform: rotate(-1.5deg);
+  }
+
+  .wood-rail.bottom {
+    bottom: 24%;
+    transform: rotate(1.5deg);
+  }
+
+  /* 单个琴键 */
+  .key-wrap {
+    position: relative;
+    z-index: 2;
+    flex: 1;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .xylo-key {
+    position: relative;
+    width: 100%;
+    border: none;
+    border-radius: clamp(16px, 2.2vw, 26px);
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: space-between;
+    padding: clamp(10px, 2vh, 18px) 4px;
+    color: #fff;
+    box-shadow:
+      inset 0 6px 10px rgba(255, 255, 255, 0.42),
+      inset 0 -8px 12px rgba(0, 0, 0, 0.16),
+      0 9px 0 var(--key-shadow),
+      0 14px 20px rgba(74, 46, 27, 0.22);
+    background: linear-gradient(180deg, var(--key-light) 0%, var(--key-main) 55%, var(--key-dark) 100%);
+    transition: transform 0.08s ease, box-shadow 0.08s ease, filter 0.12s ease;
+    touch-action: none;
+  }
+
+  /* 长度阶梯：低音长、高音短 */
+  .xylo-key[data-idx="0"] { height: 100%; }
+  .xylo-key[data-idx="1"] { height: 95%; }
+  .xylo-key[data-idx="2"] { height: 90%; }
+  .xylo-key[data-idx="3"] { height: 85%; }
+  .xylo-key[data-idx="4"] { height: 80%; }
+  .xylo-key[data-idx="5"] { height: 75%; }
+  .xylo-key[data-idx="6"] { height: 70%; }
+  .xylo-key[data-idx="7"] { height: 65%; }
+
+  .xylo-key.pressed {
+    transform: translateY(7px) scale(0.97);
+    box-shadow:
+      inset 0 4px 8px rgba(255, 255, 255, 0.55),
+      inset 0 -4px 8px rgba(0, 0, 0, 0.18),
+      0 2px 0 var(--key-shadow),
+      0 6px 10px rgba(74, 46, 27, 0.18);
+    filter: brightness(1.12);
+  }
+
+  /* 跟灯提示高亮 */
+  .xylo-key.guide {
+    animation: keyPulse 0.85s ease-in-out infinite;
+    outline: 5px solid #fff3b0;
+    outline-offset: 3px;
+    filter: brightness(1.12);
+  }
+
+  @keyframes keyPulse {
+    0%, 100% { transform: translateY(0) scale(1); }
+    50% { transform: translateY(-6px) scale(1.035); }
+  }
+
+  .guide-star {
+    position: absolute;
+    top: -26px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: clamp(20px, 3vw, 28px);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.15s;
+    filter: drop-shadow(0 3px 4px rgba(0, 0, 0, 0.25));
+  }
+
+  .xylo-key.guide .guide-star {
+    opacity: 1;
+    animation: starHop 0.7s ease-in-out infinite;
+  }
+
+  @keyframes starHop {
+    0%, 100% { transform: translateX(-50%) translateY(0); }
+    50% { transform: translateX(-50%) translateY(-8px); }
+  }
+
+  /* 铆钉装饰 */
+  .rivet {
+    width: clamp(10px, 1.5vw, 15px);
+    height: clamp(10px, 1.5vw, 15px);
+    border-radius: 50%;
+    background: radial-gradient(circle at 35% 35%, #fff9e6 0%, #e6c28b 55%, #9c6f33 100%);
+    box-shadow: 0 2px 3px rgba(0, 0, 0, 0.28);
+    flex: 0 0 auto;
+  }
+
+  .key-label {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    text-shadow: 0 2px 3px rgba(0, 0, 0, 0.25);
+  }
+
+  .solfege {
+    font-size: clamp(18px, 3vw, 30px);
+    font-weight: 900;
+    line-height: 1.05;
+  }
+
+  .num-tag {
+    font-size: clamp(12px, 1.6vw, 17px);
+    font-weight: 800;
+    background: rgba(255, 255, 255, 0.25);
+    padding: 1px 8px;
+    border-radius: 999px;
+  }
+
+  .kbd-hint {
+    font-size: 11px;
+    font-weight: 700;
+    opacity: 0.78;
+    margin-top: 2px;
+  }
+
+  /* 底部小提示 */
+  .footer-hint {
+    text-align: center;
+    font-size: clamp(12px, 1.4vw, 14px);
+    font-weight: 700;
+    color: #3f6236;
+    opacity: 0.9;
+  }
+
+  /* 过关庆祝浮层 */
+  .toast-banner {
+    position: fixed;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%) scale(0.75);
+    background: rgba(255, 255, 255, 0.97);
+    border: 4px solid #ffd166;
+    border-radius: 30px;
+    padding: 22px 28px;
+    text-align: center;
+    box-shadow: 0 18px 40px rgba(74, 46, 27, 0.25);
+    z-index: 40;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.22s ease, transform 0.22s ease;
+    max-width: 90vw;
+  }
+
+  .toast-banner.show {
+    opacity: 1;
+    pointer-events: auto;
+    transform: translate(-50%, -50%) scale(1);
+  }
+
+  .toast-emoji {
+    font-size: 52px;
+    line-height: 1.1;
+  }
+
+  .toast-title {
+    font-size: clamp(22px, 4vw, 28px);
+    font-weight: 900;
+    color: #c2410c;
+    margin-top: 6px;
+  }
+
+  .toast-sub {
+    font-size: 15px;
+    font-weight: 700;
+    color: #6b462a;
+    margin: 6px 0 14px;
+  }
+
+  .toast-actions {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+
+  @media (max-width: 640px) {
+    .kbd-hint { display: none; }
+    .brand-title { font-size: 16px; }
+    .mode-btn { padding: 6px 10px; font-size: 13px; }
+    .xylo-frame { gap: 4px; padding: 14px 4px; }
+    .solfege { font-size: 16px; }
+    .num-tag { font-size: 11px; padding: 1px 5px; }
+    .guide-star { top: -22px; font-size: 18px; }
+  }
+
+  @media (max-height: 540px) {
+    .footer-hint { display: none; }
+    .stage-card { padding: 6px 12px; gap: 5px; }
+    .xylo-frame { max-height: 290px; padding: 8px 10px; }
+    .rivet { width: 9px; height: 9px; }
+  }
+</style>
+</head>
+<body>
+  <canvas id="fxCanvas"></canvas>
+
+  <div class="app">
+    <header class="topbar">
+      <div class="brand">
+        <span class="brand-icon">🎵</span>
+        <span class="brand-title">彩虹小火车木琴</span>
+      </div>
+
+      <nav class="mode-tabs" aria-label="游戏模式">
+        <button class="mode-btn active" data-mode="free">🎹 自由弹奏</button>
+        <button class="mode-btn" data-mode="song">🌟 跟灯弹儿歌</button>
+        <button class="mode-btn" data-mode="ear">👂 听音猜猜乐</button>
+      </nav>
+
+      <div class="top-right">
+        <div class="star-badge" title="获得的音乐星星">
+          <span>⭐</span>
+          <span id="starCount">0</span>
+        </div>
+        <button id="muteBtn" class="icon-btn" aria-label="开关声音" title="开关声音">🔊</button>
+      </div>
+    </header>
+
+    <section class="stage-card">
+      <div class="stage-row">
+        <div class="mascot-box">
+          <svg id="trainMascot" class="train-mascot" viewBox="0 0 120 90" aria-hidden="true">
+            <!-- 烟囱 -->
+            <rect x="22" y="14" width="14" height="22" rx="4" fill="#ff9f1c" stroke="#7c3f00" stroke-width="3"/>
+            <rect x="18" y="10" width="22" height="8" rx="4" fill="#ffd166" stroke="#7c3f00" stroke-width="3"/>
+            <!-- 车身 -->
+            <rect x="14" y="34" width="54" height="34" rx="10" fill="#ff595e" stroke="#7c1d20" stroke-width="3"/>
+            <!-- 驾驶室 -->
+            <rect x="64" y="20" width="40" height="48" rx="9" fill="#1982c4" stroke="#0d4a75" stroke-width="3"/>
+            <rect x="72" y="28" width="24" height="18" rx="5" fill="#d9f4ff" stroke="#0d4a75" stroke-width="2.5"/>
+            <!-- 笑脸 -->
+            <circle cx="31" cy="48" r="3.5" fill="#4a2e1b"/>
+            <circle cx="49" cy="48" r="3.5" fill="#4a2e1b"/>
+            <path d="M33 56 Q40 62 47 56" fill="none" stroke="#4a2e1b" stroke-width="3" stroke-linecap="round"/>
+            <!-- 车轮 -->
+            <circle cx="30" cy="71" r="11" fill="#ffd166" stroke="#7c3f00" stroke-width="3"/>
+            <circle cx="30" cy="71" r="4" fill="#7c3f00"/>
+            <circle cx="56" cy="71" r="11" fill="#ffd166" stroke="#7c3f00" stroke-width="3"/>
+            <circle cx="56" cy="71" r="4" fill="#7c3f00"/>
+            <circle cx="86" cy="71" r="12" fill="#ffd166" stroke="#7c3f00" stroke-width="3"/>
+            <circle cx="86" cy="71" r="4.5" fill="#7c3f00"/>
+          </svg>
+          <div id="speechBubble" class="speech-bubble">点一点或划过彩虹琴键，就能弹出好听的音乐哦！</div>
+        </div>
+
+        <div class="timbre-row" aria-label="选择音色">
+          <button class="timbre-btn active" data-timbre="xylo">🪵 木琴</button>
+          <button class="timbre-btn" data-timbre="box">🔔 八音盒</button>
+          <button class="timbre-btn" data-timbre="cat">🐱 小猫</button>
+          <button class="timbre-btn" data-timbre="train">🚂 汽笛</button>
+        </div>
+      </div>
+
+      <!-- 自由弹奏子栏 -->
+      <div id="freeControls" class="sub-controls">
+        <div class="pill-group">
+          <button id="recBtn" class="action-btn btn-coral">⏺️ 录制我的歌</button>
+          <button id="playRecBtn" class="action-btn btn-blue" disabled>▶️ 播放录音</button>
+          <button id="clearRecBtn" class="action-btn btn-amber" disabled>🧹 清空</button>
+        </div>
+        <span id="recInfo" style="font-size:13px;font-weight:700;color:#7c5838;">还没录音，点左边按钮试着录一段吧</span>
+      </div>
+
+      <!-- 跟灯弹儿歌子栏 -->
+      <div id="songControls" class="sub-controls hidden">
+        <div id="songList" class="pill-group"></div>
+        <div class="pill-group">
+          <button id="demoSongBtn" class="action-btn btn-purple">🎧 示范听一遍</button>
+          <button id="restartSongBtn" class="action-btn btn-amber">🔄 重新开始</button>
+        </div>
+      </div>
+
+      <!-- 听音猜猜乐子栏 -->
+      <div id="earControls" class="sub-controls hidden">
+        <div class="pill-group">
+          <button id="replayEarBtn" class="action-btn btn-blue">🔊 再听一遍</button>
+          <button id="hintEarBtn" class="action-btn btn-amber">💡 亮灯提示</button>
+          <button id="nextEarBtn" class="action-btn btn-green">🎲 换一题</button>
+        </div>
+        <span id="earProgress" style="font-size:14px;font-weight:800;color:#b45309;">第 1 关 · 听 1 个音</span>
+      </div>
+
+      <!-- 音符进度条（跟灯/听音时显示） -->
+      <div id="noteStrip" class="note-strip hidden"></div>
+    </section>
+
+    <main class="xylo-stage">
+      <div id="xyloFrame" class="xylo-frame" aria-label="彩虹木琴琴键">
+        <div class="wood-rail top"></div>
+        <div class="wood-rail bottom"></div>
+      </div>
+    </main>
+
+    <div class="footer-hint">💡 小提示：手指可以连续滑过琴键刮奏，电脑键盘也可以按数字 1–8 或 A–K 弹奏</div>
+  </div>
+
+  <!-- 庆祝弹窗 -->
+  <div id="toastBanner" class="toast-banner" role="dialog" aria-live="polite">
+    <div id="toastEmoji" class="toast-emoji">🎉</div>
+    <div id="toastTitle" class="toast-title">太棒啦！</div>
+    <div id="toastSub" class="toast-sub">你完整弹完了这首儿歌！</div>
+    <div class="toast-actions">
+      <button id="toastPrimaryBtn" class="action-btn btn-green">下一首 ➡️</button>
+      <button id="toastCloseBtn" class="action-btn btn-amber">再弹一次</button>
+    </div>
+  </div>
+
+<script>
+(() => {
+  'use strict';
+
+  /* ==================== 1. 基础数据配置 ==================== */
+  const STORE_KEY = 'rainbow_xylo_stars_v1';
+
+  const NOTES = [
+    { idx: 0, name: 'Do', num: '1', kbd: '1 / A', freq: 261.63, light: '#ff8a8a', main: '#ff595e', dark: '#d63031', shadow: '#a61c1d' },
+    { idx: 1, name: 'Re', num: '2', kbd: '2 / S', freq: 293.66, light: '#ffb36b', main: '#ff924c', dark: '#e66e1e', shadow: '#b34d09' },
+    { idx: 2, name: 'Mi', num: '3', kbd: '3 / D', freq: 329.63, light: '#ffe37d', main: '#ffca3a', dark: '#e0a20b', shadow: '#ad7800' },
+    { idx: 3, name: 'Fa', num: '4', kbd: '4 / F', freq: 349.23, light: '#a9e34b', main: '#8ac926', dark: '#65a30d', shadow: '#467306' },
+    { idx: 4, name: 'Sol', num: '5', kbd: '5 / G', freq: 392.00, light: '#66d9e8', main: '#19a9c4', dark: '#0e7c94', shadow: '#085366' },
+    { idx: 5, name: 'La', num: '6', kbd: '6 / H', freq: 440.00, light: '#74a9ff', main: '#3b82f6', dark: '#1d4ed8', shadow: '#16389e' },
+    { idx: 6, name: 'Si', num: '7', kbd: '7 / J', freq: 493.88, light: '#c084fc', main: '#9b5de5', dark: '#7231c2', shadow: '#511c91' },
+    { idx: 7, name: 'Do+', num: 'i', kbd: '8 / K', freq: 523.25, light: '#ff99c8', main: '#f15bb5', dark: '#c92a8a', shadow: '#941661' }
+  ];
+
+  const KEY_MAP = {
+    '1': 0, 'a': 0, 'A': 0,
+    '2': 1, 's': 1, 'S': 1,
+    '3': 2, 'd': 2, 'D': 2,
+    '4': 3, 'f': 3, 'F': 3,
+    '5': 4, 'g': 4, 'G': 4,
+    '6': 5, 'h': 5, 'H': 5,
+    '7': 6, 'j': 6, 'J': 6,
+    '8': 7, 'k': 7, 'K': 7
+  };
+
+  const SONGS = [
+    {
+      id: 'twinkle',
+      title: '🌟 小星星',
+      notes: [0,0,4,4,5,5,4, 3,3,2,2,1,1,0],
+      tempo: 460
+    },
+    {
+      id: 'tiger',
+      title: '🐯 两只老虎',
+      notes: [0,1,2,0, 0,1,2,0, 2,3,4, 2,3,4],
+      tempo: 420
+    },
+    {
+      id: 'lamb',
+      title: '🐑 小羊羔',
+      notes: [2,1,0,1, 2,2,2, 1,1,1, 2,4,4],
+      tempo: 440
+    },
+    {
+      id: 'bee',
+      title: '🐝 小蜜蜂',
+      notes: [4,2,2, 3,1,1, 0,1,2,3, 4,4,4],
+      tempo: 420
+    },
+    {
+      id: 'birthday',
+      title: '🎂 生日快乐',
+      notes: [0,0,1,0,3,2, 0,0,1,0,4,3],
+      tempo: 470
+    }
+  ];
+
+  /* ==================== 2. 全局状态 ==================== */
+  const state = {
+    mode: 'free',          // 'free' | 'song' | 'ear'
+    timbre: 'xylo',        // 'xylo' | 'box' | 'cat' | 'train'
+    muted: false,
+    stars: 0,
+    // 录音
+    isRecording: false,
+    recStart: 0,
+    recorded: [],          // [{ idx, time }]
+    playbackTimers: [],
+    // 跟灯儿歌
+    songIdx: 0,
+    songPos: 0,
+    isDemoPlaying: false,
+    // 听音猜猜乐
+    earLevel: 1,
+    earSeq: [],
+    earInputPos: 0,
+    earLocked: false,
+    // 滑动刮奏状态
+    pointerDown: false,
+    lastSlideIdx: -1
+  };
+
+  try {
+    const saved = parseInt(localStorage.getItem(STORE_KEY) || '0', 10);
+    if (!Number.isNaN(saved) && saved >= 0) state.stars = saved;
+  } catch (_) {}
+
+  function saveStars() {
+    starCountEl.textContent = String(state.stars);
+    try { localStorage.setItem(STORE_KEY, String(state.stars)); } catch (_) {}
+  }
+
+  /* ==================== 3. Web Audio 合成引擎 ==================== */
+  let audioCtx = null;
+
+  function ensureAudio() {
+    if (!audioCtx) {
+      const Ctx = window.AudioContext || window.webkitAudioContext;
+      if (Ctx) audioCtx = new Ctx();
+    }
+    if (audioCtx && audioCtx.state === 'suspended') {
+      audioCtx.resume().catch(() => {});
+    }
+    return audioCtx;
+  }
+
+  function playTone(noteIdx, customTimbre) {
+    if (state.muted) return;
+    const ctx = ensureAudio();
+    if (!ctx) return;
+
+    const now = ctx.currentTime;
+    const freq = NOTES[noteIdx].freq;
+    const timbre = customTimbre || state.timbre;
+
+    const master = ctx.createGain();
+    master.connect(ctx.destination);
+
+    if (timbre === 'xylo') {
+      // 木琴：基频 + 3倍泛音 + 清脆敲击瞬态
+      const osc1 = ctx.createOscillator();
+      const osc2 = ctx.createOscillator();
+      const g1 = ctx.createGain();
+      const g2 = ctx.createGain();
+
+      osc1.type = 'sine';
+      osc1.frequency.setValueAtTime(freq, now);
+      osc2.type = 'triangle';
+      osc2.frequency.setValueAtTime(freq * 3, now);
+
+      g1.gain.setValueAtTime(0.001, now);
+      g1.gain.linearRampToValueAtTime(0.45, now + 0.006);
+      g1.gain.exponentialRampToValueAtTime(0.001, now + 0.72);
+
+      g2.gain.setValueAtTime(0.001, now);
+      g2.gain.linearRampToValueAtTime(0.18, now + 0.004);
+      g2.gain.exponentialRampToValueAtTime(0.001, now + 0.14);
+
+      osc1.connect(g1).connect(master);
+      osc2.connect(g2).connect(master);
+      osc1.start(now); osc2.start(now);
+      osc1.stop(now + 0.75); osc2.stop(now + 0.16);
+    } else if (timbre === 'box') {
+      // 八音盒：清亮泛音长延音
+      const osc1 = ctx.createOscillator();
+      const osc2 = ctx.createOscillator();
+      const g1 = ctx.createGain();
+      const g2 = ctx.createGain();
+
+      osc1.type = 'sine';
+      osc1.frequency.setValueAtTime(freq * 2, now);
+      osc2.type = 'sine';
+      osc2.frequency.setValueAtTime(freq * 4, now);
+
+      g1.gain.setValueAtTime(0.001, now);
+      g1.gain.linearRampToValueAtTime(0.28, now + 0.005);
+      g1.gain.exponentialRampToValueAtTime(0.001, now + 1.25);
+
+      g2.gain.setValueAtTime(0.001, now);
+      g2.gain.linearRampToValueAtTime(0.11, now + 0.005);
+      g2.gain.exponentialRampToValueAtTime(0.001, now + 0.45);
+
+      osc1.connect(g1).connect(master);
+      osc2.connect(g2).connect(master);
+      osc1.start(now); osc2.start(now);
+      osc1.stop(now + 1.3); osc2.stop(now + 0.5);
+    } else if (timbre === 'cat') {
+      // 小猫声：带弯音和低通滤波的俏皮音色
+      const osc = ctx.createOscillator();
+      const filter = ctx.createBiquadFilter();
+      const g = ctx.createGain();
+
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(freq * 0.92, now);
+      osc.frequency.linearRampToValueAtTime(freq * 1.12, now + 0.12);
+      osc.frequency.exponentialRampToValueAtTime(freq * 0.98, now + 0.42);
+
+      filter.type = 'bandpass';
+      filter.frequency.setValueAtTime(freq * 2.2, now);
+      filter.Q.setValueAtTime(2.5, now);
+
+      g.gain.setValueAtTime(0.001, now);
+      g.gain.linearRampToValueAtTime(0.45, now + 0.05);
+      g.gain.exponentialRampToValueAtTime(0.001, now + 0.46);
+
+      osc.connect(filter).connect(g).connect(master);
+      osc.start(now);
+      osc.stop(now + 0.48);
+    } else {
+      // 小火车汽笛：柔和双音和弦
+      const osc1 = ctx.createOscillator();
+      const osc2 = ctx.createOscillator();
+      const g = ctx.createGain();
+
+      osc1.type = 'sine';
+      osc2.type = 'triangle';
+      osc1.frequency.setValueAtTime(freq, now);
+      osc2.frequency.setValueAtTime(freq * 1.25, now); // 大三度和声
+
+      g.gain.setValueAtTime(0.001, now);
+      g.gain.linearRampToValueAtTime(0.24, now + 0.04);
+      g.gain.setValueAtTime(0.22, now + 0.34);
+      g.gain.exponentialRampToValueAtTime(0.001, now + 0.65);
+
+      osc1.connect(g);
+      osc2.connect(g);
+      g.connect(master);
+      osc1.start(now); osc2.start(now);
+      osc1.stop(now + 0.68); osc2.stop(now + 0.68);
+    }
+  }
+
+  function playCheerChord() {
+    if (state.muted) return;
+    [0, 2, 4, 7].forEach((n, i) => {
+      const t = setTimeout(() => playTone(n, 'box'), i * 95);
+      state.playbackTimers.push(t);
+    });
+  }
+
+  function playGentleBoop() {
+    if (state.muted) return;
+    const ctx = ensureAudio();
+    if (!ctx) return;
+    const now = ctx.currentTime;
+    const osc = ctx.createOscillator();
+    const g = ctx.createGain();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(210, now);
+    osc.frequency.exponentialRampToValueAtTime(160, now + 0.16);
+    g.gain.setValueAtTime(0.18, now);
+    g.gain.exponentialRampToValueAtTime(0.001, now + 0.18);
+    osc.connect(g).connect(ctx.destination);
+    osc.start(now);
+    osc.stop(now + 0.2);
+  }
+
+  /* ==================== 4. Canvas 粒子与音符特效 ==================== */
+  const fxCanvas = document.getElementById('fxCanvas');
+  const fxCtx = fxCanvas.getContext('2d');
+  const particles = [];
+  const SYMBOLS = ['♪', '♫', '★', '✦', '●'];
+
+  function resizeFxCanvas() {
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    fxCanvas.width = Math.floor(window.innerWidth * dpr);
+    fxCanvas.height = Math.floor(window.innerHeight * dpr);
+    fxCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  }
+
+  function spawnKeyBurst(x, y, color, count = 8) {
+    for (let i = 0; i < count; i++) {
+      const angle = -Math.PI / 2 + (Math.random() - 0.5) * 1.9;
+      const speed = 2.2 + Math.random() * 4.2;
+      particles.push({
+        x,
+        y,
+        vx: Math.cos(angle) * speed,
+        vy: Math.sin(angle) * speed - 1.2,
+        gravity: 0.08,
+        size: 16 + Math.random() * 14,
+        color,
+        symbol: SYMBOLS[Math.floor(Math.random() * SYMBOLS.length)],
+        alpha: 1,
+        life: 0,
+        maxLife: 38 + Math.random() * 24,
+        rot: (Math.random() - 0.5) * 0.5,
+        vrot: (Math.random() - 0.5) * 0.08
+      });
+    }
+  }
+
+  function spawnCelebration() {
+    const w = window.innerWidth;
+    const h = window.innerHeight;
+    for (let i = 0; i < 42; i++) {
+      const note = NOTES[i % NOTES.length];
+      particles.push({
+        x: w * (0.15 + Math.random() * 0.7),
+        y: h * (0.25 + Math.random() * 0.35),
+        vx: (Math.random() - 0.5) * 8,
+        vy: -3 - Math.random() * 6,
+        gravity: 0.14,
+        size: 18 + Math.random() * 16,
+        color: note.main,
+        symbol: SYMBOLS[i % SYMBOLS.length],
+        alpha: 1,
+        life: 0,
+        maxLife: 65 + Math.random() * 30,
+        rot: Math.random() * Math.PI,
+        vrot: (Math.random() - 0.5) * 0.15
+      });
+    }
+  }
+
+  function tickFx() {
+    fxCtx.clearRect(0, 0, window.innerWidth, window.innerHeight);
+    for (let i = particles.length - 1; i >= 0; i--) {
+      const p = particles[i];
+      p.life++;
+      p.x += p.vx;
+      p.y += p.vy;
+      p.vy += p.gravity;
+      p.rot += p.vrot;
+      p.alpha = Math.max(0, 1 - p.life / p.maxLife);
+
+      fxCtx.save();
+      fxCtx.globalAlpha = p.alpha;
+      fxCtx.translate(p.x, p.y);
+      fxCtx.rotate(p.rot);
+      fxCtx.fillStyle = p.color;
+      fxCtx.font = `900 ${p.size}px sans-serif`;
+      fxCtx.textAlign = 'center';
+      fxCtx.textBaseline = 'middle';
+      fxCtx.fillText(p.symbol, 0, 0);
+      fxCtx.restore();
+
+      if (p.life >= p.maxLife) particles.splice(i, 1);
+    }
+    requestAnimationFrame(tickFx);
+  }
+
+  /* ==================== 5. DOM 引用与渲染 ==================== */
+  const starCountEl = document.getElementById('starCount');
+  const muteBtn = document.getElementById('muteBtn');
+  const trainMascot = document.getElementById('trainMascot');
+  const speechBubble = document.getElementById('speechBubble');
+  const xyloFrame = document.getElementById('xyloFrame');
+  const freeControls = document.getElementById('freeControls');
+  const songControls = document.getElementById('songControls');
+  const earControls = document.getElementById('earControls');
+  const noteStrip = document.getElementById('noteStrip');
+
+  const recBtn = document.getElementById('recBtn');
+  const playRecBtn = document.getElementById('playRecBtn');
+  const clearRecBtn = document.getElementById('clearRecBtn');
+  const recInfo = document.getElementById('recInfo');
+
+  const songListEl = document.getElementById('songList');
+  const demoSongBtn = document.getElementById('demoSongBtn');
+  const restartSongBtn = document.getElementById('restartSongBtn');
+
+  const replayEarBtn = document.getElementById('replayEarBtn');
+  const hintEarBtn = document.getElementById('hintEarBtn');
+  const nextEarBtn = document.getElementById('nextEarBtn');
+  const earProgressEl = document.getElementById('earProgress');
+
+  const toastBanner = document.getElementById('toastBanner');
+  const toastEmoji = document.getElementById('toastEmoji');
+  const toastTitle = document.getElementById('toastTitle');
+  const toastSub = document.getElementById('toastSub');
+  const toastPrimaryBtn = document.getElementById('toastPrimaryBtn');
+  const toastCloseBtn = document.getElementById('toastCloseBtn');
+
+  const keyButtons = [];
+
+  function buildKeys() {
+    NOTES.forEach((n) => {
+      const wrap = document.createElement('div');
+      wrap.className = 'key-wrap';
+
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'xylo-key';
+      btn.dataset.idx = String(n.idx);
+      btn.style.setProperty('--key-light', n.light);
+      btn.style.setProperty('--key-main', n.main);
+      btn.style.setProperty('--key-dark', n.dark);
+      btn.style.setProperty('--key-shadow', n.shadow);
+      btn.setAttribute('aria-label', `音符 ${n.name} ${n.num}`);
+
+      btn.innerHTML = `
+        <span class="guide-star">⭐</span>
+        <span class="rivet"></span>
+        <span class="key-label">
+          <span class="solfege">${n.name}</span>
+          <span class="num-tag">${n.num}</span>
+          <span class="kbd-hint">${n.kbd}</span>
+        </span>
+        <span class="rivet"></span>
+      `;
+
+      wrap.appendChild(btn);
+      xyloFrame.appendChild(wrap);
+      keyButtons.push(btn);
+    });
+  }
+
+  function buildSongChips() {
+    songListEl.innerHTML = '';
+    SONGS.forEach((song, i) => {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'song-chip' + (i === state.songIdx ? ' active' : '');
+      btn.textContent = song.title;
+      btn.addEventListener('click', () => {
+        selectSong(i);
+      });
+      songListEl.appendChild(btn);
+    });
+  }
+
+  function setSpeech(text) {
+    speechBubble.textContent = text;
+  }
+
+  let bounceTimer = null;
+  function bounceMascot() {
+    trainMascot.classList.remove('bounce');
+    void trainMascot.offsetWidth;
+    trainMascot.classList.add('bounce');
+    clearTimeout(bounceTimer);
+    bounceTimer = setTimeout(() => trainMascot.classList.remove('bounce'), 170);
+  }
+
+  function clearAllTimers() {
+    state.playbackTimers.forEach((t) => clearTimeout(t));
+    state.playbackTimers = [];
+    state.isDemoPlaying = false;
+  }
+
+  function clearKeyGuides() {
+    keyButtons.forEach((b) => b.classList.remove('guide'));
+  }
+
+  function highlightGuideKey(idx) {
+    clearKeyGuides();
+    if (idx >= 0 && idx < keyButtons.length) {
+      keyButtons[idx].classList.add('guide');
+    }
+  }
+
+  function flashKeyVisual(idx, burstCount = 7) {
+    const btn = keyButtons[idx];
+    if (!btn) return;
+    btn.classList.add('pressed');
+    setTimeout(() => btn.classList.remove('pressed'), 160);
+    const rect = btn.getBoundingClientRect();
+    spawnKeyBurst(rect.left + rect.width / 2, rect.top + rect.height * 0.35, NOTES[idx].main, burstCount);
+    bounceMascot();
+  }
+
+  function hideToast() {
+    toastBanner.classList.remove('show');
+  }
+
+  function showToast(emoji, title, sub, primaryText, onPrimary, secondaryText, onSecondary) {
+    toastEmoji.textContent = emoji;
+    toastTitle.textContent = title;
+    toastSub.textContent = sub;
+    toastPrimaryBtn.textContent = primaryText;
+    toastCloseBtn.textContent = secondaryText;
+    toastPrimaryBtn.onclick = () => { hideToast(); onPrimary(); };
+    toastCloseBtn.onclick = () => { hideToast(); onSecondary(); };
+    toastBanner.classList.add('show');
+  }
+
+  /* ==================== 6. 核心交互与三种模式逻辑 ==================== */
+  function triggerKey(idx, isAuto = false) {
+    if (idx < 0 || idx >= NOTES.length) return;
+    playTone(idx);
+    flashKeyVisual(idx, isAuto ? 5 : 9);
+
+    if (isAuto) return;
+
+    // 1) 自由弹奏模式
+    if (state.mode === 'free') {
+      if (state.isRecording) {
+        const now = performance.now();
+        if (state.recorded.length === 0) state.recStart = now;
+        if (state.recorded.length < 32) {
+          state.recorded.push({ idx, time: now - state.recStart });
+          updateRecUI();
+          if (state.recorded.length >= 32) {
+            toggleRecording();
+            setSpeech('已经录满 32 个音符啦，点「播放录音」听听你的作品吧！');
+          }
+        }
+      }
+      return;
+    }
+
+    // 2) 跟灯弹儿歌模式
+    if (state.mode === 'song') {
+      if (state.isDemoPlaying) return;
+      const song = SONGS[state.songIdx];
+      const target = song.notes[state.songPos];
+      if (idx === target) {
+        state.songPos++;
+        renderSongStrip();
+        if (state.songPos >= song.notes.length) {
+          clearKeyGuides();
+          state.stars += 2;
+          saveStars();
+          playCheerChord();
+          spawnCelebration();
+          setSpeech(`太棒啦！你弹完了《${song.title}》，获得 2 颗音乐星星！`);
+          showToast(
+            '🎉',
+            '小小音乐家！',
+            `你完整弹完了 ${song.title}，奖励 2 颗 ⭐！`,
+            '下一首儿歌 ➡️',
+            () => selectSong((state.songIdx + 1) % SONGS.length),
+            '再弹一遍',
+            () => selectSong(state.songIdx)
+          );
+        } else {
+          highlightGuideKey(song.notes[state.songPos]);
+          const left = song.notes.length - state.songPos;
+          setSpeech(`弹得真准！还剩 ${left} 个音，接着点亮星星的琴键吧～`);
+        }
+      } else {
+        playGentleBoop();
+        setSpeech(`差一点点哦，找到头顶有 ⭐ 星星的「${NOTES[target].name}」键点下去！`);
+      }
+      return;
+    }
+
+    // 3) 听音猜猜乐模式
+    if (state.mode === 'ear') {
+      if (state.earLocked) return;
+      const expected = state.earSeq[state.earInputPos];
+      if (idx === expected) {
+        state.earInputPos++;
+        clearKeyGuides();
+        renderEarStrip();
+        if (state.earInputPos >= state.earSeq.length) {
+          state.earLocked = true;
+          state.stars += 1;
+          saveStars();
+          playCheerChord();
+          spawnCelebration();
+          setSpeech('耳朵真灵！全部猜对啦，奖励 1 颗 ⭐！准备下一关～');
+          const t = setTimeout(() => {
+            state.earLevel++;
+            startEarRound();
+          }, 1400);
+          state.playbackTimers.push(t);
+        } else {
+          setSpeech('对啦！请继续弹下一个听到的音～');
+        }
+      } else {
+        playGentleBoop();
+        setSpeech('好像不是这个音哦，可以点「再听一遍」或「亮灯提示」帮忙～');
+      }
+    }
+  }
+
+  /* ---------- 自由弹奏录音逻辑 ---------- */
+  function updateRecUI() {
+    recBtn.textContent = state.isRecording ? '⏹️ 停止录音' : '⏺️ 录制我的歌';
+    playRecBtn.disabled = state.isRecording || state.recorded.length === 0;
+    clearRecBtn.disabled = state.isRecording || state.recorded.length === 0;
+    if (state.isRecording) {
+      recInfo.textContent = `正在录音中… 已录 ${state.recorded.length} / 32 个音`;
+    } else if (state.recorded.length > 0) {
+      recInfo.textContent = `已录好 ${state.recorded.length} 个音，点「播放录音」听一听！`;
+    } else {
+      recInfo.textContent = '还没录音，点左边按钮试着录一段吧';
+    }
+  }
+
+  function toggleRecording() {
+    clearAllTimers();
+    if (!state.isRecording) {
+      state.recorded = [];
+      state.isRecording = true;
+      setSpeech('开始录音啦！随便弹几个音，再点「停止录音」就能回放～');
+    } else {
+      state.isRecording = false;
+      setSpeech(state.recorded.length > 0 ? '录好啦！快点「播放录音」听听小火车帮你弹出来吧！' : '没有录到音符哦，随时可以重新录。');
+    }
+    updateRecUI();
+  }
+
+  function playRecordedMelody() {
+    if (state.recorded.length === 0) return;
+    clearAllTimers();
+    setSpeech('小火车正在播放你的原创小曲子啦～ 🎵');
+    state.recorded.forEach((item) => {
+      const t = setTimeout(() => {
+        triggerKey(item.idx, true);
+      }, Math.min(item.time, 18000));
+      state.playbackTimers.push(t);
+    });
+  }
+
+  /* ---------- 跟灯弹儿歌逻辑 ---------- */
+  function renderSongStrip() {
+    const song = SONGS[state.songIdx];
+    noteStrip.innerHTML = '';
+    const windowStart = Math.max(0, state.songPos - 2);
+    const windowEnd = Math.min(song.notes.length, windowStart + 12);
+    for (let i = windowStart; i < windowEnd; i++) {
+      const n = NOTES[song.notes[i]];
+      const dot = document.createElement('span');
+      dot.className = 'note-dot' + (i < state.songPos ? ' done' : '') + (i === state.songPos ? ' current' : '');
+      dot.style.background = n.main;
+      dot.textContent = `${n.num} ${n.name}`;
+      noteStrip.appendChild(dot);
+    }
+  }
+
+  function selectSong(idx) {
+    clearAllTimers();
+    hideToast();
+    state.songIdx = idx;
+    state.songPos = 0;
+    buildSongChips();
+    renderSongStrip();
+    const song = SONGS[idx];
+    highlightGuideKey(song.notes[0]);
+    setSpeech(`准备弹 ${song.title}！跟着亮 ⭐ 星星的琴键敲下去吧～`);
+  }
+
+  function playSongDemo() {
+    clearAllTimers();
+    hideToast();
+    const song = SONGS[state.songIdx];
+    state.isDemoPlaying = true;
+    clearKeyGuides();
+    setSpeech(`先听小火车示范一遍 ${song.title} 吧～ 🎧`);
+    song.notes.forEach((nIdx, i) => {
+      const t = setTimeout(() => {
+        triggerKey(nIdx, true);
+      }, i * song.tempo);
+      state.playbackTimers.push(t);
+    });
+    const endTimer = setTimeout(() => {
+      state.isDemoPlaying = false;
+      state.songPos = 0;
+      renderSongStrip();
+      highlightGuideKey(song.notes[0]);
+      setSpeech('示范完啦！现在轮到你跟着 ⭐ 星星弹一遍吧！');
+    }, song.notes.length * song.tempo + 350);
+    state.playbackTimers.push(endTimer);
+  }
+
+  /* ---------- 听音猜猜乐逻辑 ---------- */
+  function renderEarStrip() {
+    noteStrip.innerHTML = '';
+    state.earSeq.forEach((nIdx, i) => {
+      const dot = document.createElement('span');
+      if (i < state.earInputPos) {
+        const n = NOTES[nIdx];
+        dot.className = 'note-dot done';
+        dot.style.background = n.main;
+        dot.textContent = `✓ ${n.name}`;
+      } else {
+        dot.className = 'note-dot mystery' + (i === state.earInputPos ? ' current' : '');
+        dot.textContent = `? 第${i + 1}音`;
+      }
+      noteStrip.appendChild(dot);
+    });
+  }
+
+  function playEarSequence() {
+    clearAllTimers();
+    clearKeyGuides();
+    state.earLocked = true;
+    setSpeech('竖起小耳朵仔细听哦…… 👂');
+    state.earSeq.forEach((nIdx, i) => {
+      const t = setTimeout(() => {
+        playTone(nIdx);
+        bounceMascot();
+      }, 280 + i * 580);
+      state.playbackTimers.push(t);
+    });
+    const unlockTimer = setTimeout(() => {
+      state.earLocked = false;
+      setSpeech('听好啦！在彩虹木琴上找出刚才的声音吧～');
+    }, 280 + state.earSeq.length * 580 + 180);
+    state.playbackTimers.push(unlockTimer);
+  }
+
+  function startEarRound() {
+    clearAllTimers();
+    hideToast();
+    const len = state.earLevel <= 2 ? 1 : (state.earLevel <= 5 ? 2 : 3);
+    // 低龄阶段从区分度明显的音里选，越往后音域越全
+    const pool = state.earLevel <= 2 ? [0, 2, 4, 7] : [0, 1, 2, 3, 4, 5, 6, 7];
+    state.earSeq = [];
+    for (let i = 0; i < len; i++) {
+      state.earSeq.push(pool[Math.floor(Math.random() * pool.length)]);
+    }
+    state.earInputPos = 0;
+    earProgressEl.textContent = `第 ${state.earLevel} 关 · 听 ${len} 个音`;
+    renderEarStrip();
+    playEarSequence();
+  }
+
+  /* ==================== 7. 模式切换与事件绑定 ==================== */
+  function switchMode(newMode) {
+    clearAllTimers();
+    hideToast();
+    clearKeyGuides();
+    state.isRecording = false;
+    state.mode = newMode;
+
+    document.querySelectorAll('.mode-btn').forEach((btn) => {
+      btn.classList.toggle('active', btn.dataset.mode === newMode);
+    });
+
+    freeControls.classList.toggle('hidden', newMode !== 'free');
+    songControls.classList.toggle('hidden', newMode !== 'song');
+    earControls.classList.toggle('hidden', newMode !== 'ear');
+    noteStrip.classList.toggle('hidden', newMode === 'free');
+
+    if (newMode === 'free') {
+      updateRecUI();
+      setSpeech('自由弹奏模式！点一点或手指滑过琴键，弹出你自己的旋律吧～');
+    } else if (newMode === 'song') {
+      selectSong(state.songIdx);
+    } else if (newMode === 'ear') {
+      startEarRound();
+    }
+  }
+
+  // 模式切换按钮
+  document.querySelectorAll('.mode-btn').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      ensureAudio();
+      switchMode(btn.dataset.mode);
+    });
+  });
+
+  // 音色切换按钮
+  document.querySelectorAll('.timbre-btn').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      ensureAudio();
+      state.timbre = btn.dataset.timbre;
+      document.querySelectorAll('.timbre-btn').forEach((b) => b.classList.toggle('active', b === btn));
+      playTone(4);
+      bounceMascot();
+    });
+  });
+
+  // 静音开关
+  muteBtn.addEventListener('click', () => {
+    state.muted = !state.muted;
+    muteBtn.textContent = state.muted ? '🔇' : '🔊';
+    if (!state.muted) {
+      ensureAudio();
+      playTone(7);
+    }
+  });
+
+  // 自由模式按钮
+  recBtn.addEventListener('click', () => { ensureAudio(); toggleRecording(); });
+  playRecBtn.addEventListener('click', () => { ensureAudio(); playRecordedMelody(); });
+  clearRecBtn.addEventListener('click', () => {
+    clearAllTimers();
+    state.recorded = [];
+    updateRecUI();
+    setSpeech('录音已经清空啦，随时可以重新录一首！');
+  });
+
+  // 儿歌模式按钮
+  demoSongBtn.addEventListener('click', () => { ensureAudio(); playSongDemo(); });
+  restartSongBtn.addEventListener('click', () => { ensureAudio(); selectSong(state.songIdx); });
+
+  // 听音模式按钮
+  replayEarBtn.addEventListener('click', () => { ensureAudio(); playEarSequence(); });
+  hintEarBtn.addEventListener('click', () => {
+    if (state.earLocked || state.earInputPos >= state.earSeq.length) return;
+    const target = state.earSeq[state.earInputPos];
+    highlightGuideKey(target);
+    setSpeech(`偷偷告诉你，下一个音是头顶亮 ⭐ 星星的「${NOTES[target].name}」键哦！`);
+  });
+  nextEarBtn.addEventListener('click', () => { ensureAudio(); startEarRound(); });
+
+  // 木琴点按 + 滑动刮奏（支持多指/触屏/鼠标）
+  function findKeyIdxAtPoint(clientX, clientY) {
+    const el = document.elementFromPoint(clientX, clientY);
+    if (!el) return -1;
+    const keyEl = el.closest('.xylo-key');
+    return keyEl ? parseInt(keyEl.dataset.idx, 10) : -1;
+  }
+
+  xyloFrame.addEventListener('pointerdown', (e) => {
+    ensureAudio();
+    const idx = findKeyIdxAtPoint(e.clientX, e.clientY);
+    if (idx !== -1) {
+      e.preventDefault();
+      state.pointerDown = true;
+      state.lastSlideIdx = idx;
+      triggerKey(idx);
+    }
+  });
+
+  xyloFrame.addEventListener('pointermove', (e) => {
+    if (!state.pointerDown) return;
+    // 自由模式允许顺滑刮奏，跟灯/听音模式避免滑动误触
+    if (state.mode !== 'free') return;
+    const idx = findKeyIdxAtPoint(e.clientX, e.clientY);
+    if (idx !== -1 && idx !== state.lastSlideIdx) {
+      state.lastSlideIdx = idx;
+      triggerKey(idx);
+    }
+  });
+
+  window.addEventListener('pointerup', () => {
+    state.pointerDown = false;
+    state.lastSlideIdx = -1;
+  });
+
+  window.addEventListener('pointercancel', () => {
+    state.pointerDown = false;
+    state.lastSlideIdx = -1;
+  });
+
+  // 键盘弹奏支持
+  window.addEventListener('keydown', (e) => {
+    if (e.repeat) return;
+    if (Object.prototype.hasOwnProperty.call(KEY_MAP, e.key)) {
+      ensureAudio();
+      triggerKey(KEY_MAP[e.key]);
+    }
+  });
+
+  window.addEventListener('resize', resizeFxCanvas);
+
+  window.onload = () => {
+    buildKeys();
+    buildSongChips();
+    saveStars();
+    updateRecUI();
+    resizeFxCanvas();
+    requestAnimationFrame(tickFx);
+  };
+})();
+</script>
+</body>
+</html>
