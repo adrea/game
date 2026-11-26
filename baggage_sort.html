@@ -38,6 +38,7 @@
     font-size:24px;font-weight:800;color:#5d4037;box-shadow:0 5px 0 rgba(0,0,0,.13);cursor:pointer;}
   .tool:active{transform:translateY(4px);box-shadow:0 1px 0 rgba(0,0,0,.13);}
   .tool.small{font-size:15px;padding:0 12px;}
+  #modeBtn{font-size:clamp(12px,2.4vw,15px);padding:0 11px;white-space:nowrap;}
 
   .hint{flex:none;margin:8px 0 4px;padding:7px 20px;border-radius:999px;background:rgba(255,255,255,.92);
     font-size:clamp(15px,2.6vw,21px);font-weight:800;text-align:center;box-shadow:0 4px 10px rgba(0,0,0,.08);}
@@ -81,6 +82,8 @@
   .label{position:absolute;top:8px;left:50%;transform:translateX(-50%);
     padding:5px 16px;border-radius:999px;background:#fff;white-space:nowrap;
     font-size:clamp(15px,2.4vw,22px);font-weight:900;box-shadow:0 3px 8px rgba(0,0,0,.12);}
+  /* 双条件模式标签更长，缩小一点避免挤出车厢 */
+  #trains.mixed .label{font-size:clamp(11px,2.1vw,18px);padding:5px 10px;max-width:98%;}
   .slot{flex:1;min-height:0;width:100%;display:flex;align-items:center;justify-content:center;}
   .slot svg{width:min(74%,96px);height:auto;opacity:.92;}
   .wagon{width:100%;height:clamp(76px,13vh,116px);position:relative;}
@@ -129,6 +132,14 @@
     #belt{height:96px;}
     .wagon{height:66px;}
     .tool,.home{height:46px;}
+  }
+  /* 小屏：三种玩法按钮更宽，收窄头部避免挤出屏幕 */
+  @media (max-width: 420px){
+    header{gap:8px;}
+    .title{font-size:19px;}
+    .home{width:46px;height:46px;font-size:24px;}
+    .tool{height:46px;min-width:46px;}
+    #modeBtn{font-size:11px;padding:0 9px;}
   }
   /* 平板 / 大屏：主区放宽，车厢与行李同步放大 */
   @media (min-width: 1100px) {
@@ -191,15 +202,25 @@
     {id:"suitcase", name:"手提箱", emoji:"🧳"},
     {id:"backpack", name:"小背包", emoji:"🎒"},
     {id:"box",      name:"纸箱",   emoji:"📦"},
-    {id:"ball",     name:"皮球",   emoji:"⚽"}
+    {id:"ball",     name:"皮球",   emoji:"⚽"},
+    {id:"star",     name:"星星",   emoji:"⭐"}
   ];
   var NEUTRAL = {hex:"#b0bec5", dark:"#546e7a"}; // 按形状玩时车厢用中性色，避免颜色误导
   var PRAISE = ["好棒呀","真厉害","放对了","太棒了","棒极了","就是这里","你真能干"];
   var RETRY  = ["再看看哦","不是这节车厢","换个车厢试试","差一点点"];
   var ROUND_END = ["装满啦","全都送上车咯","小火车出发咯"];
 
+  // 三种玩法：按颜色 → 按形状 → 颜色+形状（双条件）
+  var MODE_ORDER = ["color","shape","mixed"];
+  var MODE_INFO = {
+    color: {btn:"按颜色",   hint:'把行李送进<b>一样颜色</b>的车厢吧！', say:"把行李送进一样颜色的车厢"},
+    shape: {btn:"按形状",   hint:'把行李送进<b>一样形状</b>的车厢吧！', say:"把行李送进一样形状的车厢"},
+    mixed: {btn:"颜色+形状", hint:'颜色和形状<b>都一样</b>，才能上车哦！', say:"看清楚颜色和形状，两样都一样才能放进去"}
+  };
+  function modeInfo(){ return MODE_INFO[state.mode]; }
+
   var state = {
-    mode: "color",       // color | shape
+    mode: "color",       // color | shape | mixed
     round: 0,
     carCount: 2,
     bagCount: 4,
@@ -291,6 +312,11 @@
       body = '<rect x="16" y="34" width="68" height="56" rx="5" fill="'+c+'" stroke="'+d+'" stroke-width="4"/>'
            + '<path d="M16 46 h68 M50 34 v56" stroke="'+d+'" stroke-width="4" opacity=".7"/>'
            + '<rect x="42" y="50" width="16" height="14" rx="2" fill="rgba(255,255,255,.6)"/>';
+    }else if(s === "star"){
+      body = '<path d="M50 16 L59.6 43.1 L86.4 44.3 L65.3 60.9 L72.4 86.9 L50 72 L27.6 86.9 L34.7 60.9 L13.6 44.3 L40.4 43.1 Z"'
+           + ' fill="'+c+'" stroke="'+d+'" stroke-width="4" stroke-linejoin="round"/>'
+           + '<path d="M50 34 L54.6 47.2 L68 48 L57.6 57.4 L61.2 70.4 L50 63.4 L38.8 70.4 L42.4 57.4 L32 48 L45.4 47.2 Z"'
+           + ' fill="rgba(255,255,255,.5)"/>';
     }else{
       body = '<circle cx="50" cy="58" r="34" fill="'+c+'" stroke="'+d+'" stroke-width="4"/>'
            + '<path d="M50 24 q-18 12 -18 34 q18-10 36 0 q0-22 -18-34Z" fill="rgba(255,255,255,.55)"/>'
@@ -313,11 +339,27 @@
   }
 
   /* ---------- 关卡生成 ---------- */
+  // 双条件模式的车厢组合：保证「光看颜色」或「光看形状」都不够用
+  // 2 节：同一颜色 + 两种形状；3 节：交叉组合（A红球 / A红箱 / B蓝箱）
+  function mixedPairs(n){
+    var cs = shuffle(COLORS.slice()), ss = shuffle(SHAPES.slice());
+    var pairs = [{color:cs[0], shape:ss[0]}];
+    if(n >= 2) pairs.push({color:cs[0], shape:ss[1]});
+    if(n >= 3) pairs.push({color:cs[1], shape:ss[1]});
+    return pairs.slice(0, n);
+  }
+
   function newRound(){
     state.round++;
     // 难度只加「车厢数量」和「行李数量」，不加时间、不加速度
-    state.carCount = Math.min(4, 2 + Math.floor((state.round-1)/2));
-    state.bagCount = Math.min(8, 4 + Math.floor((state.round-1)/2));
+    if(state.mode === "mixed"){
+      // 双条件更烧脑，车厢最多 3 节
+      state.carCount = Math.min(3, 2 + Math.floor((state.round-1)/3));
+      state.bagCount = Math.min(6, Math.max(state.carCount, 4 + Math.floor((state.round-1)/2)));
+    }else{
+      state.carCount = Math.min(4, 2 + Math.floor((state.round-1)/2));
+      state.bagCount = Math.min(8, 4 + Math.floor((state.round-1)/2));
+    }
     state.selected = null;
     state.suppressClick = false;
     if(state.suppressTimer){ clearTimeout(state.suppressTimer); state.suppressTimer = null; }
@@ -325,24 +367,34 @@
     state.cars = [];
     state.bags = [];
 
-    var pool = state.mode === "color" ? COLORS : SHAPES;
-    var chosen = shuffle(pool.slice()).slice(0, state.carCount);
-    chosen.forEach(function(item){ state.cars.push({item:item, count:0}); });
+    if(state.mode === "mixed"){
+      mixedPairs(state.carCount).forEach(function(p){
+        state.cars.push({color:p.color, shape:p.shape, count:0});
+      });
+    }else{
+      var pool = state.mode === "color" ? COLORS : SHAPES;
+      var chosen = shuffle(pool.slice()).slice(0, state.carCount);
+      chosen.forEach(function(item){
+        if(state.mode === "color") state.cars.push({color:item, shape:SHAPES[0], count:0});
+        else state.cars.push({color:NEUTRAL, shape:item, count:0});
+      });
+    }
 
-    // 每节车厢至少 1 件，剩下的随机补
+    // 每节车厢至少 1 件，剩下的随机补；行李一定符合某节车厢的规则
     for(var i=0;i<state.bagCount;i++){
       var car = state.cars[i % state.carCount];
-      var shape = pick(SHAPES), color = pick(COLORS);
-      // 按形状玩时形状必须匹配；按颜色玩时颜色必须匹配
-      if(state.mode === "color") color = car.item; else shape = car.item;
-      state.bags.push({id:"b"+state.round+"_"+i, color:color, shape:shape, done:false, car:car});
+      var color, shape;
+      if(state.mode === "color"){ color = car.color; shape = pick(SHAPES); }
+      else if(state.mode === "shape"){ shape = car.shape; color = pick(COLORS); }
+      else { color = car.color; shape = car.shape; }
+      state.bags.push({id:"b"+state.round+"_"+i, color:color, shape:shape, done:false});
     }
     shuffle(state.bags);
 
     roundEl.textContent = "第 " + state.round + " 趟";
     renderStars();
     render();
-    say(state.mode === "color" ? "把行李送进一样颜色的车厢" : "把行李送进一样形状的车厢", true);
+    say(modeInfo().say, true);
   }
 
   function renderStars(){
@@ -369,21 +421,29 @@
     });
 
     trainsEl.innerHTML = "";
+    trainsEl.classList.toggle("mixed", state.mode === "mixed");
     state.cars.forEach(function(car, i){
       var el = document.createElement("div");
       el.className = "car";
       el.dataset.i = i;
-      var isColor = state.mode === "color";
-      var label = isColor ? (car.item.emoji + " " + car.item.name) : (car.item.emoji + " " + car.item.name);
-      // 车厢提示：按颜色玩显示同色行李图标，按形状玩显示中性灰形状轮廓
-      var sampleColor = isColor ? car.item : NEUTRAL;
-      var sampleShape = isColor ? SHAPES[0] : car.item;
+      var label;
+      if(state.mode === "mixed")      label = car.color.emoji + car.color.name + car.shape.name;
+      else if(state.mode === "color") label = car.color.emoji + " " + car.color.name;
+      else                            label = car.shape.emoji + " " + car.shape.name;
+      // 车厢提示：颜色模式显示同色行李，形状模式显示中性灰形状，双条件模式显示「颜色+形状」样例
       el.innerHTML = '<div class="label">'+label+'</div>'
-        + '<div class="slot">'+bagSVG(sampleColor, sampleShape)+'</div>'
-        + '<div class="wagon">'+wagonSVG(isColor ? car.item : NEUTRAL)+'</div>'
+        + '<div class="slot">'+bagSVG(car.color, car.shape)+'</div>'
+        + '<div class="wagon">'+wagonSVG(car.color)+'</div>'
         + '<div class="count">'+car.count+'</div>';
       trainsEl.appendChild(el);
     });
+  }
+
+  // 判定规则：颜色 / 形状 / 两者都要
+  function matches(bag, car){
+    if(state.mode === "color") return bag.color.id === car.color.id;
+    if(state.mode === "shape") return bag.shape.id === car.shape.id;
+    return bag.color.id === car.color.id && bag.shape.id === car.shape.id;
   }
 
   function findBag(id){
@@ -416,8 +476,9 @@
     if(state.selected){
       sfxPop();
       audio(); // 用户手势里解锁声音
-      say("这是" + bag.color.name + bag.shape.name + "，送进" +
-          (state.mode === "color" ? "一样颜色" : "一样形状") + "的车厢");
+      var need = state.mode === "mixed" ? "颜色和形状都一样" :
+                 (state.mode === "color" ? "一样颜色" : "一样形状");
+      say("这是" + bag.color.name + bag.shape.name + "，送进" + need + "的车厢");
     }
   }
 
@@ -425,7 +486,7 @@
     if(!bag || bag.done || state.locked) return;
     var car = state.cars[carIndex];
     if(!car) return;
-    var ok = (state.mode === "color") ? (bag.color.id === car.item.id) : (bag.shape.id === car.item.id);
+    var ok = matches(bag, car);
 
     if(ok){
       bag.done = true;
@@ -570,15 +631,15 @@
   /* ---------- 按钮 ---------- */
   $("sayBtn").addEventListener("click", function(){
     state.sound = true;
-    say(state.mode === "color" ? "把行李送进一样颜色的车厢" : "把行李送进一样形状的车厢", true);
+    say(modeInfo().say, true);
     sfxPop();
   });
+  // 按颜色 → 按形状 → 颜色+形状 循环切换
   $("modeBtn").addEventListener("click", function(){
-    state.mode = state.mode === "color" ? "shape" : "color";
-    $("modeBtn").textContent = state.mode === "color" ? "按颜色" : "按形状";
-    hintEl.innerHTML = state.mode === "color"
-      ? "把行李送进<b>一样颜色</b>的车厢吧！"
-      : "把行李送进<b>一样形状</b>的车厢吧！";
+    var idx = MODE_ORDER.indexOf(state.mode);
+    state.mode = MODE_ORDER[(idx + 1) % MODE_ORDER.length];
+    $("modeBtn").textContent = modeInfo().btn;
+    hintEl.innerHTML = modeInfo().hint;
     state.round = 0;
     overlay.classList.remove("show");
     newRound();
