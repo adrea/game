@@ -133,10 +133,31 @@
   .ghost-home:active { transform: translateY(3px); box-shadow: 0 1px 0 #e0a81f; }
   .tip { font-size: clamp(12px,2vw,17px); font-weight: 800; color: #a8702c; line-height: 1.5; }
   .tip b { color: #e8402c; }
+  /* ---------- 场景切换 ---------- */
+  #sceneBar {
+    position: absolute; left: 2.2%; top: 5.5%; z-index: 4;
+    display: flex; gap: 8px; flex-wrap: wrap; max-width: 52%;
+  }
+  .scene-btn {
+    display: flex; align-items: center; gap: 5px; font-family: inherit;
+    font-size: clamp(13px, 1.9vw, 19px); font-weight: 900; line-height: 1.25;
+    padding: 4px 13px; border-radius: 999px; cursor: pointer;
+    background: rgba(255,255,255,.88); color: #8a5d00;
+    border: 3px solid #ffc93c; box-shadow: 0 3px 0 #e0a81f;
+    transition: transform .12s ease, background .2s ease;
+  }
+  .scene-btn:active { transform: translateY(3px); box-shadow: none; }
+  .scene-btn.active {
+    background: linear-gradient(180deg,#ffd84d,#ff9f1c); color: #7a3200;
+    border-color: #fff; box-shadow: 0 3px 0 #d97b00, 0 0 0 3px rgba(255,255,255,.6);
+  }
   @media (max-width: 680px) {
     #hud { gap: 6px; padding: 8px; }
     .chip { padding: 4px 10px; font-size: 17px; gap: 5px; }
     .icon-btn { width: 40px; height: 40px; flex-basis: 40px; font-size: 18px; }
+    #sceneBar { gap: 5px; top: 3.5%; left: 3%; max-width: none; flex-wrap: nowrap; }
+    .scene-btn { font-size: 18px; padding: 4px 10px; border-width: 2px; gap: 0; line-height: 1.1; }
+    .scene-btn span { display: none; }
     .bar-wrap { order: 3; flex: 1 1 100%; max-width: none; }
     #cover { position: fixed; inset: 0; z-index: 30; padding: 14px;
              background: rgba(255,248,225,.97); }
@@ -178,6 +199,11 @@
 
   <div id="stage">
     <canvas id="game"></canvas>
+    <div id="sceneBar" role="group" aria-label="切换场景">
+      <button class="scene-btn active" data-scene="0" type="button" title="森林" aria-label="森林">🌳<span>森林</span></button>
+      <button class="scene-btn" data-scene="1" type="button" title="城市" aria-label="城市">🏙<span>城市</span></button>
+      <button class="scene-btn" data-scene="2" type="button" title="太空" aria-label="太空">🚀<span>太空</span></button>
+    </div>
     <div id="toast"></div>
     <div id="cover">
       <div class="cover-card">
@@ -187,8 +213,9 @@
           <p class="sub">一只会跑、会变形的红色笑脸小火车</p>
           <ul>
             <li>一开始是<b>乖乖火车</b>（没有尖牙），跑一会儿会<b>变成尖牙怪物火车</b></li>
-            <li>前面有<b>小猫、兔子、小狗</b>在跑，小火车一变形就吓得它们跳起来</li>
-            <li>点大大的「<b>变！</b>」按钮（或按空格），就变成<b>机器人、火箭、小巴士</b></li>
+            <li>点前面跑的<b>小猫、兔子、小狗</b>，它们会「喵～」「汪汪」跳起来</li>
+            <li>左上角可切换<b>森林 / 城市 / 太空</b>三种风景</li>
+            <li>点大大的「<b>变！</b>」按钮（或按空格 / 点空画面），就变成<b>机器人、火箭、小巴士</b></li>
             <li>吃到黄色星星得 1 分，每 <b>5 颗</b>星星还会自动变一次身</li>
           </ul>
           <button class="start-btn" id="btnStart">出发！</button>
@@ -200,7 +227,7 @@
 
   <div id="bottom">
     <button id="btnTransform">变！</button>
-    <div class="tip">最靠前：小猫 · 兔子 · 小狗<br>点画面 / 按空格 也能变身<br>没有输赢，一直玩一直变</div>
+    <div class="tip">点小猫 · 兔子 · 小狗 会跳哦<br>点空画面 / 按空格 也能变身<br>左上角换风景：森林 / 城市 / 太空</div>
   </div>
 </div>
 
@@ -456,12 +483,14 @@
   /* ============ 火车前面跑着的三只小动物 ============ */
   const GROUND_Y = 486;
   const ANIMALS = [
-    { id: 'cat',    baseX: 900, phase: 0.0, delay: 0 },
-    { id: 'rabbit', baseX: 800, phase: 2.1, delay: .12 },
-    { id: 'dog',    baseX: 705, phase: 4.0, delay: .24 }
+    { id: 'cat',    baseX: 900, phase: 0.0, delay: 0,   voice: '喵～',  fur: '#ffb347' },
+    { id: 'rabbit', baseX: 800, phase: 2.1, delay: .12, voice: '啾啾！', fur: '#ff9ec4' },
+    { id: 'dog',    baseX: 705, phase: 4.0, delay: .24, voice: '汪汪！', fur: '#e8b877' }
   ].map(function (a) {
     return { id: a.id, baseX: a.baseX, phase: a.phase, delay: a.delay,
-             jumpY: 0, vy: 0, scare: 0, scareDelay: 0, pending: 0, dash: 0 };
+             voice: a.voice, fur: a.fur,
+             jumpY: 0, vy: 0, scare: 0, scareDelay: 0, pending: 0, dash: 0,
+             happy: 0, say: 0, pokes: 0 };
   });
 
   function petLegs(col, run, spread) {
@@ -473,6 +502,13 @@
     line(spread * .55, -16, spread * .55 - sw, -1);
   }
   function petEyes(a, lx, rx, y) {
+    if (a.happy > .05) {
+      /* 被点到：眼睛眯成两道弯弯的笑眼 */
+      ctx.strokeStyle = '#2b1a10'; ctx.lineWidth = 3; ctx.lineCap = 'round';
+      ctx.beginPath(); ctx.arc(lx, y + 1, 5.2, Math.PI * 1.12, Math.PI * 1.88); ctx.stroke();
+      ctx.beginPath(); ctx.arc(rx, y + 1, 5.2, Math.PI * 1.12, Math.PI * 1.88); ctx.stroke();
+      return;
+    }
     if (a.scare > .08) {
       ctx.fillStyle = '#fff'; circle(lx, y, 8); ctx.fill(); circle(rx, y, 8); ctx.fill();
       ctx.strokeStyle = '#8a4b12'; ctx.lineWidth = 1.5; circle(lx, y, 8); ctx.stroke(); circle(rx, y, 8); ctx.stroke();
@@ -569,23 +605,45 @@
     ctx.fillText('!', 0, 1);
     ctx.restore();
   }
+  /* 被点到时冒出的对话气泡 */
+  function drawSay(text, k) {
+    if (!text || k <= 0) return;
+    ctx.save();
+    const pop = Math.min(1, k * 4);
+    ctx.globalAlpha = Math.min(1, k * 2.4);
+    ctx.translate(6, -122);
+    ctx.scale(pop, pop);
+    ctx.font = '900 21px "PingFang SC","Microsoft YaHei",sans-serif';
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    const w = ctx.measureText(text).width + 28, h = 40;
+    ctx.fillStyle = '#fff'; ctx.strokeStyle = '#ffb02e'; ctx.lineWidth = 4;
+    rr(-w / 2, -h, w, h, 15); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = '#fff';
+    circle(-6, 5, 6); ctx.fill(); circle(-1, 20, 3.5); ctx.fill();
+    ctx.fillStyle = '#e8402c';
+    ctx.fillText(text, 0, -h / 2 + 1);
+    ctx.restore();
+  }
+
   function drawAnimals(t) {
+    const shadow = sceneIdx === 0 ? 'rgba(30,60,20,.16)' : 'rgba(10,6,30,.26)';
     for (const a of ANIMALS) {
       const run = Math.sin(t * 13 + a.phase);
       const bob = a.jumpY > .5 ? 0 : Math.abs(Math.sin(t * 13 + a.phase)) * 3;
       ctx.save();
-      ctx.fillStyle = 'rgba(30,60,20,.16)';
+      ctx.fillStyle = shadow;
       ellipse(a.baseX + a.dash, GROUND_Y + 3, Math.max(10, 23 - a.jumpY * .12), 6); ctx.fill();
       ctx.restore();
       ctx.save();
       ctx.translate(a.baseX + a.dash, GROUND_Y - a.jumpY - bob);
-      ctx.rotate(-a.scare * .1);
-      const puff = 1 + a.scare * .08;
+      ctx.rotate(-a.scare * .1 + Math.sin(t * 26) * a.happy * .12);
+      const puff = 1 + a.scare * .08 + a.happy * .05;
       ctx.scale(puff, puff);
       if (a.id === 'cat') drawCat(a, t, run);
       else if (a.id === 'rabbit') drawRabbit(a, t, run);
       else drawDog(a, t, run);
       if (a.scare > .05) drawBang(a.scare);
+      drawSay(a.happy > 0 ? a.voice : '', a.say);
       ctx.restore();
     }
   }
@@ -693,6 +751,43 @@
     sfxScare();
   }
 
+  /* 三只小动物各自的「叫声」 */
+  function sfxPet(id) {
+    if (id === 'cat') {
+      tone(900, .16, 'sine', .085, 0, 560);
+      tone(660, .22, 'sine', .06, .14, 500);
+    } else if (id === 'rabbit') {
+      tone(1240, .08, 'triangle', .07, 0, 1600);
+      tone(1500, .10, 'triangle', .06, .09, 1900);
+    } else {
+      tone(430, .09, 'sawtooth', .042, 0, 300);
+      tone(390, .12, 'sawtooth', .042, .12, 250);
+    }
+  }
+  function sfxPoke() { tone(1180, .06, 'sine', .05, 0, 700); }
+
+  function animalAt(mx, my) {
+    for (let i = ANIMALS.length - 1; i >= 0; i--) {
+      const a = ANIMALS[i];
+      const ax = a.baseX + a.dash, ay = GROUND_Y - a.jumpY;
+      if (mx > ax - 42 && mx < ax + 48 && my > ay - 108 && my < ay + 12) return a;
+    }
+    return null;
+  }
+
+  /* 点到小动物：跳一下 + 可爱叫声 + 气泡 + 小星星 */
+  function pokeAnimal(a) {
+    initAudio();
+    a.pokes++;
+    a.happy = 1.5;
+    a.say = 1.3;
+    a.vy = Math.max(a.vy, a.pokes % 3 === 0 ? 620 : 520);
+    if (a.jumpY < 1) a.jumpY = 1;
+    a.dash += 14;
+    burst(a.baseX + a.dash, GROUND_Y - 80, [a.fur, '#fff', '#ffd84d', '#ff9ec4'], 12, 190);
+    sfxPoke(); sfxPet(a.id);
+  }
+
   const ICON_ON = '<svg viewBox="0 0 24 24"><path d="M3 9h4l5-4v14l-5-4H3z" fill="#e8402c"/>' +
     '<path d="M16 9c1.4 1.4 1.4 4.6 0 6M18.6 6.4c3 3 3 8.2 0 11.2" fill="none" stroke="#e8402c" stroke-width="2" stroke-linecap="round"/></svg>';
   const ICON_OFF = '<svg viewBox="0 0 24 24"><path d="M3 9h4l5-4v14l-5-4H3z" fill="#9aa0a6"/>' +
@@ -705,6 +800,14 @@
   let moodTimer = 0, monsterTarget = 0, monsterMix = 0, moodCount = 0, lastLabel = '';
   const MOOD_TIME = 12, BASE_SPEED = 190;
   let bgOffset = 0, curLift = 0, targetLift = 0, speedMul = 1, targetSpeedMul = 1;
+  /* 场景：0 森林 / 1 城市 / 2 太空 */
+  const SCENES = [
+    { name: '森林', icon: '🌳' },
+    { name: '城市', icon: '🏙' },
+    { name: '太空', icon: '🚀' }
+  ];
+  let sceneIdx = 0, sceneFrom = 0, sceneT = 1;
+  let sceneBtns = [];
   let curZoom = 1, targetZoom = 1, curDx = 0, targetDx = 0;
   let shake = 0, stretch = 0, flash = 0;
   const stars = [], parts = [], puffs = [];
@@ -729,6 +832,27 @@
     elToast.classList.remove('show');
     void elToast.offsetWidth;
     elToast.classList.add('show');
+  }
+  function sfxScene(i) {
+    if (i === 1) {
+      tone(523, .10, 'triangle', .08, 0); tone(659, .10, 'triangle', .08, .09);
+      tone(880, .16, 'sine', .07, .18);
+    } else if (i === 2) {
+      tone(392, .22, 'sine', .075, 0, 784); tone(587, .26, 'sine', .05, .10, 1174);
+    } else {
+      tone(660, .10, 'sine', .07, 0); tone(784, .12, 'sine', .06, .10);
+      tone(990, .16, 'sine', .05, .20);
+    }
+  }
+  function setScene(i) {
+    if (i === sceneIdx || i < 0 || i >= SCENES.length) return;
+    initAudio();
+    sceneFrom = sceneIdx; sceneIdx = i; sceneT = 0;
+    for (let k = 0; k < sceneBtns.length; k++) sceneBtns[k].classList.toggle('active', k === i);
+    /* 换场景时小动物开心地蹦一下 */
+    for (const a of ANIMALS) { a.vy = Math.max(a.vy, 330); a.happy = 1; a.say = 1.1; }
+    toast(SCENES[i].icon + ' 来到' + SCENES[i].name + '啦！');
+    sfxScene(i);
   }
   function updateScore(pop) {
     elScore.textContent = score;
@@ -815,6 +939,7 @@
     stars.length = 0; parts.length = 0; puffs.length = 0;
     for (const a of ANIMALS) {
       a.jumpY = 0; a.vy = 0; a.scare = 0; a.pending = 0; a.dash = 0;
+      a.happy = 0; a.say = 0;
     }
     formIndex = 0; starTimer = 1.2;
     moodTimer = 0; monsterTarget = 0; monsterMix = 0; moodCount = 0;
@@ -870,6 +995,21 @@
     circle(-8, -114, 13); ctx.fill();
     ctx.restore();
   }
+  /* 三种场景共用的铁轨 */
+  function drawRail(o) {
+    ctx.fillStyle = o.ballast; ctx.fillRect(0, 486, W, 26);
+    ctx.fillStyle = o.rail; ctx.fillRect(0, 480, W, 7); ctx.fillRect(0, 505, W, 7);
+    const step = 78, off = bgOffset % step;
+    ctx.fillStyle = o.tie;
+    for (let i = -1; i < 16; i++) { rr(-off + i * step, 478, 16, 34, 4); ctx.fill(); }
+    if (!o.stones) return;
+    ctx.fillStyle = o.stones;
+    for (let i = 0; i < 90; i++) {
+      const x = (i * 37 + 13 - bgOffset * 1.1) % W;
+      circle(x < 0 ? x + W : x, 520 + (i % 5) * 8, 2 + (i % 3)); ctx.fill();
+    }
+  }
+
   function drawGround() {
     const g = ctx.createLinearGradient(0, 440, 0, H);
     g.addColorStop(0, '#8ed36a'); g.addColorStop(1, '#57ad4c');
@@ -880,16 +1020,7 @@
       ellipse(base + 130, 452, 130, 16); ctx.fill();
     }
     /* 轨道 */
-    ctx.fillStyle = '#8f7350'; ctx.fillRect(0, 486, W, 26);
-    ctx.fillStyle = '#6f6a6c'; ctx.fillRect(0, 480, W, 7); ctx.fillRect(0, 505, W, 7);
-    const step = 78, o = (bgOffset * 1) % step;
-    ctx.fillStyle = '#7a5230';
-    for (let i = -1; i < 16; i++) { rr(-o + i * step, 478, 16, 34, 4); ctx.fill(); }
-    ctx.fillStyle = '#b9a58a';
-    for (let i = 0; i < 90; i++) {
-      const x = (i * 37 + 13 - bgOffset * 1.1) % W;
-      circle(x < 0 ? x + W : x, 520 + (i % 5) * 8, 2 + (i % 3)); ctx.fill();
-    }
+    drawRail({ ballast: '#8f7350', rail: '#6f6a6c', tie: '#7a5230', stones: '#b9a58a' });
     /* 前景草 */
     ctx.fillStyle = '#3f9b45';
     for (let i = -1; i < 40; i++) {
@@ -898,6 +1029,186 @@
       const h = 12 + (i % 4) * 5;
       ctx.beginPath(); ctx.moveTo(xx, H); ctx.quadraticCurveTo(xx + 4, H - h, xx + 12, H - h - 4);
       ctx.quadraticCurveTo(xx + 7, H - h + 4, xx + 6, H); ctx.closePath(); ctx.fill();
+    }
+  }
+
+  /* ============ 城市场景 ============ */
+  const cityFar = [], cityNear = [];
+  for (let i = 0; i < 16; i++) {
+    cityFar.push({ x: i * 118 + Math.random() * 40, h: 110 + Math.random() * 140,
+                   w: 68 + Math.random() * 42, c: i % 2 ? '#9dc0dc' : '#b3d0e6' });
+  }
+  const CITY_COLORS = ['#f2a1a1', '#f6c177', '#9ec5e8', '#c4b6ea', '#96d6c0', '#f4b8d8'];
+  for (let i = 0; i < 12; i++) {
+    cityNear.push({ x: i * 186 + Math.random() * 52, h: 148 + Math.random() * 132,
+                    w: 96 + Math.random() * 48, c: CITY_COLORS[i % CITY_COLORS.length] });
+  }
+
+  function drawLamp(x, y) {
+    ctx.save(); ctx.translate(x, y);
+    ctx.fillStyle = '#5b6572';
+    rr(-4, -96, 8, 96, 3); ctx.fill();
+    ctx.beginPath(); ctx.moveTo(0, -96);
+    ctx.quadraticCurveTo(2, -112, 26, -110); ctx.lineTo(26, -102);
+    ctx.quadraticCurveTo(6, -104, 4, -90); ctx.closePath(); ctx.fill();
+    const gl = ctx.createRadialGradient(26, -100, 2, 26, -100, 34);
+    gl.addColorStop(0, 'rgba(255,238,150,.95)'); gl.addColorStop(1, 'rgba(255,238,150,0)');
+    ctx.fillStyle = gl; circle(26, -100, 34); ctx.fill();
+    ctx.fillStyle = '#fff6b8'; circle(26, -100, 7); ctx.fill();
+    ctx.restore();
+  }
+
+  function drawCityScene(tt) {
+    const g = ctx.createLinearGradient(0, 0, 0, H);
+    g.addColorStop(0, '#59b5ef'); g.addColorStop(.48, '#bee3f8'); g.addColorStop(1, '#ffe4bc');
+    ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+    /* 太阳换到左边 */
+    const sg = ctx.createRadialGradient(196, 96, 6, 196, 96, 96);
+    sg.addColorStop(0, 'rgba(255,248,190,.95)'); sg.addColorStop(1, 'rgba(255,248,190,0)');
+    ctx.fillStyle = sg; circle(196, 96, 96); ctx.fill();
+    ctx.fillStyle = '#fff2a0'; circle(196, 96, 34); ctx.fill();
+
+    /* 远处楼群剪影 */
+    ctx.fillStyle = '#a9c9e4';
+    for (const b of cityFar) {
+      const x = ((b.x - bgOffset * .16) % (W + 300) + W + 300) % (W + 300) - 150;
+      rr(x, 452 - b.h, b.w, b.h, 5); ctx.fill();
+    }
+
+    /* 近处彩色楼房 + 会眨的窗户 */
+    for (let bi = 0; bi < cityNear.length; bi++) {
+      const b = cityNear[bi];
+      const x = ((b.x - bgOffset * .34) % (W + 340) + W + 340) % (W + 340) - 170;
+      const top = 452 - b.h;
+      ctx.fillStyle = b.c; rr(x, top, b.w, b.h, 8); ctx.fill();
+      ctx.fillStyle = 'rgba(255,255,255,.6)'; rr(x + 6, top + 6, b.w - 12, 8, 4); ctx.fill();
+      const cols = 3, gap = 8;
+      const ww = (b.w - 20 - gap * (cols - 1)) / cols;
+      for (let r = 0; r * 26 + top + 30 < 438; r++) {
+        for (let c = 0; c < cols; c++) {
+          const lit = Math.sin(tt * 1.5 + bi * 2.1 + r * .9 + c * 1.7) > -.2;
+          ctx.fillStyle = lit ? 'rgba(255,246,178,.95)' : 'rgba(255,255,255,.42)';
+          rr(x + 10 + c * (ww + gap), top + 30 + r * 26, ww, 13, 3); ctx.fill();
+        }
+      }
+    }
+
+    /* 路灯 */
+    for (let i = -1; i < 8; i++) {
+      const x = ((i * 190 - bgOffset * .9) % (W + 380) + W + 380) % (W + 380) - 190;
+      drawLamp(x, 452);
+    }
+
+    /* 地面：人行道 + 柏油路 */
+    const gg = ctx.createLinearGradient(0, 436, 0, H);
+    gg.addColorStop(0, '#b9c3cc'); gg.addColorStop(.4, '#8d99a4'); gg.addColorStop(1, '#57616d');
+    ctx.fillStyle = gg; ctx.fillRect(0, 436, W, H - 436);
+    ctx.fillStyle = '#f2c33c'; ctx.fillRect(0, 436, W, 8);
+    const off = (bgOffset * .9) % 120;
+    ctx.fillStyle = 'rgba(255,255,255,.5)';
+    for (let i = -1; i < 12; i++) { rr(-off + i * 120, 466, 56, 6, 3); ctx.fill(); }
+    drawRail({ ballast: '#3c454f', rail: '#d3dbe4', tie: '#6b4a2e', stones: '#7b8794' });
+  }
+
+  /* ============ 太空场景 ============ */
+  const dimStars = [], asteroids = [];
+  for (let i = 0; i < 80; i++) {
+    dimStars.push({ x: Math.random() * (W + 40), y: Math.random() * 430,
+                    r: .7 + Math.random() * 1.9, v: .08 + Math.random() * .5,
+                    tw: 1.2 + Math.random() * 3, ph: Math.random() * TAU,
+                    warm: Math.random() < .3 });
+  }
+  for (let i = 0; i < 7; i++) {
+    asteroids.push({ x: Math.random() * (W + 300), y: 90 + Math.random() * 220,
+                     r: 9 + Math.random() * 16, v: .3 + Math.random() * .55,
+                     rot: Math.random() * TAU, spin: (Math.random() - .5) * 2,
+                     c: i % 2 ? '#7c6aa8' : '#5f4d8c' });
+  }
+
+  function drawPlanet(x, y, r, c1, c2, ring) {
+    ctx.save(); ctx.translate(x, y);
+    if (ring) {
+      ctx.save(); ctx.rotate(-.45);
+      ctx.strokeStyle = 'rgba(255,232,160,.55)'; ctx.lineWidth = 9;
+      ctx.beginPath(); ctx.ellipse(0, 0, r * 1.75, r * .5, 0, 0, TAU); ctx.stroke();
+      ctx.restore();
+    }
+    const g = ctx.createRadialGradient(-r * .35, -r * .35, r * .1, 0, 0, r);
+    g.addColorStop(0, c1); g.addColorStop(1, c2);
+    ctx.fillStyle = g; circle(0, 0, r); ctx.fill();
+    ctx.fillStyle = 'rgba(255,255,255,.22)';
+    ellipse(-r * .3, -r * .28, r * .34, r * .18); ctx.fill();
+    ctx.restore();
+  }
+
+  function drawSpaceScene(tt) {
+    const g = ctx.createLinearGradient(0, 0, 0, H);
+    g.addColorStop(0, '#0b0620'); g.addColorStop(.5, '#251052'); g.addColorStop(1, '#4a2470');
+    ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+    /* 星云 */
+    [[720, 110, 200, 'rgba(126,86,224,.30)'], [250, 66, 150, 'rgba(60,160,220,.22)'],
+     [520, 250, 170, 'rgba(220,90,180,.16)']].forEach(function (n) {
+      const ng = ctx.createRadialGradient(n[0], n[1], 4, n[0], n[1], n[2]);
+      ng.addColorStop(0, n[3]); ng.addColorStop(1, 'rgba(0,0,0,0)');
+      ctx.fillStyle = ng; circle(n[0], n[1], n[2]); ctx.fill();
+    });
+    /* 闪烁小星星（不改变 globalAlpha，方便场景淡入淡出） */
+    for (const s of dimStars) {
+      const x = ((s.x - bgOffset * s.v) % (W + 40) + W + 40) % (W + 40) - 20;
+      const tw = .35 + .65 * Math.abs(Math.sin(tt * s.tw + s.ph));
+      ctx.fillStyle = s.warm ? 'rgba(255,233,168,' + tw + ')' : 'rgba(255,255,255,' + tw + ')';
+      circle(x, s.y, s.r); ctx.fill();
+    }
+    /* 行星 */
+    drawPlanet(848, 106, 46, '#ff9ec4', '#a03a76', true);
+    drawPlanet(126, 148, 22, '#8ad8ff', '#2b6fa0', false);
+    /* 漂浮的小陨石 */
+    for (const a of asteroids) {
+      const x = ((a.x - bgOffset * a.v) % (W + 320) + W + 320) % (W + 320) - 160;
+      ctx.save(); ctx.translate(x, a.y); ctx.rotate(a.rot + tt * .3 * a.spin);
+      ctx.fillStyle = a.c; ellipse(0, 0, a.r, a.r * .78); ctx.fill();
+      ctx.fillStyle = 'rgba(255,255,255,.18)'; circle(-a.r * .25, -a.r * .2, a.r * .32); ctx.fill();
+      ctx.restore();
+    }
+    /* 地面：紫色星球表面 + 发光地平线 */
+    const gg = ctx.createLinearGradient(0, 428, 0, H);
+    gg.addColorStop(0, '#5b3a86'); gg.addColorStop(.42, '#3a2260'); gg.addColorStop(1, '#1b0f33');
+    ctx.fillStyle = gg; ctx.fillRect(0, 428, W, H - 428);
+    const lg = ctx.createLinearGradient(0, 422, 0, 450);
+    lg.addColorStop(0, 'rgba(180,220,255,.8)'); lg.addColorStop(1, 'rgba(120,90,220,0)');
+    ctx.fillStyle = lg; ctx.fillRect(0, 422, W, 28);
+    /* 环形山 */
+    ctx.fillStyle = 'rgba(255,255,255,.07)';
+    for (let i = -1; i < 9; i++) {
+      const x = ((i * 165 - bgOffset * .55) % (W + 330) + W + 330) % (W + 330) - 165;
+      ellipse(x, 441, 48, 10); ctx.fill();
+    }
+    /* 会发光的轨道 */
+    drawRail({ ballast: '#221041', rail: '#8ce9ff', tie: '#3d2a63', stones: '#6f5aa0' });
+    /* 前景光点 */
+    for (let i = -1; i < 22; i++) {
+      const x = ((i * 78 - bgOffset * 1.4) % (W + 160) + W + 160) % (W + 160) - 80;
+      const tw = .3 + .7 * Math.abs(Math.sin(tt * 2.6 + i));
+      ctx.fillStyle = 'rgba(180,240,255,' + tw + ')';
+      circle(x, 522 + (i % 4) * 12, 1.6 + (i % 3)); ctx.fill();
+    }
+  }
+
+  function drawSceneBody(id, tt) {
+    if (id === 1) drawCityScene(tt);
+    else if (id === 2) drawSpaceScene(tt);
+    else {
+      drawSky();
+      for (const c of clouds) {
+        const x = ((c.x - bgOffset * c.v) % (W + 320) + W + 320) % (W + 320) - 160;
+        drawCloud(x, c.y, c.s);
+      }
+      drawHills(bgOffset);
+      for (const tr of trees) {
+        const x = ((tr.x - bgOffset * tr.v) % (W + 260) + W + 260) % (W + 260) - 130;
+        drawTree(x, tr.s, tr.kind);
+      }
+      drawGround();
     }
   }
 
@@ -934,6 +1245,7 @@
     shake = Math.max(0, shake - dt * 3.2);
     flash = Math.max(0, flash - dt * 2.6);
     stretch += (0 - stretch) * Math.min(1, dt * 7);
+    if (sceneT < 1) sceneT = Math.min(1, sceneT + dt * 2.2);
 
     const k = Math.min(1, dt * 7);
     for (const p of PARTS) {
@@ -999,6 +1311,8 @@
         if (a.jumpY <= 0) { a.jumpY = 0; a.vy = a.vy < -90 ? -a.vy * .32 : 0; }
       }
       a.scare = Math.max(0, a.scare - dt * 1.15);
+      a.happy = Math.max(0, a.happy - dt);
+      a.say = Math.max(0, a.say - dt);
       a.dash += (0 - a.dash) * Math.min(1, dt * 1.5);
     }
 
@@ -1038,17 +1352,16 @@
   function draw() {
     ctx.save();
     if (shake > 0) ctx.translate((Math.random() - .5) * 10 * shake, (Math.random() - .5) * 8 * shake);
-    drawSky();
-    for (const c of clouds) {
-      const x = ((c.x - bgOffset * c.v) % (W + 320) + W + 320) % (W + 320) - 160;
-      drawCloud(x, c.y, c.s);
+    /* 场景交叉淡化：旧场景铺底，新场景按进度叠上去 */
+    if (sceneT < 1 && sceneFrom !== sceneIdx) {
+      drawSceneBody(sceneFrom, t);
+      const p = sceneT * sceneT * (3 - 2 * sceneT);
+      ctx.save(); ctx.globalAlpha = p;
+      drawSceneBody(sceneIdx, t);
+      ctx.restore();
+    } else {
+      drawSceneBody(sceneIdx, t);
     }
-    drawHills(bgOffset);
-    for (const tr of trees) {
-      const x = ((tr.x - bgOffset * tr.v) % (W + 260) + W + 260) % (W + 260) - 130;
-      drawTree(x, tr.s, tr.kind);
-    }
-    drawGround();
 
     /* 烟雾 */
     for (const q of puffs) {
@@ -1111,11 +1424,37 @@
     sfxClick();
     transform();
   }
+  function canvasPos(e) {
+    const r = canvas.getBoundingClientRect();
+    return { x: (e.clientX - r.left) / r.width * W, y: (e.clientY - r.top) / r.height * H };
+  }
   document.getElementById('btnStart').addEventListener('click', start);
   document.getElementById('btnTransform').addEventListener('click', doTransform);
-  canvas.addEventListener('pointerdown', doTransform);
+  canvas.addEventListener('pointerdown', function (e) {
+    if (!running) { doTransform(); return; }
+    const p = canvasPos(e);
+    const a = animalAt(p.x, p.y);
+    if (a) { pokeAnimal(a); return; }   /* 点到小动物：只逗它，不变身 */
+    doTransform();
+  });
+  canvas.addEventListener('pointermove', function (e) {
+    if (!running) return;
+    const p = canvasPos(e);
+    canvas.style.cursor = animalAt(p.x, p.y) ? 'grab' : 'pointer';
+  });
   window.addEventListener('keydown', function (e) {
     if (e.code === 'Space' || e.code === 'Enter') { e.preventDefault(); doTransform(); }
+    else if (e.key === '1' || e.key === '2' || e.key === '3') setScene(+e.key - 1);
+  });
+
+  /* 场景切换按钮 */
+  sceneBtns = Array.prototype.slice.call(document.querySelectorAll('.scene-btn'));
+  sceneBtns.forEach(function (b) {
+    b.addEventListener('click', function () {
+      if (!running) { start(); }
+      setScene(parseInt(b.getAttribute('data-scene'), 10) || 0);
+      b.blur();
+    });
   });
   const elMute = document.getElementById('btnMute');
   elMute.innerHTML = ICON_ON;
