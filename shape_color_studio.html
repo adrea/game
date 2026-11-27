@@ -1,0 +1,1418 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>小恐龙几何拼图涂色屋 · Shape & Color Studio</title>
+<style>
+  * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+
+  :root {
+    --sky-top: #7dd3fc;
+    --sky-mid: #e0f2fe;
+    --meadow: #bbf7d0;
+    --ink: #432818;
+    --card-bg: rgba(255, 255, 255, 0.94);
+    --shadow-soft: 0 8px 22px rgba(67, 40, 24, 0.13);
+  }
+
+  html, body {
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    font-family: -apple-system, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans CJK SC", sans-serif;
+    background: linear-gradient(180deg, var(--sky-top) 0%, var(--sky-mid) 56%, var(--meadow) 100%);
+    color: var(--ink);
+  }
+
+  #fxCanvas {
+    position: fixed;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 40;
+  }
+
+  .app {
+    position: relative;
+    z-index: 10;
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    height: 100%;
+    max-width: 1120px;
+    margin: 0 auto;
+    padding: clamp(8px, 1.4vh, 14px) clamp(10px, 2vw, 20px);
+    gap: clamp(6px, 1.1vh, 12px);
+  }
+
+  /* 顶部栏 */
+  .topbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  .brand {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--card-bg);
+    padding: 6px 14px;
+    border-radius: 999px;
+    box-shadow: 0 4px 0 rgba(67, 40, 24, 0.12);
+  }
+
+  .brand-icon { font-size: clamp(20px, 2.8vw, 26px); line-height: 1; }
+  .brand-title { font-size: clamp(15px, 2.1vw, 20px); font-weight: 800; color: #5c3317; }
+
+  .mode-tabs {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(255, 255, 255, 0.78);
+    padding: 4px;
+    border-radius: 999px;
+    box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.08);
+  }
+
+  .mode-btn {
+    border: none;
+    background: transparent;
+    color: #6b462a;
+    font-size: clamp(13px, 1.6vw, 15px);
+    font-weight: 800;
+    padding: 7px 15px;
+    border-radius: 999px;
+    cursor: pointer;
+    transition: transform 0.12s, background 0.15s, color 0.15s;
+    white-space: nowrap;
+  }
+
+  .mode-btn.active {
+    background: linear-gradient(180deg, #ff9f43 0%, #f97316 100%);
+    color: #fff;
+    text-shadow: 0 1px 2px rgba(120, 40, 0, 0.3);
+    box-shadow: 0 3px 0 #c2410c;
+  }
+
+  .mode-btn:active { transform: translateY(2px); }
+
+  .top-right {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .star-badge {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    background: #fffbeb;
+    border: 2px solid #fbbf24;
+    padding: 5px 12px;
+    border-radius: 999px;
+    font-size: clamp(14px, 1.7vw, 16px);
+    font-weight: 800;
+    color: #b45309;
+    box-shadow: 0 3px 0 rgba(217, 119, 6, 0.22);
+  }
+
+  .icon-btn {
+    width: 38px;
+    height: 38px;
+    border: none;
+    border-radius: 50%;
+    background: var(--card-bg);
+    box-shadow: 0 4px 0 rgba(67, 40, 24, 0.14);
+    font-size: 19px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform 0.1s;
+  }
+
+  .icon-btn:active { transform: translateY(3px); }
+
+  /* 主题与工具栏 */
+  .toolbar-card {
+    background: var(--card-bg);
+    border-radius: 22px;
+    padding: clamp(7px, 1.1vh, 11px) clamp(10px, 1.8vw, 18px);
+    box-shadow: var(--shadow-soft);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  .chip-group {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+
+  .theme-chip {
+    border: 2px solid #e7d7c9;
+    background: #fff;
+    color: #5c3a1e;
+    border-radius: 999px;
+    padding: 5px 12px;
+    font-size: clamp(12px, 1.4vw, 14px);
+    font-weight: 800;
+    cursor: pointer;
+    transition: transform 0.1s, background 0.15s, border-color 0.15s;
+  }
+
+  .theme-chip.active {
+    background: #fef3c7;
+    border-color: #f59e0b;
+    color: #b45309;
+    box-shadow: 0 2px 0 rgba(245, 158, 11, 0.28);
+  }
+
+  .theme-chip:active { transform: translateY(2px); }
+
+  .action-btn {
+    border: none;
+    border-radius: 13px;
+    padding: 6px 12px;
+    font-size: clamp(12px, 1.4vw, 14px);
+    font-weight: 800;
+    cursor: pointer;
+    color: #fff;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    box-shadow: 0 3px 0 rgba(0, 0, 0, 0.16);
+    transition: transform 0.1s, opacity 0.15s;
+  }
+
+  .action-btn:active { transform: translateY(2px); }
+  .action-btn:disabled { opacity: 0.45; cursor: not-allowed; transform: none; }
+
+  .btn-amber  { background: linear-gradient(180deg, #fbbf24, #d97706); }
+  .btn-blue   { background: linear-gradient(180deg, #38bdf8, #0284c7); }
+  .btn-green  { background: linear-gradient(180deg, #4ade80, #16a34a); }
+  .btn-purple { background: linear-gradient(180deg, #c084fc, #9333ea); }
+  .btn-coral  { background: linear-gradient(180deg, #fb7185, #e11d48); }
+
+  /* 主画板区域 */
+  .workspace {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    gap: clamp(6px, 1.2vh, 12px);
+  }
+
+  .board-card {
+    flex: 1;
+    min-height: 0;
+    background: #ffffff;
+    border-radius: 26px;
+    border: 4px solid rgba(255, 255, 255, 0.9);
+    box-shadow: var(--shadow-soft), inset 0 0 0 3px #f1f5f9;
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    padding: 6px;
+  }
+
+  .status-pill {
+    position: absolute;
+    top: 10px;
+    left: 12px;
+    z-index: 5;
+    background: rgba(255, 251, 235, 0.94);
+    border: 2px solid #fde68a;
+    border-radius: 999px;
+    padding: 4px 12px;
+    font-size: clamp(12px, 1.4vw, 14px);
+    font-weight: 800;
+    color: #92400e;
+    pointer-events: none;
+  }
+
+  #stageSvg {
+    width: 100%;
+    height: 100%;
+    max-width: 760px;
+    max-height: 100%;
+    touch-action: none;
+    overflow: visible;
+  }
+
+  /* 拼图槽位与积木样式 */
+  .slot-shape {
+    fill: #f1f5f9;
+    stroke: #94a3b8;
+    stroke-width: 3.5;
+    stroke-dasharray: 9 6;
+    transition: fill 0.18s, stroke 0.18s;
+    cursor: pointer;
+  }
+
+  .slot-shape.hint-pulse {
+    fill: #fef08a;
+    stroke: #f59e0b;
+    stroke-width: 5;
+  }
+
+  .slot-shape.hover-match {
+    fill: #dcfce7;
+    stroke: #22c55e;
+    stroke-width: 5;
+  }
+
+  .placed-piece {
+    stroke: #3b2416;
+    stroke-width: 3.5;
+    stroke-linejoin: round;
+    filter: drop-shadow(0 3px 4px rgba(0, 0, 0, 0.14));
+  }
+
+  /* 涂色区域样式 */
+  .color-region {
+    stroke: #332218;
+    stroke-width: 3.5;
+    stroke-linejoin: round;
+    cursor: pointer;
+    transition: filter 0.12s;
+  }
+
+  .color-region:hover {
+    filter: brightness(0.96);
+  }
+
+  /* 底部托盘：拼图积木托盘 / 涂色画笔托盘 */
+  .tray-card {
+    background: var(--card-bg);
+    border-radius: 24px;
+    padding: clamp(8px, 1.3vh, 12px) clamp(10px, 1.8vw, 18px);
+    box-shadow: var(--shadow-soft), 0 4px 0 rgba(67, 40, 24, 0.08);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: clamp(8px, 1.3vw, 14px);
+    min-height: clamp(78px, 13vh, 108px);
+    flex-wrap: wrap;
+  }
+
+  .piece-card {
+    width: clamp(64px, 9.5vw, 88px);
+    height: clamp(64px, 9.5vw, 84px);
+    background: #fffbeb;
+    border: 3px solid #fde68a;
+    border-radius: 18px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    cursor: grab;
+    touch-action: none;
+    transition: transform 0.12s, border-color 0.15s, box-shadow 0.15s;
+    box-shadow: 0 4px 0 rgba(217, 119, 6, 0.2);
+  }
+
+  .piece-card:active { cursor: grabbing; }
+
+  .piece-card.selected {
+    border-color: #f97316;
+    background: #fff7ed;
+    transform: translateY(-5px) scale(1.06);
+    box-shadow: 0 7px 14px rgba(249, 115, 22, 0.25);
+  }
+
+  .piece-card.used {
+    opacity: 0.26;
+    pointer-events: none;
+    transform: scale(0.9);
+    box-shadow: none;
+  }
+
+  .piece-card svg {
+    width: 72%;
+    height: 62%;
+    pointer-events: none;
+  }
+
+  .piece-name {
+    font-size: 11px;
+    font-weight: 800;
+    color: #7c4a1d;
+    pointer-events: none;
+  }
+
+  /* 拖拽幽灵层 */
+  #dragGhost {
+    position: fixed;
+    left: 0;
+    top: 0;
+    pointer-events: none;
+    z-index: 35;
+    transform: translate(-50%, -50%) scale(1.08);
+    filter: drop-shadow(0 12px 16px rgba(0, 0, 0, 0.28));
+    display: none;
+  }
+
+  /* 涂色色板 */
+  .swatch-btn {
+    width: clamp(38px, 5.5vw, 48px);
+    height: clamp(38px, 5.5vw, 48px);
+    border-radius: 50%;
+    border: 4px solid #fff;
+    box-shadow: 0 4px 0 rgba(0, 0, 0, 0.16), 0 6px 12px rgba(0, 0, 0, 0.12);
+    cursor: pointer;
+    transition: transform 0.12s, box-shadow 0.12s;
+    position: relative;
+  }
+
+  .swatch-btn.active {
+    transform: translateY(-6px) scale(1.16);
+    box-shadow: 0 0 0 3px #f97316, 0 8px 14px rgba(0, 0, 0, 0.2);
+  }
+
+  .swatch-btn.rainbow {
+    background: conic-gradient(#ef4444, #f97316, #facc15, #4ade80, #38bdf8, #a855f7, #ec4899, #ef4444);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+  }
+
+  .hidden { display: none !important; }
+
+  /* 过关弹窗 */
+  .toast-banner {
+    position: fixed;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%) scale(0.75);
+    background: rgba(255, 255, 255, 0.98);
+    border: 4px solid #fbbf24;
+    border-radius: 30px;
+    padding: 22px 28px;
+    text-align: center;
+    box-shadow: 0 18px 42px rgba(67, 40, 24, 0.28);
+    z-index: 45;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.22s ease, transform 0.22s ease;
+    max-width: 90vw;
+  }
+
+  .toast-banner.show {
+    opacity: 1;
+    pointer-events: auto;
+    transform: translate(-50%, -50%) scale(1);
+  }
+
+  .toast-emoji { font-size: 52px; line-height: 1.1; }
+  .toast-title { font-size: clamp(22px, 3.8vw, 28px); font-weight: 900; color: #c2410c; margin-top: 6px; }
+  .toast-sub { font-size: 15px; font-weight: 700; color: #6b462a; margin: 6px 0 16px; }
+  .toast-actions { display: flex; justify-content: center; gap: 10px; flex-wrap: wrap; }
+
+  @media (max-width: 640px) {
+    .brand-title { font-size: 15px; }
+    .mode-btn { padding: 6px 11px; font-size: 13px; }
+    .theme-chip { padding: 4px 9px; font-size: 12px; }
+    .piece-card { width: 58px; height: 58px; border-radius: 14px; }
+    .piece-name { font-size: 10px; }
+    .tray-card { padding: 8px; gap: 6px; min-height: 74px; }
+  }
+</style>
+</head>
+<body>
+  <canvas id="fxCanvas"></canvas>
+  <svg id="dragGhost" width="110" height="110" viewBox="-60 -60 120 120" aria-hidden="true"></svg>
+
+  <div class="app">
+    <header class="topbar">
+      <div class="brand">
+        <span class="brand-icon">🦕</span>
+        <span class="brand-title">几何拼图涂色屋</span>
+      </div>
+
+      <nav class="mode-tabs" aria-label="玩法模式">
+        <button class="mode-btn active" data-mode="puzzle">🧩 几何拼图</button>
+        <button class="mode-btn" data-mode="color">🎨 魔法涂色本</button>
+      </nav>
+
+      <div class="top-right">
+        <div class="star-badge" title="获得的创意星星">
+          <span>⭐</span>
+          <span id="starCount">0</span>
+        </div>
+        <button id="muteBtn" class="icon-btn" aria-label="开关声音" title="开关声音">🔊</button>
+      </div>
+    </header>
+
+    <section class="toolbar-card">
+      <div id="themeList" class="chip-group" aria-label="选择图案"></div>
+
+      <!-- 拼图模式工具 -->
+      <div id="puzzleTools" class="chip-group">
+        <button id="hintBtn" class="action-btn btn-amber">💡 亮灯提示</button>
+        <button id="resetPuzzleBtn" class="action-btn btn-blue">🔄 重新拼</button>
+      </div>
+
+      <!-- 涂色模式工具 -->
+      <div id="colorTools" class="chip-group hidden">
+        <button id="autoColorBtn" class="action-btn btn-purple">✨ 一键上色</button>
+        <button id="undoColorBtn" class="action-btn btn-amber" disabled>↩️ 撤销</button>
+        <button id="clearColorBtn" class="action-btn btn-coral">🧹 重涂</button>
+        <button id="saveArtBtn" class="action-btn btn-green">💾 保存画作</button>
+      </div>
+    </section>
+
+    <main class="workspace">
+      <div class="board-card">
+        <div id="statusPill" class="status-pill">把下面的几何积木拖进虚线框里（也可以先点积木、再点虚线框哦！）</div>
+        <svg id="stageSvg" viewBox="0 0 600 380" role="img" aria-label="拼图与涂色画板"></svg>
+      </div>
+
+      <!-- 底部托盘：拼图积木 -->
+      <div id="puzzleTray" class="tray-card" aria-label="几何积木托盘"></div>
+
+      <!-- 底部托盘：涂色画笔 -->
+      <div id="colorTray" class="tray-card hidden" aria-label="魔法颜料盘"></div>
+    </main>
+  </div>
+
+  <!-- 完成庆祝弹窗 -->
+  <div id="toastBanner" class="toast-banner" role="dialog" aria-live="polite">
+    <div id="toastEmoji" class="toast-emoji">🎉</div>
+    <div id="toastTitle" class="toast-title">拼图大成功！</div>
+    <div id="toastSub" class="toast-sub">你拼出了一辆超酷的小火车！</div>
+    <div class="toast-actions">
+      <button id="toastColorBtn" class="action-btn btn-purple">🎨 去给它涂色</button>
+      <button id="toastNextBtn" class="action-btn btn-green">下一幅图 ➡️</button>
+      <button id="toastReplayBtn" class="action-btn btn-amber">再拼一次</button>
+    </div>
+  </div>
+
+<script>
+(() => {
+  'use strict';
+
+  /* ==================== 1. 图形与模板数据 ==================== */
+  const STORE_KEY = 'dino_shape_color_stars_v1';
+  const SVG_NS = 'http://www.w3.org/2000/svg';
+
+  const SWATCHES = [
+    { id: 'red',    name: '草莓红', color: '#ff595e' },
+    { id: 'orange', name: '橘子橙', color: '#ff924c' },
+    { id: 'yellow', name: '柠檬黄', color: '#ffca3a' },
+    { id: 'green',  name: '青草绿', color: '#8ac926' },
+    { id: 'mint',   name: '薄荷青', color: '#2ec4b6' },
+    { id: 'blue',   name: '天空蓝', color: '#3b82f6' },
+    { id: 'purple', name: '葡萄紫', color: '#9b5de5' },
+    { id: 'pink',   name: '樱花粉', color: '#f472b6' },
+    { id: 'brown',  name: '可可棕', color: '#b07d4f' },
+    { id: 'white',  name: '雪花白', color: '#ffffff' },
+    { id: 'rainbow', name: '彩虹魔法', color: 'rainbow' }
+  ];
+
+  // 每个图形由规范几何图元组成，同时用于「几何拼图」与「魔法涂色本」
+  // type: 'rect' | 'circle' | 'polygon'
+  // cx, cy 用于中心吸附判定；shapeKey 同类可互换（如相同的圆轮子）
+  const TEMPLATES = [
+    {
+      id: 'train',
+      title: '🚂 小火车',
+      bgSky: '#e0f2fe',
+      bgGround: '#bbf7d0',
+      groundY: 318,
+      pieces: [
+        { id: 'cab',     label: '长方形车厢', shapeKey: 'rect_cab',  type: 'rect',    x: 130, y: 120, w: 125, h: 145, rx: 14, cx: 192, cy: 192, color: '#3b82f6' },
+        { id: 'boiler',  label: '长方形车头', shapeKey: 'rect_body', type: 'rect',    x: 255, y: 175, w: 195, h: 90,  rx: 14, cx: 352, cy: 220, color: '#ff595e' },
+        { id: 'chimney', label: '长方形烟囱', shapeKey: 'rect_chim', type: 'rect',    x: 375, y: 105, w: 46,  h: 70,  rx: 8,  cx: 398, cy: 140, color: '#ff924c' },
+        { id: 'nose',    label: '三角形车前', shapeKey: 'tri_nose',  type: 'polygon', points: '450,205 510,265 450,265', cx: 470, cy: 245, color: '#ffca3a' },
+        { id: 'wheel1',  label: '圆形大轮',   shapeKey: 'wheel_big', type: 'circle',  cx: 192, cy: 280, r: 38, color: '#ffca3a' },
+        { id: 'wheel2',  label: '圆形小轮',   shapeKey: 'wheel_sm',  type: 'circle',  cx: 315, cy: 288, r: 30, color: '#8ac926' },
+        { id: 'wheel3',  label: '圆形小轮',   shapeKey: 'wheel_sm',  type: 'circle',  cx: 405, cy: 288, r: 30, color: '#8ac926' }
+      ],
+      decorations: [
+        { id: 'win',  type: 'rect',   x: 155, y: 145, w: 75, h: 52, rx: 10, color: '#dbeafe' },
+        { id: 'puff', type: 'circle', cx: 402, cy: 70, r: 22, color: '#ffffff' }
+      ]
+    },
+    {
+      id: 'rocket',
+      title: '🚀 小火箭',
+      bgSky: '#1e1b4b',
+      bgGround: '#312e81',
+      groundY: 332,
+      pieces: [
+        { id: 'nose',  label: '三角形箭头', shapeKey: 'tri_top',  type: 'polygon', points: '300,34 235,126 365,126', cx: 300, cy: 95,  color: '#ff595e' },
+        { id: 'body',  label: '长方形机身', shapeKey: 'rect_mid', type: 'rect',    x: 235, y: 126, w: 130, h: 154, rx: 10, cx: 300, cy: 203, color: '#f8fafc' },
+        { id: 'win',   label: '圆形舷窗',   shapeKey: 'cir_win',  type: 'circle',  cx: 300, cy: 192, r: 34, color: '#38bdf8' },
+        { id: 'finL',  label: '三角形左翼', shapeKey: 'tri_finL', type: 'polygon', points: '235,206 168,292 235,280', cx: 212, cy: 258, color: '#ff924c' },
+        { id: 'finR',  label: '三角形右翼', shapeKey: 'tri_finR', type: 'polygon', points: '365,206 432,292 365,280', cx: 388, cy: 258, color: '#ff924c' },
+        { id: 'flame', label: '三角形尾焰', shapeKey: 'tri_flm',  type: 'polygon', points: '262,280 338,280 300,352', cx: 300, cy: 306, color: '#ffca3a' }
+      ],
+      decorations: [
+        { id: 'planet', type: 'circle', cx: 112, cy: 102, r: 32, color: '#c084fc' },
+        { id: 'moon',   type: 'circle', cx: 492, cy: 95,  r: 24, color: '#fef08a' }
+      ]
+    },
+    {
+      id: 'dino',
+      title: '🦕 小恐龙',
+      bgSky: '#e0f2fe',
+      bgGround: '#bbf7d0',
+      groundY: 322,
+      pieces: [
+        { id: 'body',  label: '长方形身体', shapeKey: 'dino_body', type: 'rect',    x: 205, y: 176, w: 185, h: 98, rx: 32, cx: 297, cy: 225, color: '#8ac926' },
+        { id: 'neck',  label: '长方形脖子', shapeKey: 'dino_neck', type: 'rect',    x: 342, y: 98,  w: 48,  h: 104, rx: 16, cx: 366, cy: 150, color: '#8ac926' },
+        { id: 'head',  label: '圆角头',     shapeKey: 'dino_head', type: 'rect',    x: 342, y: 66,  w: 104, h: 58, rx: 24, cx: 394, cy: 95,  color: '#4ade80' },
+        { id: 'tail',  label: '三角形尾巴', shapeKey: 'dino_tail', type: 'polygon', points: '212,202 104,256 212,268', cx: 175, cy: 242, color: '#2ec4b6' },
+        { id: 'leg1',  label: '长方形后腿', shapeKey: 'dino_leg',  type: 'rect',    x: 230, y: 266, w: 42,  h: 58, rx: 12, cx: 251, cy: 295, color: '#65a30d' },
+        { id: 'leg2',  label: '长方形前腿', shapeKey: 'dino_leg',  type: 'rect',    x: 322, y: 266, w: 42,  h: 58, rx: 12, cx: 343, cy: 295, color: '#65a30d' },
+        { id: 'spike', label: '三角形背刺', shapeKey: 'dino_spk',  type: 'polygon', points: '252,176 286,128 320,176', cx: 286, cy: 160, color: '#ffca3a' }
+      ],
+      decorations: [
+        { id: 'sun',   type: 'circle', cx: 105, cy: 84, r: 34, color: '#ffca3a' },
+        { id: 'spot',  type: 'circle', cx: 286, cy: 224, r: 22, color: '#fef08a' }
+      ]
+    },
+    {
+      id: 'house',
+      title: '🏠 魔法小屋',
+      bgSky: '#e0f2fe',
+      bgGround: '#bbf7d0',
+      groundY: 322,
+      pieces: [
+        { id: 'roof',    label: '三角形屋顶', shapeKey: 'h_roof', type: 'polygon', points: '300,58 148,176 452,176', cx: 300, cy: 136, color: '#ff595e' },
+        { id: 'wall',    label: '正方形墙壁', shapeKey: 'h_wall', type: 'rect',    x: 182, y: 176, w: 236, h: 146, rx: 8, cx: 300, cy: 249, color: '#fef3c7' },
+        { id: 'door',    label: '长方形大门', shapeKey: 'h_door', type: 'rect',    x: 264, y: 230, w: 72,  h: 92,  rx: 10, cx: 300, cy: 276, color: '#b07d4f' },
+        { id: 'win',     label: '圆形窗户',   shapeKey: 'h_win',  type: 'circle',  cx: 300, cy: 132, r: 25, color: '#38bdf8' },
+        { id: 'chimney', label: '长方形烟囱', shapeKey: 'h_chim', type: 'rect',    x: 368, y: 78,  w: 38,  h: 64,  rx: 6, cx: 387, cy: 110, color: '#ff924c' },
+        { id: 'tree',    label: '三角形松树', shapeKey: 'h_tree', type: 'polygon', points: '506,158 456,282 556,282', cx: 506, cy: 240, color: '#8ac926' }
+      ],
+      decorations: [
+        { id: 'sun',   type: 'circle', cx: 94,  cy: 84,  r: 32, color: '#ffca3a' },
+        { id: 'trunk', type: 'rect',   x: 494, y: 282, w: 24, h: 40, rx: 4, color: '#b07d4f' }
+      ]
+    },
+    {
+      id: 'boat',
+      title: '⛵ 帆船出海',
+      bgSky: '#e0f2fe',
+      bgGround: '#7dd3fc',
+      groundY: 294,
+      pieces: [
+        { id: 'hull',   label: '梯形船身',   shapeKey: 'b_hull',  type: 'polygon', points: '132,250 468,250 420,318 180,318', cx: 300, cy: 284, color: '#ff595e' },
+        { id: 'sailB',  label: '大三角形帆', shapeKey: 'b_sailB', type: 'polygon', points: '295,66 295,236 164,236', cx: 252, cy: 180, color: '#ffca3a' },
+        { id: 'sailS',  label: '小三角形帆', shapeKey: 'b_sailS', type: 'polygon', points: '315,98 424,236 315,236', cx: 350, cy: 192, color: '#f472b6' },
+        { id: 'flag',   label: '三角形小旗', shapeKey: 'b_flag',  type: 'polygon', points: '295,40 352,58 295,76',  cx: 314, cy: 58,  color: '#9b5de5' },
+        { id: 'sun',    label: '圆形太阳',   shapeKey: 'b_sun',   type: 'circle',  cx: 102, cy: 86, r: 34, color: '#ff924c' },
+        { id: 'port',   label: '圆形船窗',   shapeKey: 'b_port',  type: 'circle',  cx: 300, cy: 284, r: 20, color: '#38bdf8' }
+      ],
+      decorations: [
+        { id: 'mast',  type: 'rect',   x: 298, y: 40, w: 12, h: 210, rx: 4, color: '#b07d4f' },
+        { id: 'cloud', type: 'circle', cx: 492, cy: 90, r: 26, color: '#ffffff' }
+      ]
+    }
+  ];
+
+  /* ==================== 2. 状态管理 ==================== */
+  const state = {
+    mode: 'puzzle',           // 'puzzle' | 'color'
+    themeIdx: 0,
+    muted: false,
+    stars: 0,
+    // 拼图状态
+    placedIds: new Set(),     // 已放置的槽位 id
+    usedPieceIds: new Set(),  // 已用掉的托盘积木 id
+    selectedPieceId: null,    // 点选模式当前选中的积木 id
+    dragging: null,           // { piece, pointerId }
+    // 涂色状态
+    activeSwatch: SWATCHES[0].color,
+    colorMaps: {},            // { [themeId]: { [regionId]: hex } }
+    colorHistory: []          // [{ themeId, regionId, prevColor }]
+  };
+
+  try {
+    const saved = parseInt(localStorage.getItem(STORE_KEY) || '0', 10);
+    if (!Number.isNaN(saved) && saved >= 0) state.stars = saved;
+  } catch (_) {}
+
+  function saveStars() {
+    starCountEl.textContent = String(state.stars);
+    try { localStorage.setItem(STORE_KEY, String(state.stars)); } catch (_) {}
+  }
+
+  /* ==================== 3. Web Audio 合成音效 ==================== */
+  let audioCtx = null;
+
+  function ensureAudio() {
+    if (!audioCtx) {
+      const Ctx = window.AudioContext || window.webkitAudioContext;
+      if (Ctx) audioCtx = new Ctx();
+    }
+    if (audioCtx && audioCtx.state === 'suspended') {
+      audioCtx.resume().catch(() => {});
+    }
+    return audioCtx;
+  }
+
+  function playNote(freq, dur = 0.2, type = 'sine', vol = 0.25) {
+    if (state.muted) return;
+    const ctx = ensureAudio();
+    if (!ctx) return;
+    const now = ctx.currentTime;
+    const osc = ctx.createOscillator();
+    const g = ctx.createGain();
+    osc.type = type;
+    osc.frequency.setValueAtTime(freq, now);
+    g.gain.setValueAtTime(0.001, now);
+    g.gain.linearRampToValueAtTime(vol, now + 0.01);
+    g.gain.exponentialRampToValueAtTime(0.001, now + dur);
+    osc.connect(g).connect(ctx.destination);
+    osc.start(now);
+    osc.stop(now + dur + 0.02);
+  }
+
+  function playSnapSound() {
+    playNote(523.25, 0.14, 'triangle', 0.3);
+    setTimeout(() => playNote(659.25, 0.22, 'sine', 0.28), 65);
+  }
+
+  function playPopSound() {
+    if (state.muted) return;
+    const ctx = ensureAudio();
+    if (!ctx) return;
+    const now = ctx.currentTime;
+    const osc = ctx.createOscillator();
+    const g = ctx.createGain();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(340, now);
+    osc.frequency.exponentialRampToValueAtTime(680, now + 0.1);
+    g.gain.setValueAtTime(0.24, now);
+    g.gain.exponentialRampToValueAtTime(0.001, now + 0.12);
+    osc.connect(g).connect(ctx.destination);
+    osc.start(now);
+    osc.stop(now + 0.14);
+  }
+
+  function playGentleMiss() {
+    playNote(220, 0.16, 'sine', 0.18);
+  }
+
+  function playWinFanfare() {
+    [523.25, 659.25, 783.99, 1046.5].forEach((f, i) => {
+      setTimeout(() => playNote(f, 0.34, 'triangle', 0.26), i * 100);
+    });
+  }
+
+  /* ==================== 4. Canvas 粒子庆祝 ==================== */
+  const fxCanvas = document.getElementById('fxCanvas');
+  const fxCtx = fxCanvas.getContext('2d');
+  const particles = [];
+  const SYMBOLS = ['★', '✦', '●', '▲', '■'];
+
+  function resizeFx() {
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    fxCanvas.width = Math.floor(window.innerWidth * dpr);
+    fxCanvas.height = Math.floor(window.innerHeight * dpr);
+    fxCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  }
+
+  function spawnBurst(x, y, color, count = 12) {
+    for (let i = 0; i < count; i++) {
+      const ang = (Math.PI * 2 * i) / count + (Math.random() - 0.5) * 0.4;
+      const spd = 2.5 + Math.random() * 4.5;
+      particles.push({
+        x, y,
+        vx: Math.cos(ang) * spd,
+        vy: Math.sin(ang) * spd - 1.5,
+        g: 0.12,
+        size: 13 + Math.random() * 11,
+        color,
+        sym: SYMBOLS[i % SYMBOLS.length],
+        life: 0,
+        maxLife: 34 + Math.random() * 20,
+        rot: Math.random() * Math.PI,
+        vrot: (Math.random() - 0.5) * 0.16
+      });
+    }
+  }
+
+  function spawnCelebration() {
+    const w = window.innerWidth;
+    const h = window.innerHeight;
+    const colors = ['#ff595e', '#ff924c', '#ffca3a', '#8ac926', '#38bdf8', '#a855f7', '#f472b6'];
+    for (let i = 0; i < 48; i++) {
+      particles.push({
+        x: w * (0.2 + Math.random() * 0.6),
+        y: h * (0.25 + Math.random() * 0.35),
+        vx: (Math.random() - 0.5) * 9,
+        vy: -3.5 - Math.random() * 6,
+        g: 0.15,
+        size: 16 + Math.random() * 14,
+        color: colors[i % colors.length],
+        sym: SYMBOLS[i % SYMBOLS.length],
+        life: 0,
+        maxLife: 60 + Math.random() * 28,
+        rot: Math.random() * Math.PI,
+        vrot: (Math.random() - 0.5) * 0.18
+      });
+    }
+  }
+
+  function tickFx() {
+    fxCtx.clearRect(0, 0, window.innerWidth, window.innerHeight);
+    for (let i = particles.length - 1; i >= 0; i--) {
+      const p = particles[i];
+      p.life++;
+      p.x += p.vx;
+      p.y += p.vy;
+      p.vy += p.g;
+      p.rot += p.vrot;
+      const alpha = Math.max(0, 1 - p.life / p.maxLife);
+      fxCtx.save();
+      fxCtx.globalAlpha = alpha;
+      fxCtx.translate(p.x, p.y);
+      fxCtx.rotate(p.rot);
+      fxCtx.fillStyle = p.color;
+      fxCtx.font = `900 ${p.size}px sans-serif`;
+      fxCtx.textAlign = 'center';
+      fxCtx.textBaseline = 'middle';
+      fxCtx.fillText(p.sym, 0, 0);
+      fxCtx.restore();
+      if (p.life >= p.maxLife) particles.splice(i, 1);
+    }
+    requestAnimationFrame(tickFx);
+  }
+
+  /* ==================== 5. DOM 引用与 SVG 构造 ==================== */
+  const starCountEl = document.getElementById('starCount');
+  const muteBtn = document.getElementById('muteBtn');
+  const themeListEl = document.getElementById('themeList');
+  const puzzleToolsEl = document.getElementById('puzzleTools');
+  const colorToolsEl = document.getElementById('colorTools');
+  const statusPill = document.getElementById('statusPill');
+  const stageSvg = document.getElementById('stageSvg');
+  const puzzleTray = document.getElementById('puzzleTray');
+  const colorTray = document.getElementById('colorTray');
+  const dragGhost = document.getElementById('dragGhost');
+
+  const hintBtn = document.getElementById('hintBtn');
+  const resetPuzzleBtn = document.getElementById('resetPuzzleBtn');
+  const autoColorBtn = document.getElementById('autoColorBtn');
+  const undoColorBtn = document.getElementById('undoColorBtn');
+  const clearColorBtn = document.getElementById('clearColorBtn');
+  const saveArtBtn = document.getElementById('saveArtBtn');
+
+  const toastBanner = document.getElementById('toastBanner');
+  const toastTitle = document.getElementById('toastTitle');
+  const toastSub = document.getElementById('toastSub');
+  const toastColorBtn = document.getElementById('toastColorBtn');
+  const toastNextBtn = document.getElementById('toastNextBtn');
+  const toastReplayBtn = document.getElementById('toastReplayBtn');
+
+  function makeSvgEl(tag, attrs = {}) {
+    const el = document.createElementNS(SVG_NS, tag);
+    for (const [k, v] of Object.entries(attrs)) {
+      el.setAttribute(k, String(v));
+    }
+    return el;
+  }
+
+  function createShapeNode(item, extraAttrs = {}) {
+    let el;
+    if (item.type === 'rect') {
+      el = makeSvgEl('rect', {
+        x: item.x, y: item.y, width: item.w, height: item.h,
+        rx: item.rx || 0, ry: item.rx || 0
+      });
+    } else if (item.type === 'circle') {
+      el = makeSvgEl('circle', { cx: item.cx, cy: item.cy, r: item.r });
+    } else {
+      el = makeSvgEl('polygon', { points: item.points });
+    }
+    for (const [k, v] of Object.entries(extraAttrs)) {
+      el.setAttribute(k, String(v));
+    }
+    return el;
+  }
+
+  // 把任意图形居中缩放到迷你预览 SVG（用于托盘卡片与拖拽幽灵）
+  function buildCenteredPreviewSvg(item, targetSvg, scaleLimit = 90) {
+    targetSvg.innerHTML = '';
+    const g = makeSvgEl('g');
+    const shape = createShapeNode(item, {
+      fill: item.color,
+      stroke: '#3b2416',
+      'stroke-width': 4,
+      'stroke-linejoin': 'round'
+    });
+    g.appendChild(shape);
+    targetSvg.appendChild(g);
+
+    // 计算逻辑包围盒
+    let minX, minY, w, h;
+    if (item.type === 'rect') {
+      minX = item.x; minY = item.y; w = item.w; h = item.h;
+    } else if (item.type === 'circle') {
+      minX = item.cx - item.r; minY = item.cy - item.r; w = item.r * 2; h = item.r * 2;
+    } else {
+      const pts = item.points.trim().split(/\s+/).map((p) => p.split(',').map(Number));
+      const xs = pts.map((p) => p[0]);
+      const ys = pts.map((p) => p[1]);
+      minX = Math.min(...xs);
+      minY = Math.min(...ys);
+      w = Math.max(...xs) - minX;
+      h = Math.max(...ys) - minY;
+    }
+    const cx = minX + w / 2;
+    const cy = minY + h / 2;
+    const s = Math.min(scaleLimit / Math.max(w, 1), scaleLimit / Math.max(h, 1), 0.72);
+    g.setAttribute('transform', `scale(${s}) translate(${-cx}, ${-cy})`);
+  }
+
+  function currentTemplate() {
+    return TEMPLATES[state.themeIdx];
+  }
+
+  function getColorMap(themeId) {
+    if (!state.colorMaps[themeId]) state.colorMaps[themeId] = {};
+    return state.colorMaps[themeId];
+  }
+
+  function clientToSvgPoint(clientX, clientY) {
+    const rect = stageSvg.getBoundingClientRect();
+    const x = ((clientX - rect.left) / Math.max(rect.width, 1)) * 600;
+    const y = ((clientY - rect.top) / Math.max(rect.height, 1)) * 380;
+    return { x, y };
+  }
+
+  function svgToClientPoint(svgX, svgY) {
+    const rect = stageSvg.getBoundingClientRect();
+    return {
+      x: rect.left + (svgX / 600) * rect.width,
+      y: rect.top + (svgY / 380) * rect.height
+    };
+  }
+
+  /* ==================== 6. 渲染主画板与托盘 ==================== */
+  function renderThemeChips() {
+    themeListEl.innerHTML = '';
+    TEMPLATES.forEach((tpl, i) => {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'theme-chip' + (i === state.themeIdx ? ' active' : '');
+      btn.textContent = tpl.title;
+      btn.addEventListener('click', () => {
+        ensureAudio();
+        selectTheme(i);
+      });
+      themeListEl.appendChild(btn);
+    });
+  }
+
+  function renderPuzzleBoard() {
+    const tpl = currentTemplate();
+    stageSvg.innerHTML = '';
+
+    // 柔和背景
+    stageSvg.appendChild(makeSvgEl('rect', { x: 0, y: 0, width: 600, height: tpl.groundY, fill: tpl.bgSky, rx: 18 }));
+    stageSvg.appendChild(makeSvgEl('rect', { x: 0, y: tpl.groundY, width: 600, height: 380 - tpl.groundY, fill: tpl.bgGround }));
+
+    // 绘制槽位与已拼好的积木
+    tpl.pieces.forEach((piece) => {
+      if (state.placedIds.has(piece.id)) {
+        const placed = createShapeNode(piece, {
+          fill: piece.color,
+          class: 'placed-piece'
+        });
+        stageSvg.appendChild(placed);
+      } else {
+        const slot = createShapeNode(piece, {
+          class: 'slot-shape',
+          'data-slot-id': piece.id,
+          'data-shape-key': piece.shapeKey
+        });
+        slot.addEventListener('click', () => {
+          ensureAudio();
+          if (state.selectedPieceId) {
+            tryPlacePieceOnSlot(state.selectedPieceId, piece.id);
+          } else {
+            statusPill.textContent = `这是「${piece.label}」的位置，快去下面找到它吧！`;
+            slot.classList.add('hint-pulse');
+            setTimeout(() => slot.classList.remove('hint-pulse'), 650);
+          }
+        });
+        stageSvg.appendChild(slot);
+      }
+    });
+
+    // 装饰元素叠在最上层且不遮挡点击（保证车窗、恐龙斑点拼好后清晰可见）
+    tpl.decorations.forEach((d) => {
+      stageSvg.appendChild(createShapeNode(d, {
+        fill: d.color,
+        stroke: '#3b2416',
+        'stroke-width': 2.5,
+        opacity: 0.92,
+        'pointer-events': 'none'
+      }));
+    });
+
+    const remain = tpl.pieces.length - state.placedIds.size;
+    if (remain > 0) {
+      statusPill.textContent = `还差 ${remain} 块积木！把积木拖进虚线框，或先点积木再点框`;
+    } else {
+      statusPill.textContent = `太棒啦！${tpl.title} 全部拼好啦！🎉`;
+    }
+  }
+
+  function renderPuzzleTray() {
+    const tpl = currentTemplate();
+    puzzleTray.innerHTML = '';
+
+    tpl.pieces.forEach((piece) => {
+      const card = document.createElement('div');
+      card.className = 'piece-card'
+        + (state.usedPieceIds.has(piece.id) ? ' used' : '')
+        + (state.selectedPieceId === piece.id ? ' selected' : '');
+      card.dataset.pieceId = piece.id;
+
+      const miniSvg = makeSvgEl('svg', { viewBox: '-55 -55 110 110' });
+      buildCenteredPreviewSvg(piece, miniSvg, 86);
+      card.appendChild(miniSvg);
+
+      const label = document.createElement('span');
+      label.className = 'piece-name';
+      label.textContent = piece.label;
+      card.appendChild(label);
+
+      card.addEventListener('pointerdown', (e) => {
+        if (state.usedPieceIds.has(piece.id)) return;
+        ensureAudio();
+        e.preventDefault();
+        startDrag(piece, e);
+      });
+
+      puzzleTray.appendChild(card);
+    });
+  }
+
+  function renderColorBoard() {
+    const tpl = currentTemplate();
+    const cmap = getColorMap(tpl.id);
+    stageSvg.innerHTML = '';
+
+    // 可涂色的天空与地面背景
+    const skyFill = cmap['__sky'] || '#f8fafc';
+    const skyEl = makeSvgEl('rect', {
+      x: 0, y: 0, width: 600, height: tpl.groundY,
+      fill: skyFill, class: 'color-region'
+    });
+    skyEl.addEventListener('click', () => fillColorRegion('__sky', 300, 90));
+    stageSvg.appendChild(skyEl);
+
+    const gndFill = cmap['__ground'] || '#f1f5f9';
+    const gndEl = makeSvgEl('rect', {
+      x: 0, y: tpl.groundY, width: 600, height: 380 - tpl.groundY,
+      fill: gndFill, class: 'color-region'
+    });
+    gndEl.addEventListener('click', () => fillColorRegion('__ground', 300, 345));
+    stageSvg.appendChild(gndEl);
+
+    // 所有主体几何块 + 装饰块全部开放涂色
+    const allRegions = [...tpl.pieces, ...tpl.decorations];
+    allRegions.forEach((item) => {
+      const fill = cmap[item.id] || '#ffffff';
+      const node = createShapeNode(item, {
+        fill,
+        class: 'color-region'
+      });
+      const cx = item.cx !== undefined ? item.cx : (item.x + (item.w || 40) / 2);
+      const cy = item.cy !== undefined ? item.cy : (item.y + (item.h || 40) / 2);
+      node.addEventListener('click', () => fillColorRegion(item.id, cx, cy));
+      stageSvg.appendChild(node);
+    });
+
+    const sw = SWATCHES.find((s) => s.color === state.activeSwatch);
+    statusPill.textContent = `当前画笔：${sw ? sw.name : '彩色'} · 点击画板任意一块区域就能填色！`;
+    undoColorBtn.disabled = state.colorHistory.filter((h) => h.themeId === tpl.id).length === 0;
+  }
+
+  function renderColorTray() {
+    colorTray.innerHTML = '';
+    SWATCHES.forEach((sw, i) => {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'swatch-btn'
+        + (sw.color === 'rainbow' ? ' rainbow' : '')
+        + (state.activeSwatch === sw.color ? ' active' : '');
+      if (sw.color !== 'rainbow') {
+        btn.style.background = sw.color;
+      } else {
+        btn.textContent = '✨';
+      }
+      btn.title = sw.name;
+      btn.setAttribute('aria-label', sw.name);
+      btn.addEventListener('click', () => {
+        ensureAudio();
+        state.activeSwatch = sw.color;
+        playNote(320 + i * 42, 0.12, 'sine', 0.2);
+        renderColorTray();
+        renderColorBoard();
+      });
+      colorTray.appendChild(btn);
+    });
+  }
+
+  /* ==================== 7. 拼图拖拽与吸附逻辑 ==================== */
+  let dragStartPos = { x: 0, y: 0 };
+  let didMove = false;
+
+  function startDrag(piece, e) {
+    state.dragging = { piece, pointerId: e.pointerId };
+    dragStartPos = { x: e.clientX, y: e.clientY };
+    didMove = false;
+    buildCenteredPreviewSvg(piece, dragGhost, 92);
+    dragGhost.style.left = e.clientX + 'px';
+    dragGhost.style.top = e.clientY + 'px';
+    dragGhost.style.display = 'block';
+  }
+
+  function clearSlotHover() {
+    stageSvg.querySelectorAll('.slot-shape.hover-match').forEach((el) => el.classList.remove('hover-match'));
+  }
+
+  function findBestMatchingSlot(piece, svgPt) {
+    const tpl = currentTemplate();
+    let best = null;
+    let bestDist = 66; // 宽松吸附半径，适合低龄儿童
+    for (const slot of tpl.pieces) {
+      if (state.placedIds.has(slot.id)) continue;
+      if (slot.shapeKey !== piece.shapeKey) continue;
+      const dist = Math.hypot(svgPt.x - slot.cx, svgPt.y - slot.cy);
+      if (dist < bestDist) {
+        bestDist = dist;
+        best = slot;
+      }
+    }
+    return best;
+  }
+
+  window.addEventListener('pointermove', (e) => {
+    if (!state.dragging) return;
+    if (Math.hypot(e.clientX - dragStartPos.x, e.clientY - dragStartPos.y) > 8) {
+      didMove = true;
+    }
+    dragGhost.style.left = e.clientX + 'px';
+    dragGhost.style.top = e.clientY + 'px';
+
+    clearSlotHover();
+    const svgPt = clientToSvgPoint(e.clientX, e.clientY);
+    const match = findBestMatchingSlot(state.dragging.piece, svgPt);
+    if (match) {
+      const el = stageSvg.querySelector(`[data-slot-id="${match.id}"]`);
+      if (el) el.classList.add('hover-match');
+    }
+  });
+
+  window.addEventListener('pointerup', (e) => {
+    if (!state.dragging) return;
+    const { piece } = state.dragging;
+    state.dragging = null;
+    dragGhost.style.display = 'none';
+    clearSlotHover();
+
+    if (!didMove) {
+      // 轻点切换选中状态，支持“先点积木、再点槽位”
+      state.selectedPieceId = state.selectedPieceId === piece.id ? null : piece.id;
+      playNote(440, 0.1, 'sine', 0.2);
+      renderPuzzleTray();
+      if (state.selectedPieceId) {
+        statusPill.textContent = `已选中「${piece.label}」，请点击画板上对应的虚线框！`;
+      }
+      return;
+    }
+
+    const svgPt = clientToSvgPoint(e.clientX, e.clientY);
+    const match = findBestMatchingSlot(piece, svgPt);
+    if (match) {
+      completePiecePlacement(piece.id, match);
+    } else {
+      playGentleMiss();
+      statusPill.textContent = `再往「${piece.label}」对应的虚线框靠近一点试试哦～`;
+    }
+  });
+
+  window.addEventListener('pointercancel', () => {
+    state.dragging = null;
+    dragGhost.style.display = 'none';
+    clearSlotHover();
+  });
+
+  function tryPlacePieceOnSlot(pieceId, slotId) {
+    const tpl = currentTemplate();
+    const piece = tpl.pieces.find((p) => p.id === pieceId);
+    const slot = tpl.pieces.find((p) => p.id === slotId);
+    if (!piece || !slot) return;
+    if (piece.shapeKey === slot.shapeKey) {
+      completePiecePlacement(piece.id, slot);
+    } else {
+      playGentleMiss();
+      statusPill.textContent = `形状不太一样哦，${piece.label} 要放进同样形状的虚线框里！`;
+    }
+  }
+
+  function completePiecePlacement(pieceId, slot) {
+    state.usedPieceIds.add(pieceId);
+    state.placedIds.add(slot.id);
+    state.selectedPieceId = null;
+    playSnapSound();
+
+    const pt = svgToClientPoint(slot.cx, slot.cy);
+    spawnBurst(pt.x, pt.y, slot.color, 14);
+
+    renderPuzzleBoard();
+    renderPuzzleTray();
+
+    const tpl = currentTemplate();
+    if (state.placedIds.size >= tpl.pieces.length) {
+      state.stars += 2;
+      saveStars();
+      playWinFanfare();
+      spawnCelebration();
+      toastTitle.textContent = '拼图大成功！';
+      toastSub.textContent = `你拼好了 ${tpl.title}，奖励 2 颗 ⭐！要不要给它涂上你喜欢的颜色？`;
+      toastBanner.classList.add('show');
+    }
+  }
+
+  /* ==================== 8. 魔法涂色逻辑 ==================== */
+  const BRIGHT_POOL = SWATCHES.filter((s) => s.color !== 'rainbow' && s.color !== '#ffffff').map((s) => s.color);
+
+  function fillColorRegion(regionId, svgX, svgY) {
+    ensureAudio();
+    const tpl = currentTemplate();
+    const cmap = getColorMap(tpl.id);
+    const prevColor = cmap[regionId] || null;
+    const nextColor = state.activeSwatch === 'rainbow'
+      ? BRIGHT_POOL[Math.floor(Math.random() * BRIGHT_POOL.length)]
+      : state.activeSwatch;
+
+    state.colorHistory.push({ themeId: tpl.id, regionId, prevColor });
+    cmap[regionId] = nextColor;
+
+    playPopSound();
+    const pt = svgToClientPoint(svgX, svgY);
+    spawnBurst(pt.x, pt.y, nextColor === '#ffffff' ? '#38bdf8' : nextColor, 10);
+    renderColorBoard();
+  }
+
+  function autoColorCurrent() {
+    ensureAudio();
+    const tpl = currentTemplate();
+    const cmap = getColorMap(tpl.id);
+    cmap['__sky'] = tpl.bgSky;
+    cmap['__ground'] = tpl.bgGround;
+    [...tpl.pieces, ...tpl.decorations].forEach((item) => {
+      cmap[item.id] = item.color;
+    });
+    playWinFanfare();
+    spawnCelebration();
+    renderColorBoard();
+    statusPill.textContent = `哇！魔法棒帮你涂好了 ${tpl.title}，你也可以继续改色哦！`;
+  }
+
+  function undoLastColor() {
+    const tpl = currentTemplate();
+    for (let i = state.colorHistory.length - 1; i >= 0; i--) {
+      if (state.colorHistory[i].themeId === tpl.id) {
+        const entry = state.colorHistory.splice(i, 1)[0];
+        const cmap = getColorMap(tpl.id);
+        if (entry.prevColor === null) delete cmap[entry.regionId];
+        else cmap[entry.regionId] = entry.prevColor;
+        playNote(360, 0.1, 'sine', 0.18);
+        renderColorBoard();
+        return;
+      }
+    }
+  }
+
+  function saveArtworkPng() {
+    ensureAudio();
+    try {
+      const serializer = new XMLSerializer();
+      const svgStr = serializer.serializeToString(stageSvg);
+      const blob = new Blob([svgStr], { type: 'image/svg+xml;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        canvas.width = 1200;
+        canvas.height = 760;
+        const ctx = canvas.getContext('2d');
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+        URL.revokeObjectURL(url);
+        const link = document.createElement('a');
+        link.download = `${currentTemplate().id}_artwork.png`;
+        link.href = canvas.toDataURL('image/png');
+        link.click();
+        statusPill.textContent = '画作已保存为图片啦！🖼️';
+      };
+      img.onerror = () => {
+        URL.revokeObjectURL(url);
+        statusPill.textContent = '画作已准备好，可以直接截图留念哦！';
+      };
+      img.src = url;
+    } catch (_) {
+      statusPill.textContent = '画作已准备好，可以直接截图留念哦！';
+    }
+  }
+
+  /* ==================== 9. 模式与主题切换 ==================== */
+  function hideToast() {
+    toastBanner.classList.remove('show');
+  }
+
+  function resetCurrentPuzzle() {
+    hideToast();
+    state.placedIds.clear();
+    state.usedPieceIds.clear();
+    state.selectedPieceId = null;
+    renderPuzzleBoard();
+    renderPuzzleTray();
+  }
+
+  function selectTheme(idx) {
+    state.themeIdx = idx;
+    hideToast();
+    renderThemeChips();
+    if (state.mode === 'puzzle') {
+      resetCurrentPuzzle();
+    } else {
+      renderColorBoard();
+    }
+  }
+
+  function switchMode(newMode) {
+    hideToast();
+    state.mode = newMode;
+    document.querySelectorAll('.mode-btn').forEach((b) => {
+      b.classList.toggle('active', b.dataset.mode === newMode);
+    });
+
+    const isPuzzle = newMode === 'puzzle';
+    puzzleToolsEl.classList.toggle('hidden', !isPuzzle);
+    puzzleTray.classList.toggle('hidden', !isPuzzle);
+    colorToolsEl.classList.toggle('hidden', isPuzzle);
+    colorTray.classList.toggle('hidden', isPuzzle);
+
+    if (isPuzzle) {
+      renderPuzzleBoard();
+      renderPuzzleTray();
+    } else {
+      renderColorTray();
+      renderColorBoard();
+    }
+  }
+
+  // 事件绑定
+  document.querySelectorAll('.mode-btn').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      ensureAudio();
+      switchMode(btn.dataset.mode);
+    });
+  });
+
+  muteBtn.addEventListener('click', () => {
+    state.muted = !state.muted;
+    muteBtn.textContent = state.muted ? '🔇' : '🔊';
+    if (!state.muted) {
+      ensureAudio();
+      playNote(587.33, 0.14, 'triangle', 0.24);
+    }
+  });
+
+  hintBtn.addEventListener('click', () => {
+    ensureAudio();
+    const tpl = currentTemplate();
+    const nextSlot = tpl.pieces.find((p) => !state.placedIds.has(p.id));
+    if (!nextSlot) return;
+    const slotEl = stageSvg.querySelector(`[data-slot-id="${nextSlot.id}"]`);
+    if (slotEl) {
+      slotEl.classList.add('hint-pulse');
+      setTimeout(() => slotEl.classList.remove('hint-pulse'), 1400);
+    }
+    const matchingPiece = tpl.pieces.find((p) => !state.usedPieceIds.has(p.id) && p.shapeKey === nextSlot.shapeKey);
+    if (matchingPiece) {
+      state.selectedPieceId = matchingPiece.id;
+      renderPuzzleTray();
+    }
+    playNote(659.25, 0.16, 'sine', 0.24);
+    statusPill.textContent = `提示：已帮你选中「${nextSlot.label}」，点亮黄色的虚线框就放进去啦！`;
+  });
+
+  resetPuzzleBtn.addEventListener('click', () => {
+    ensureAudio();
+    resetCurrentPuzzle();
+  });
+
+  autoColorBtn.addEventListener('click', autoColorCurrent);
+  undoColorBtn.addEventListener('click', undoLastColor);
+  clearColorBtn.addEventListener('click', () => {
+    ensureAudio();
+    const tpl = currentTemplate();
+    state.colorMaps[tpl.id] = {};
+    state.colorHistory = state.colorHistory.filter((h) => h.themeId !== tpl.id);
+    playNote(300, 0.12, 'sine', 0.18);
+    renderColorBoard();
+  });
+  saveArtBtn.addEventListener('click', saveArtworkPng);
+
+  toastColorBtn.addEventListener('click', () => {
+    hideToast();
+    switchMode('color');
+  });
+
+  toastNextBtn.addEventListener('click', () => {
+    hideToast();
+    selectTheme((state.themeIdx + 1) % TEMPLATES.length);
+  });
+
+  toastReplayBtn.addEventListener('click', () => {
+    resetCurrentPuzzle();
+  });
+
+  window.addEventListener('resize', resizeFx);
+
+  window.onload = () => {
+    saveStars();
+    renderThemeChips();
+    renderColorTray();
+    switchMode('puzzle');
+    resizeFx();
+    requestAnimationFrame(tickFx);
+  };
+})();
+</script>
+</body>
+</html>
