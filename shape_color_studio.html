@@ -145,6 +145,25 @@
 
   .icon-btn:active { transform: translateY(3px); }
 
+  .home-btn {
+    flex: 0 0 auto;
+    border: none;
+    border-radius: 999px;
+    background: var(--card-bg);
+    color: #5c3317;
+    font-size: clamp(12px, 1.5vw, 14px);
+    font-weight: 800;
+    padding: 9px 14px;
+    cursor: pointer;
+    white-space: nowrap;
+    box-shadow: 0 4px 0 rgba(67, 40, 24, 0.14);
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+  }
+
+  .home-btn:active { transform: translateY(3px); }
+
   /* 主题与工具栏 */
   .toolbar-card {
     background: var(--card-bg);
@@ -456,6 +475,7 @@
       </nav>
 
       <div class="top-right">
+        <button id="homeBtn" class="home-btn" aria-label="回游戏乐园" title="回游戏乐园">🏠 回乐园</button>
         <div class="star-badge" title="获得的创意星星">
           <span>⭐</span>
           <span id="starCount">0</span>
@@ -1412,6 +1432,18 @@
     resizeFx();
     requestAnimationFrame(tickFx);
   };
+})();
+</script>
+<script>
+(function () {
+  var btn = document.getElementById('homeBtn');
+  if (!btn) return;
+  function goHome(e) {
+    if (e) { e.preventDefault(); e.stopPropagation(); }
+    location.href = 'index.html';
+  }
+  btn.addEventListener('pointerdown', goHome, true);
+  btn.addEventListener('click', goHome, true);
 })();
 </script>
 </body>

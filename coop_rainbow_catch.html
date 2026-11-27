@@ -1,0 +1,1375 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>双人彩虹接果大冒险 · Coop Rainbow Catch</title>
+<style>
+  * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+
+  html, body {
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    font-family: -apple-system, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans CJK SC", sans-serif;
+    background: #87cefa;
+    color: #432818;
+  }
+
+  .app {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  /* 顶部信息栏 */
+  .hud {
+    position: absolute;
+    top: clamp(8px, 1.4vh, 14px);
+    left: clamp(8px, 1.8vw, 18px);
+    right: clamp(8px, 1.8vw, 18px);
+    z-index: 20;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    flex-wrap: wrap;
+    pointer-events: none;
+  }
+
+  .hud-group {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    pointer-events: auto;
+  }
+
+  .pill {
+    background: rgba(255, 255, 255, 0.92);
+    border: 2.5px solid rgba(255, 255, 255, 0.95);
+    border-radius: 999px;
+    padding: 5px 13px;
+    font-size: clamp(13px, 1.7vw, 16px);
+    font-weight: 800;
+    color: #5c3317;
+    box-shadow: 0 4px 12px rgba(67, 40, 24, 0.14);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    white-space: nowrap;
+  }
+
+  .progress-wrap {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(255, 255, 255, 0.92);
+    padding: 5px 12px;
+    border-radius: 999px;
+    box-shadow: 0 4px 12px rgba(67, 40, 24, 0.14);
+    pointer-events: auto;
+  }
+
+  .progress-bar {
+    width: clamp(90px, 18vw, 200px);
+    height: 14px;
+    background: #e2e8f0;
+    border-radius: 999px;
+    overflow: hidden;
+    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.12);
+  }
+
+  .progress-fill {
+    height: 100%;
+    width: 0%;
+    background: linear-gradient(90deg, #ff595e, #ffca3a, #8ac926, #38bdf8);
+    border-radius: 999px;
+    transition: width 0.2s ease;
+  }
+
+  .progress-text {
+    font-size: clamp(12px, 1.5vw, 15px);
+    font-weight: 900;
+    color: #b45309;
+    min-width: 48px;
+    text-align: right;
+  }
+
+  .icon-btn {
+    width: 38px;
+    height: 38px;
+    border: none;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.94);
+    box-shadow: 0 4px 0 rgba(67, 40, 24, 0.15);
+    font-size: 18px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform 0.1s;
+  }
+
+  .icon-btn:active { transform: translateY(3px); }
+
+  .home-btn {
+    flex: 0 0 auto;
+    border: 2.5px solid rgba(255, 255, 255, 0.95);
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.94);
+    color: #5c3317;
+    font-size: clamp(12px, 1.6vw, 15px);
+    font-weight: 900;
+    padding: 8px 14px;
+    cursor: pointer;
+    white-space: nowrap;
+    box-shadow: 0 4px 0 rgba(67, 40, 24, 0.15);
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+  }
+
+  .home-btn:active { transform: translateY(3px); }
+
+  .modal-home {
+    display: block;
+    margin: 12px auto 0;
+    border: 0;
+    background: transparent;
+    color: #a16207;
+    font-size: 13px;
+    font-weight: 800;
+    text-decoration: underline;
+    cursor: pointer;
+    padding: 6px 10px;
+  }
+
+  /* 游戏画布 */
+  #gameCanvas {
+    width: 100%;
+    height: 100%;
+    display: block;
+    touch-action: none;
+  }
+
+  /* 底部双人触屏按键（左右各一组，支持多点触控） */
+  .touch-bar {
+    position: absolute;
+    bottom: clamp(10px, 2vh, 18px);
+    left: clamp(10px, 2vw, 22px);
+    right: clamp(10px, 2vw, 22px);
+    z-index: 20;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    pointer-events: none;
+  }
+
+  .pad-group {
+    display: flex;
+    align-items: center;
+    gap: clamp(8px, 1.4vw, 14px);
+    pointer-events: auto;
+    background: rgba(255, 255, 255, 0.38);
+    backdrop-filter: blur(4px);
+    padding: 6px 10px;
+    border-radius: 999px;
+    border: 2px solid rgba(255, 255, 255, 0.55);
+  }
+
+  .pad-tag {
+    font-size: clamp(12px, 1.5vw, 14px);
+    font-weight: 900;
+    padding: 3px 8px;
+    border-radius: 999px;
+    color: #fff;
+  }
+
+  .pad-tag.p1 { background: #f97316; }
+  .pad-tag.p2 { background: #ec4899; }
+
+  .ctrl-btn {
+    width: clamp(48px, 7.5vw, 64px);
+    height: clamp(48px, 7.5vw, 64px);
+    border: none;
+    border-radius: 50%;
+    font-size: clamp(20px, 3vw, 26px);
+    font-weight: 900;
+    color: #fff;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    touch-action: none;
+    transition: transform 0.08s;
+  }
+
+  .ctrl-btn.p1 {
+    background: linear-gradient(180deg, #fb923c, #ea580c);
+    box-shadow: 0 5px 0 #9a3412, 0 8px 14px rgba(0, 0, 0, 0.2);
+  }
+
+  .ctrl-btn.p2 {
+    background: linear-gradient(180deg, #f472b6, #db2777);
+    box-shadow: 0 5px 0 #9d174d, 0 8px 14px rgba(0, 0, 0, 0.2);
+  }
+
+  .ctrl-btn.active,
+  .ctrl-btn:active {
+    transform: translateY(4px) scale(0.96);
+  }
+
+  /* 弹窗（开始 / 暂停 / 过关） */
+  .overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 30;
+    background: rgba(30, 41, 59, 0.42);
+    backdrop-filter: blur(4px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+  }
+
+  .overlay.hidden {
+    display: none;
+  }
+
+  .modal {
+    background: #fffef9;
+    border: 4px solid #fbbf24;
+    border-radius: 30px;
+    padding: clamp(18px, 3vh, 28px) clamp(18px, 3.2vw, 32px);
+    max-width: 540px;
+    width: 100%;
+    text-align: center;
+    box-shadow: 0 20px 50px rgba(30, 41, 59, 0.3);
+  }
+
+  .modal-emoji {
+    font-size: clamp(42px, 7vw, 58px);
+    line-height: 1.1;
+  }
+
+  .modal h1 {
+    font-size: clamp(22px, 4vw, 30px);
+    font-weight: 900;
+    color: #c2410c;
+    margin: 6px 0 8px;
+  }
+
+  .modal p {
+    font-size: clamp(13px, 1.8vw, 15px);
+    font-weight: 700;
+    color: #6b462a;
+    line-height: 1.5;
+    margin-bottom: 14px;
+  }
+
+  .rules-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-bottom: 16px;
+    text-align: left;
+  }
+
+  .rule-box {
+    background: #fff7ed;
+    border: 2px solid #fed7aa;
+    border-radius: 16px;
+    padding: 10px 12px;
+    font-size: clamp(12px, 1.5vw, 14px);
+    font-weight: 700;
+    color: #5c3317;
+    line-height: 1.4;
+  }
+
+  .rule-box.p2-box {
+    background: #fdf2f8;
+    border-color: #fbcfe8;
+  }
+
+  .coop-tip {
+    background: linear-gradient(90deg, #fef3c7, #e0f2fe, #dcfce7);
+    border: 2px dashed #f59e0b;
+    border-radius: 16px;
+    padding: 9px 12px;
+    font-size: clamp(12px, 1.6vw, 14px);
+    font-weight: 800;
+    color: #7c2d12;
+    margin-bottom: 16px;
+  }
+
+  .btn-row {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+
+  .big-btn {
+    border: none;
+    border-radius: 16px;
+    padding: 11px 22px;
+    font-size: clamp(15px, 2vw, 18px);
+    font-weight: 900;
+    color: #fff;
+    cursor: pointer;
+    box-shadow: 0 5px 0 rgba(0, 0, 0, 0.18);
+    transition: transform 0.1s;
+  }
+
+  .big-btn:active { transform: translateY(3px); }
+  .btn-go    { background: linear-gradient(180deg, #4ade80, #16a34a); }
+  .btn-amber { background: linear-gradient(180deg, #fbbf24, #d97706); }
+  .btn-blue  { background: linear-gradient(180deg, #38bdf8, #0284c7); }
+
+  @media (max-width: 600px) {
+    .pad-tag { display: none; }
+    .rules-grid { grid-template-columns: 1fr; }
+    .hud { gap: 5px; }
+    .pill { padding: 4px 10px; font-size: 12px; }
+  }
+</style>
+</head>
+<body>
+  <div class="app">
+    <header class="hud">
+      <div class="hud-group">
+        <button id="homeBtn" class="home-btn" aria-label="回游戏乐园" title="回游戏乐园">🏠 回乐园</button>
+        <div class="pill" id="levelPill">🌱 第 1 关 · 阳光草地</div>
+        <div class="pill">🏆 得分 <span id="scoreVal">0</span></div>
+      </div>
+
+      <div class="progress-wrap" aria-label="本关合作进度">
+        <span>🧺</span>
+        <div class="progress-bar"><div id="progressFill" class="progress-fill"></div></div>
+        <span id="progressText" class="progress-text">0 / 15</span>
+      </div>
+
+      <div class="hud-group">
+        <div class="pill" id="bestPill">⭐ 最高 0</div>
+        <button id="pauseBtn" class="icon-btn" aria-label="暂停或继续" title="暂停">⏸️</button>
+        <button id="muteBtn" class="icon-btn" aria-label="开关声音" title="开关声音">🔊</button>
+      </div>
+    </header>
+
+    <canvas id="gameCanvas"></canvas>
+
+    <!-- 底部双人触屏控制栏 -->
+    <div class="touch-bar" aria-label="双人方向控制">
+      <div class="pad-group">
+        <span class="pad-tag p1">🐻 小熊 (A/D)</span>
+        <button id="p1Left" class="ctrl-btn p1" aria-label="小熊向左">◀</button>
+        <button id="p1Right" class="ctrl-btn p1" aria-label="小熊向右">▶</button>
+      </div>
+      <div class="pad-group">
+        <button id="p2Left" class="ctrl-btn p2" aria-label="小兔向左">◀</button>
+        <button id="p2Right" class="ctrl-btn p2" aria-label="小兔向右">▶</button>
+        <span class="pad-tag p2">🐰 小兔 (←/→)</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- 开始 / 暂停 / 过关弹窗 -->
+  <div id="overlay" class="overlay" role="dialog" aria-modal="true">
+    <div class="modal">
+      <div id="modalEmoji" class="modal-emoji">🐻🌈🐰</div>
+      <h1 id="modalTitle">双人彩虹接果大冒险</h1>
+      <p id="modalDesc">小熊和小兔一起合作，接住天上掉下来的水果和超级大星星吧！</p>
+
+      <div id="rulesBlock">
+        <div class="rules-grid">
+          <div class="rule-box">
+            <strong>🐻 玩家 1 · 小熊</strong><br>
+            电脑按 <strong>A / D</strong> 键<br>
+            平板按左下按钮或拖动左半屏
+          </div>
+          <div class="rule-box p2-box">
+            <strong>🐰 玩家 2 · 小兔</strong><br>
+            电脑按 <strong>← / →</strong> 键<br>
+            平板按右下按钮或拖动右半屏
+          </div>
+        </div>
+        <div class="coop-tip">
+          🌟 合作秘诀：两人站近一点会张开<strong>彩虹大蹦床</strong>！飘来带降落伞的<strong>巨型大星星</strong>时，一定要拉紧彩虹大蹦床一起接住（一次 +5 分）！
+        </div>
+      </div>
+
+      <div id="modalBtns" class="btn-row">
+        <button id="startBtn" class="big-btn btn-go">🚀 双人一起出发！</button>
+        <button id="endlessBtn" class="big-btn btn-blue">♾️ 无尽欢乐模式</button>
+      </div>
+      <button id="modalHomeBtn" class="modal-home">🏠 回游戏乐园</button>
+    </div>
+  </div>
+
+<script>
+(() => {
+  'use strict';
+
+  /* ==================== 1. 关卡与常量 ==================== */
+  const STORE_KEY = 'coop_rainbow_catch_best_v1';
+
+  const LEVELS = [
+    { name: '🌱 第 1 关 · 阳光草地', goal: 15, spawnInt: 1.25, speedMul: 1.0,  skyTop: '#6ec6ff', skyBot: '#d4f1ff', hill1: '#9be58c', hill2: '#6ec96b', starsBg: false },
+    { name: '🌸 第 2 关 · 樱花果园', goal: 22, spawnInt: 1.08, speedMul: 1.15, skyTop: '#fda4af', skyBot: '#fef3c7', hill1: '#a7f3d0', hill2: '#5eead4', starsBg: false },
+    { name: '🌙 第 3 关 · 星空派对', goal: 30, spawnInt: 0.96, speedMul: 1.28, skyTop: '#312e81', skyBot: '#6d28d9', hill1: '#4c1d95', hill2: '#3b0764', starsBg: true  }
+  ];
+
+  const FRUITS = [
+    { emoji: '🍎', name: '苹果', color: '#ff595e', pts: 1 },
+    { emoji: '🍊', name: '橘子', color: '#ff924c', pts: 1 },
+    { emoji: '🍓', name: '草莓', color: '#f43f5e', pts: 1 },
+    { emoji: '🍇', name: '葡萄', color: '#a855f7', pts: 1 },
+    { emoji: '🍌', name: '香蕉', color: '#facc15', pts: 1 }
+  ];
+
+  const GIANT_REWARDS = [
+    { emoji: '🌟', name: '超级大星星', color: '#fbbf24', pts: 5 },
+    { emoji: '🍉', name: '巨型大西瓜', color: '#4ade80', pts: 5 },
+    { emoji: '🎁', name: '彩虹大礼盒', color: '#f472b6', pts: 5 }
+  ];
+
+  /* ==================== 2. 游戏状态 ==================== */
+  const state = {
+    phase: 'intro',        // 'intro' | 'play' | 'paused' | 'levelclear' | 'victory'
+    endless: false,
+    levelIdx: 0,
+    score: 0,
+    best: 0,
+    caught: 0,             // 本关已收集数
+    giantCaught: 0,        // 本局合力接住的超级礼盒数
+    combo: 0,
+    muted: false,
+    time: 0,
+    spawnTimer: 0,
+    giantTimer: 4.5,
+    dropTimer: 6.5,
+    netActive: false,      // 两人距离合适时彩虹网张开
+    netBounce: 0,          // 彩虹网接住大星星时的弹跳动画
+    bannerText: '',
+    bannerTimer: 0,
+    // 玩家状态
+    p1: { x: 0.34, vx: 0, stun: 0, happy: 0, dragId: null, dragOffset: 0 },
+    p2: { x: 0.66, vx: 0, stun: 0, happy: 0, dragId: null, dragOffset: 0 },
+    // 输入状态
+    keys: { p1L: false, p1R: false, p2L: false, p2R: false },
+    items: [],             // 下落物
+    particles: [],         // 粒子特效
+    floatTexts: [],        // 飘字
+    clouds: []
+  };
+
+  try {
+    const saved = parseInt(localStorage.getItem(STORE_KEY) || '0', 10);
+    if (!Number.isNaN(saved) && saved > 0) state.best = saved;
+  } catch (_) {}
+
+  function saveBest() {
+    if (state.score > state.best) {
+      state.best = state.score;
+      try { localStorage.setItem(STORE_KEY, String(state.best)); } catch (_) {}
+    }
+    bestPill.textContent = `⭐ 最高 ${state.best}`;
+  }
+
+  /* ==================== 3. Web Audio 合成音效 ==================== */
+  let audioCtx = null;
+
+  function ensureAudio() {
+    if (!audioCtx) {
+      const Ctx = window.AudioContext || window.webkitAudioContext;
+      if (Ctx) audioCtx = new Ctx();
+    }
+    if (audioCtx && audioCtx.state === 'suspended') {
+      audioCtx.resume().catch(() => {});
+    }
+    return audioCtx;
+  }
+
+  function playTone(freq, dur = 0.16, type = 'sine', vol = 0.24) {
+    if (state.muted) return;
+    const ctx = ensureAudio();
+    if (!ctx) return;
+    const now = ctx.currentTime;
+    const osc = ctx.createOscillator();
+    const g = ctx.createGain();
+    osc.type = type;
+    osc.frequency.setValueAtTime(freq, now);
+    g.gain.setValueAtTime(0.001, now);
+    g.gain.linearRampToValueAtTime(vol, now + 0.01);
+    g.gain.exponentialRampToValueAtTime(0.001, now + dur);
+    osc.connect(g).connect(ctx.destination);
+    osc.start(now);
+    osc.stop(now + dur + 0.02);
+  }
+
+  function playCatchFruit() {
+    const pitch = 520 + Math.min(state.combo, 8) * 42;
+    playTone(pitch, 0.12, 'triangle', 0.26);
+    setTimeout(() => playTone(pitch * 1.25, 0.14, 'sine', 0.22), 55);
+  }
+
+  function playCoopGiant() {
+    [523.25, 659.25, 783.99, 1046.5].forEach((f, i) => {
+      setTimeout(() => playTone(f, 0.28, 'triangle', 0.28), i * 70);
+    });
+  }
+
+  function playDropBonk() {
+    if (state.muted) return;
+    const ctx = ensureAudio();
+    if (!ctx) return;
+    const now = ctx.currentTime;
+    const osc = ctx.createOscillator();
+    const g = ctx.createGain();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(240, now);
+    osc.frequency.exponentialRampToValueAtTime(110, now + 0.18);
+    g.gain.setValueAtTime(0.22, now);
+    g.gain.exponentialRampToValueAtTime(0.001, now + 0.2);
+    osc.connect(g).connect(ctx.destination);
+    osc.start(now);
+    osc.stop(now + 0.22);
+  }
+
+  function playWinMelody() {
+    [523.25, 659.25, 783.99, 659.25, 1046.5].forEach((f, i) => {
+      setTimeout(() => playTone(f, 0.3, 'triangle', 0.28), i * 110);
+    });
+  }
+
+  /* ==================== 4. Canvas 与 DOM 引用 ==================== */
+  const canvas = document.getElementById('gameCanvas');
+  const ctx = canvas.getContext('2d');
+
+  const levelPill = document.getElementById('levelPill');
+  const scoreVal = document.getElementById('scoreVal');
+  const progressFill = document.getElementById('progressFill');
+  const progressText = document.getElementById('progressText');
+  const bestPill = document.getElementById('bestPill');
+  const pauseBtn = document.getElementById('pauseBtn');
+  const muteBtn = document.getElementById('muteBtn');
+
+  const overlay = document.getElementById('overlay');
+  const modalEmoji = document.getElementById('modalEmoji');
+  const modalTitle = document.getElementById('modalTitle');
+  const modalDesc = document.getElementById('modalDesc');
+  const rulesBlock = document.getElementById('rulesBlock');
+  const modalBtns = document.getElementById('modalBtns');
+
+  let W = 800;
+  let H = 600;
+  let dpr = 1;
+
+  function resize() {
+    dpr = Math.min(window.devicePixelRatio || 1, 2);
+    W = window.innerWidth;
+    H = window.innerHeight;
+    canvas.width = Math.floor(W * dpr);
+    canvas.height = Math.floor(H * dpr);
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  }
+
+  function initClouds() {
+    state.clouds = [];
+    for (let i = 0; i < 5; i++) {
+      state.clouds.push({
+        x: Math.random() * 1.1,
+        y: 0.1 + Math.random() * 0.24,
+        s: 0.7 + Math.random() * 0.7,
+        v: 0.008 + Math.random() * 0.012
+      });
+    }
+  }
+
+  /* ==================== 5. 界面更新与弹窗控制 ==================== */
+  function currentLevel() {
+    return LEVELS[Math.min(state.levelIdx, LEVELS.length - 1)];
+  }
+
+  function updateHUD() {
+    const lv = currentLevel();
+    levelPill.textContent = state.endless ? '♾️ 无尽欢乐模式' : lv.name;
+    scoreVal.textContent = String(state.score);
+    saveBest();
+
+    if (state.endless) {
+      progressFill.style.width = '100%';
+      progressText.textContent = `合力 ${state.giantCaught}🌟`;
+    } else {
+      const pct = Math.min(100, (state.caught / lv.goal) * 100);
+      progressFill.style.width = pct + '%';
+      progressText.textContent = `${Math.min(state.caught, lv.goal)} / ${lv.goal}`;
+    }
+  }
+
+  function showModal(emoji, title, desc, showRules, buttons) {
+    modalEmoji.textContent = emoji;
+    modalTitle.textContent = title;
+    modalDesc.textContent = desc;
+    rulesBlock.style.display = showRules ? 'block' : 'none';
+    modalBtns.innerHTML = '';
+    buttons.forEach((b) => {
+      const el = document.createElement('button');
+      el.type = 'button';
+      el.className = 'big-btn ' + b.cls;
+      el.textContent = b.text;
+      el.addEventListener('click', () => {
+        ensureAudio();
+        b.onClick();
+      });
+      modalBtns.appendChild(el);
+    });
+    overlay.classList.remove('hidden');
+  }
+
+  function hideModal() {
+    overlay.classList.add('hidden');
+  }
+
+  function startGame(isEndless, levelIdx = 0) {
+    state.endless = isEndless;
+    state.levelIdx = levelIdx;
+    if (levelIdx === 0 || isEndless) {
+      state.score = 0;
+      state.giantCaught = 0;
+    }
+    state.caught = 0;
+    state.combo = 0;
+    state.items = [];
+    state.particles = [];
+    state.floatTexts = [];
+    state.spawnTimer = 0.4;
+    state.giantTimer = 4.2;
+    state.dropTimer = 7.0;
+    state.p1.x = 0.34; state.p1.stun = 0; state.p1.happy = 0;
+    state.p2.x = 0.66; state.p2.stun = 0; state.p2.happy = 0;
+    state.phase = 'play';
+    pauseBtn.textContent = '⏸️';
+    state.bannerText = isEndless ? '🌈 无尽欢乐开始！拉紧彩虹网接大星星！' : `${currentLevel().name} · 出发！`;
+    state.bannerTimer = 2.4;
+    hideModal();
+    updateHUD();
+  }
+
+  function togglePause() {
+    if (state.phase === 'play') {
+      state.phase = 'paused';
+      pauseBtn.textContent = '▶️';
+      showModal('⏸️', '先休息一下吧', '小熊和小兔正在原地等你们回来继续合作哦～', false, [
+        { text: '▶️ 继续玩', cls: 'btn-go', onClick: () => { state.phase = 'play'; pauseBtn.textContent = '⏸️'; hideModal(); } },
+        { text: '🔄 重新开始', cls: 'btn-amber', onClick: () => startGame(state.endless, 0) }
+      ]);
+    } else if (state.phase === 'paused') {
+      state.phase = 'play';
+      pauseBtn.textContent = '⏸️';
+      hideModal();
+    }
+  }
+
+  /* ==================== 6. 粒子、飘字与掉落生成 ==================== */
+  function spawnBurst(x, y, color, count = 12) {
+    const syms = ['★', '✦', '●', '♪'];
+    for (let i = 0; i < count; i++) {
+      const ang = (Math.PI * 2 * i) / count + (Math.random() - 0.5) * 0.4;
+      const spd = 80 + Math.random() * 190;
+      state.particles.push({
+        x, y,
+        vx: Math.cos(ang) * spd,
+        vy: Math.sin(ang) * spd - 70,
+        g: 360,
+        size: 13 + Math.random() * 12,
+        color,
+        sym: syms[i % syms.length],
+        life: 0,
+        maxLife: 0.65 + Math.random() * 0.35
+      });
+    }
+  }
+
+  function addFloatText(x, y, text, color = '#ffffff', size = 24) {
+    state.floatTexts.push({ x, y, text, color, size, life: 0, maxLife: 1.05 });
+  }
+
+  function spawnFruit() {
+    const f = FRUITS[Math.floor(Math.random() * FRUITS.length)];
+    const lv = currentLevel();
+    state.items.push({
+      kind: 'fruit',
+      emoji: f.emoji,
+      color: f.color,
+      pts: f.pts,
+      x: 0.1 + Math.random() * 0.8,
+      y: -36,
+      vy: (125 + Math.random() * 55) * lv.speedMul,
+      r: Math.min(26, Math.max(20, W * 0.028)),
+      swayPhase: Math.random() * Math.PI * 2
+    });
+  }
+
+  function spawnGiantCoop() {
+    const g = GIANT_REWARDS[Math.floor(Math.random() * GIANT_REWARDS.length)];
+    // 超级大星星带降落伞，下落很慢，给家长和孩子充裕时间配合拉网
+    state.items.push({
+      kind: 'giant',
+      emoji: g.emoji,
+      color: g.color,
+      pts: g.pts,
+      x: 0.22 + Math.random() * 0.56,
+      y: -58,
+      vy: 78,
+      r: Math.min(38, Math.max(28, W * 0.042)),
+      swayPhase: Math.random() * Math.PI * 2
+    });
+    state.bannerText = '🪂 超级大星星来啦！快一起拉紧彩虹网接住它！';
+    state.bannerTimer = 2.6;
+  }
+
+  function spawnRaindrop() {
+    const lv = currentLevel();
+    state.items.push({
+      kind: 'drop',
+      emoji: '💧',
+      color: '#60a5fa',
+      pts: 0,
+      x: 0.12 + Math.random() * 0.76,
+      y: -30,
+      vy: (115 + Math.random() * 35) * lv.speedMul,
+      r: 20,
+      swayPhase: 0
+    });
+  }
+
+  /* ==================== 7. 主循环更新 ==================== */
+  function groundY() {
+    return H - Math.max(92, H * 0.16);
+  }
+
+  function update(dt) {
+    state.time += dt;
+
+    // 背景云朵缓缓飘动
+    state.clouds.forEach((c) => {
+      c.x += c.v * dt;
+      if (c.x > 1.18) c.x = -0.18;
+    });
+
+    if (state.phase !== 'play') return;
+
+    const lv = currentLevel();
+    const moveSpeed = 0.52; // 每秒屏幕宽度比例
+
+    // 更新玩家位置（键盘/按钮）
+    const p1Dir = (state.keys.p1R ? 1 : 0) - (state.keys.p1L ? 1 : 0);
+    const p2Dir = (state.keys.p2R ? 1 : 0) - (state.keys.p2L ? 1 : 0);
+
+    if (state.p1.stun > 0) state.p1.stun -= dt;
+    if (state.p2.stun > 0) state.p2.stun -= dt;
+    if (state.p1.happy > 0) state.p1.happy -= dt;
+    if (state.p2.happy > 0) state.p2.happy -= dt;
+
+    const p1Spd = state.p1.stun > 0 ? moveSpeed * 0.45 : moveSpeed;
+    const p2Spd = state.p2.stun > 0 ? moveSpeed * 0.45 : moveSpeed;
+
+    state.p1.x = Math.max(0.06, Math.min(0.94, state.p1.x + p1Dir * p1Spd * dt));
+    state.p2.x = Math.max(0.06, Math.min(0.94, state.p2.x + p2Dir * p2Spd * dt));
+
+    // 判断双人彩虹大网是否张开
+    const p1Px = state.p1.x * W;
+    const p2Px = state.p2.x * W;
+    const distPx = Math.abs(p2Px - p1Px);
+    const minSpan = Math.min(72, W * 0.09);
+    const maxSpan = Math.max(240, W * 0.34);
+    state.netActive = distPx >= minSpan && distPx <= maxSpan;
+    if (state.netBounce > 0) state.netBounce = Math.max(0, state.netBounce - dt * 3.5);
+    if (state.bannerTimer > 0) state.bannerTimer -= dt;
+
+    // 定时生成掉落物
+    state.spawnTimer -= dt;
+    if (state.spawnTimer <= 0) {
+      spawnFruit();
+      state.spawnTimer = lv.spawnInt * (0.85 + Math.random() * 0.3);
+    }
+
+    state.giantTimer -= dt;
+    if (state.giantTimer <= 0) {
+      spawnGiantCoop();
+      state.giantTimer = 7.5 + Math.random() * 2.5;
+    }
+
+    state.dropTimer -= dt;
+    if (state.dropTimer <= 0) {
+      spawnRaindrop();
+      state.dropTimer = 6.2 + Math.random() * 3.0;
+    }
+
+    // 碰撞判定
+    const py = groundY() - 26;
+    const catchR = Math.max(38, Math.min(54, W * 0.055));
+    const leftX = Math.min(p1Px, p2Px);
+    const rightX = Math.max(p1Px, p2Px);
+
+    for (let i = state.items.length - 1; i >= 0; i--) {
+      const it = state.items[i];
+      it.y += it.vy * dt;
+      if (it.kind === 'giant') {
+        it.x += Math.sin(state.time * 2.2 + it.swayPhase) * 0.025 * dt;
+      }
+      const ix = it.x * W;
+
+      if (it.kind === 'fruit') {
+        const hitP1 = Math.hypot(ix - p1Px, it.y - py) < catchR + it.r * 0.6;
+        const hitP2 = Math.hypot(ix - p2Px, it.y - py) < catchR + it.r * 0.6;
+        const hitNet = state.netActive && ix >= leftX && ix <= rightX && Math.abs(it.y - (py - 8)) < 32;
+
+        if (hitP1 || hitP2 || hitNet) {
+          state.score += it.pts;
+          state.caught += 1;
+          state.combo += 1;
+          if (hitP1 || hitNet) state.p1.happy = 0.45;
+          if (hitP2 || hitNet) state.p2.happy = 0.45;
+          if (hitNet) state.netBounce = 0.6;
+          playCatchFruit();
+          spawnBurst(ix, it.y, it.color, 10);
+          addFloatText(ix, it.y - 16, `+${it.pts}`, it.color, 24);
+          state.items.splice(i, 1);
+          updateHUD();
+          checkLevelComplete();
+          continue;
+        }
+      } else if (it.kind === 'giant') {
+        // 超级大星星必须由双人张开的彩虹大网接住！
+        if (state.netActive && ix >= leftX - 18 && ix <= rightX + 18 && Math.abs(it.y - (py - 12)) < 42) {
+          state.score += it.pts;
+          state.caught += 3; // 本关进度一次大跨步推进
+          state.giantCaught += 1;
+          state.combo += 2;
+          state.p1.happy = 0.9;
+          state.p2.happy = 0.9;
+          state.netBounce = 1.0;
+          playCoopGiant();
+          spawnBurst(ix, it.y, '#fbbf24', 24);
+          spawnBurst(ix, it.y, '#f472b6', 16);
+          addFloatText(ix, it.y - 24, '🌈 合力成功 +5！', '#fef08a', 28);
+          state.items.splice(i, 1);
+          updateHUD();
+          checkLevelComplete();
+          continue;
+        }
+      } else if (it.kind === 'drop') {
+        const hitP1 = Math.hypot(ix - p1Px, it.y - py) < catchR * 0.72;
+        const hitP2 = Math.hypot(ix - p2Px, it.y - py) < catchR * 0.72;
+        if (hitP1 || hitP2) {
+          if (hitP1) state.p1.stun = 0.9;
+          if (hitP2) state.p2.stun = 0.9;
+          state.combo = 0;
+          playDropBonk();
+          spawnBurst(ix, it.y, '#60a5fa', 8);
+          addFloatText(ix, it.y - 14, '💦 哎呀滑了一下', '#e0f2fe', 18);
+          state.items.splice(i, 1);
+          continue;
+        }
+      }
+
+      // 落到地面消失
+      if (it.y > groundY() + 26) {
+        if (it.kind === 'giant') {
+          addFloatText(ix, groundY() - 20, '下次一起拉网接住它哦！', '#fff', 17);
+        }
+        state.items.splice(i, 1);
+      }
+    }
+
+    // 更新粒子与飘字
+    for (let i = state.particles.length - 1; i >= 0; i--) {
+      const p = state.particles[i];
+      p.life += dt;
+      p.x += p.vx * dt;
+      p.y += p.vy * dt;
+      p.vy += p.g * dt;
+      if (p.life >= p.maxLife) state.particles.splice(i, 1);
+    }
+
+    for (let i = state.floatTexts.length - 1; i >= 0; i--) {
+      const ft = state.floatTexts[i];
+      ft.life += dt;
+      ft.y -= 48 * dt;
+      if (ft.life >= ft.maxLife) state.floatTexts.splice(i, 1);
+    }
+  }
+
+  function checkLevelComplete() {
+    if (state.endless) return;
+    const lv = currentLevel();
+    if (state.caught >= lv.goal) {
+      playWinMelody();
+      spawnBurst(W * 0.35, H * 0.35, '#fbbf24', 24);
+      spawnBurst(W * 0.65, H * 0.35, '#4ade80', 24);
+      if (state.levelIdx < LEVELS.length - 1) {
+        state.phase = 'levelclear';
+        showModal(
+          '🎉',
+          `太棒啦！完成 ${lv.name}`,
+          `小熊和小兔默契十足，当前总分 ${state.score} 分！准备好去下一片果园了吗？`,
+          false,
+          [
+            { text: '🚀 下一关', cls: 'btn-go', onClick: () => startGame(false, state.levelIdx + 1) },
+            { text: '🔄 再玩这一关', cls: 'btn-amber', onClick: () => startGame(false, state.levelIdx) }
+          ]
+        );
+      } else {
+        state.phase = 'victory';
+        showModal(
+          '🏆',
+          '双人合作大通关！',
+          `你们一起完成了全部 3 个果园派对，拿到 ${state.score} 分，合力接住了 ${state.giantCaught} 次超级大礼盒！`,
+          false,
+          [
+            { text: '♾️ 挑战无尽模式', cls: 'btn-blue', onClick: () => startGame(true, 0) },
+            { text: '🔄 从第 1 关再玩', cls: 'btn-go', onClick: () => startGame(false, 0) }
+          ]
+        );
+      }
+    }
+  }
+
+  /* ==================== 8. 画面绘制 ==================== */
+  function drawBackground() {
+    const lv = currentLevel();
+    const gy = groundY();
+
+    // 天空渐变
+    const grad = ctx.createLinearGradient(0, 0, 0, gy);
+    grad.addColorStop(0, lv.skyTop);
+    grad.addColorStop(1, lv.skyBot);
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, W, H);
+
+    // 星星或太阳
+    if (lv.starsBg) {
+      ctx.fillStyle = 'rgba(255, 250, 210, 0.85)';
+      for (let i = 0; i < 24; i++) {
+        const sx = ((i * 197) % 100) / 100 * W;
+        const sy = ((i * 83) % 52) / 100 * H;
+        const r = 1.5 + Math.sin(state.time * 3 + i) * 1.2;
+        ctx.beginPath();
+        ctx.arc(sx, sy, Math.max(0.5, r), 0, Math.PI * 2);
+        ctx.fill();
+      }
+    } else {
+      // 微笑大太阳
+      ctx.save();
+      ctx.fillStyle = '#fde047';
+      ctx.shadowColor = 'rgba(253, 224, 71, 0.55)';
+      ctx.shadowBlur = 24;
+      ctx.beginPath();
+      ctx.arc(W - 76, 86, 36, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    }
+
+    // 云朵
+    ctx.fillStyle = lv.starsBg ? 'rgba(255,255,255,0.18)' : 'rgba(255,255,255,0.82)';
+    state.clouds.forEach((c) => {
+      const cx = c.x * W;
+      const cy = c.y * H;
+      const s = c.s * 24;
+      ctx.beginPath();
+      ctx.arc(cx, cy, s, 0, Math.PI * 2);
+      ctx.arc(cx + s * 0.9, cy - s * 0.25, s * 0.85, 0, Math.PI * 2);
+      ctx.arc(cx + s * 1.75, cy, s * 0.72, 0, Math.PI * 2);
+      ctx.fill();
+    });
+
+    // 远近山丘
+    ctx.fillStyle = lv.hill1;
+    ctx.beginPath();
+    ctx.moveTo(0, gy);
+    ctx.quadraticCurveTo(W * 0.25, gy - 68, W * 0.52, gy - 12);
+    ctx.quadraticCurveTo(W * 0.78, gy - 76, W, gy - 10);
+    ctx.lineTo(W, H);
+    ctx.lineTo(0, H);
+    ctx.closePath();
+    ctx.fill();
+
+    // 草地
+    ctx.fillStyle = lv.hill2;
+    ctx.fillRect(0, gy, W, H - gy);
+    ctx.fillStyle = 'rgba(255,255,255,0.22)';
+    ctx.fillRect(0, gy, W, 6);
+  }
+
+  function drawRainbowNet(p1x, p2x, py) {
+    const leftX = Math.min(p1x, p2x);
+    const rightX = Math.max(p1x, p2x);
+    const midX = (leftX + rightX) / 2;
+
+    if (!state.netActive) {
+      // 距离太远时画一条淡淡的虚线提示“靠近可以连成彩虹网”
+      ctx.save();
+      ctx.strokeStyle = 'rgba(255,255,255,0.45)';
+      ctx.lineWidth = 3;
+      ctx.setLineDash([8, 8]);
+      ctx.beginPath();
+      ctx.moveTo(p1x, py - 12);
+      ctx.lineTo(p2x, py - 12);
+      ctx.stroke();
+      ctx.restore();
+      return;
+    }
+
+    const sag = 18 + Math.sin(state.netBounce * Math.PI) * 24;
+    const colors = ['#ff595e', '#ffca3a', '#8ac926', '#38bdf8', '#c084fc'];
+
+    ctx.save();
+    // 发光底色
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.55)';
+    ctx.lineWidth = 22;
+    ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.moveTo(leftX, py - 14);
+    ctx.quadraticCurveTo(midX, py - 14 + sag, rightX, py - 14);
+    ctx.stroke();
+
+    // 五色彩虹条纹
+    colors.forEach((col, i) => {
+      ctx.strokeStyle = col;
+      ctx.lineWidth = 4;
+      ctx.beginPath();
+      const offset = (i - 2) * 3.4;
+      ctx.moveTo(leftX, py - 14 + offset);
+      ctx.quadraticCurveTo(midX, py - 14 + sag + offset, rightX, py - 14 + offset);
+      ctx.stroke();
+    });
+
+    // 中央小标签
+    ctx.font = '800 12px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillStyle = '#ffffff';
+    ctx.shadowColor = 'rgba(0,0,0,0.35)';
+    ctx.shadowBlur = 4;
+    ctx.fillText('🌈 彩虹大网', midX, py + sag + 6);
+    ctx.restore();
+  }
+
+  function drawCharacter(x, y, isBear, playerState) {
+    const bounce = playerState.happy > 0 ? Math.sin(playerState.happy * 22) * 8 : 0;
+    const shake = playerState.stun > 0 ? Math.sin(state.time * 42) * 5 : 0;
+    const cx = x + shake;
+    const cy = y - Math.abs(bounce);
+
+    ctx.save();
+    ctx.translate(cx, cy);
+
+    // 地面影子
+    ctx.fillStyle = 'rgba(0,0,0,0.16)';
+    ctx.beginPath();
+    ctx.ellipse(0, 30 + Math.abs(bounce), 30, 8, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    // 小篮子（头顶/胸前）
+    ctx.fillStyle = isBear ? '#fb923c' : '#f472b6';
+    ctx.strokeStyle = '#5c3317';
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.roundRect(-30, -34, 60, 20, 8);
+    ctx.fill();
+    ctx.stroke();
+
+    if (isBear) {
+      // 小熊耳朵
+      ctx.fillStyle = '#c2783e';
+      ctx.beginPath(); ctx.arc(-20, -14, 10, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+      ctx.beginPath(); ctx.arc(20, -14, 10, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+      // 小熊身体与脸
+      ctx.fillStyle = '#d98a4e';
+      ctx.beginPath(); ctx.arc(0, 4, 24, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+      ctx.fillStyle = '#fde6c4';
+      ctx.beginPath(); ctx.ellipse(0, 10, 12, 9, 0, 0, Math.PI * 2); ctx.fill();
+    } else {
+      // 小兔长耳朵
+      ctx.fillStyle = '#ffffff';
+      ctx.beginPath(); ctx.ellipse(-12, -26, 7, 18, -0.15, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+      ctx.beginPath(); ctx.ellipse(12, -26, 7, 18, 0.15, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+      ctx.fillStyle = '#fbcfe8';
+      ctx.beginPath(); ctx.ellipse(-12, -25, 3.5, 11, -0.15, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.ellipse(12, -25, 3.5, 11, 0.15, 0, Math.PI * 2); ctx.fill();
+      // 小兔脸
+      ctx.fillStyle = '#ffffff';
+      ctx.beginPath(); ctx.arc(0, 4, 23, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+    }
+
+    // 眼睛和嘴巴
+    ctx.fillStyle = '#3b2416';
+    if (playerState.stun > 0) {
+      ctx.font = '900 12px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('><', 0, 4);
+    } else {
+      ctx.beginPath(); ctx.arc(-8, 1, 3.2, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.arc(8, 1, 3.2, 0, Math.PI * 2); ctx.fill();
+      ctx.strokeStyle = '#3b2416';
+      ctx.lineWidth = 2.5;
+      ctx.beginPath();
+      ctx.arc(0, 6, 5.5, 0.15 * Math.PI, 0.85 * Math.PI);
+      ctx.stroke();
+    }
+
+    // 名字铭牌
+    ctx.fillStyle = isBear ? '#ea580c' : '#db2777';
+    ctx.beginPath();
+    ctx.roundRect(-24, 24, 48, 18, 9);
+    ctx.fill();
+    ctx.fillStyle = '#fff';
+    ctx.font = '800 11px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(isBear ? 'P1 小熊' : 'P2 小兔', 0, 33);
+
+    ctx.restore();
+  }
+
+  function drawItems() {
+    state.items.forEach((it) => {
+      const x = it.x * W;
+      ctx.save();
+      ctx.translate(x, it.y);
+
+      if (it.kind === 'giant') {
+        // 小降落伞
+        ctx.strokeStyle = 'rgba(255,255,255,0.85)';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(-24, -26); ctx.lineTo(-8, -4);
+        ctx.moveTo(24, -26);  ctx.lineTo(8, -4);
+        ctx.stroke();
+
+        ctx.fillStyle = '#fb7185';
+        ctx.beginPath();
+        ctx.arc(0, -26, 26, Math.PI, 0);
+        ctx.closePath();
+        ctx.fill();
+
+        // 闪亮光环
+        ctx.fillStyle = 'rgba(253, 224, 71, 0.35)';
+        ctx.beginPath();
+        ctx.arc(0, 4, it.r + 7 + Math.sin(state.time * 8) * 3, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.font = `${Math.round(it.r * 1.55)}px sans-serif`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(it.emoji, 0, 6);
+      } else {
+        ctx.font = `${Math.round(it.r * 1.65)}px sans-serif`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(it.emoji, 0, 0);
+      }
+      ctx.restore();
+    });
+  }
+
+  function drawEffects() {
+    // 粒子
+    state.particles.forEach((p) => {
+      const alpha = Math.max(0, 1 - p.life / p.maxLife);
+      ctx.save();
+      ctx.globalAlpha = alpha;
+      ctx.fillStyle = p.color;
+      ctx.font = `900 ${p.size}px sans-serif`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(p.sym, p.x, p.y);
+      ctx.restore();
+    });
+
+    // 飘字
+    state.floatTexts.forEach((ft) => {
+      const alpha = Math.max(0, 1 - ft.life / ft.maxLife);
+      ctx.save();
+      ctx.globalAlpha = alpha;
+      ctx.font = `900 ${ft.size}px sans-serif`;
+      ctx.textAlign = 'center';
+      ctx.strokeStyle = 'rgba(67, 40, 24, 0.7)';
+      ctx.lineWidth = 4;
+      ctx.strokeText(ft.text, ft.x, ft.y);
+      ctx.fillStyle = ft.color;
+      ctx.fillText(ft.text, ft.x, ft.y);
+      ctx.restore();
+    });
+
+    // 顶部提示横幅
+    if (state.bannerTimer > 0 && state.bannerText) {
+      const alpha = Math.min(1, state.bannerTimer * 1.4);
+      ctx.save();
+      ctx.globalAlpha = alpha;
+      ctx.font = `800 ${Math.min(18, Math.max(13, W * 0.022))}px sans-serif`;
+      const tw = ctx.measureText(state.bannerText).width + 32;
+      const bx = W / 2 - tw / 2;
+      const by = 68;
+      ctx.fillStyle = 'rgba(255, 251, 235, 0.94)';
+      ctx.strokeStyle = '#f59e0b';
+      ctx.lineWidth = 2.5;
+      ctx.beginPath();
+      ctx.roundRect(bx, by, tw, 36, 18);
+      ctx.fill();
+      ctx.stroke();
+      ctx.fillStyle = '#9a3412';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(state.bannerText, W / 2, by + 18);
+      ctx.restore();
+    }
+  }
+
+  function render() {
+    drawBackground();
+    const py = groundY() - 26;
+    const p1x = state.p1.x * W;
+    const p2x = state.p2.x * W;
+    drawRainbowNet(p1x, p2x, py);
+    drawCharacter(p1x, py, true, state.p1);
+    drawCharacter(p2x, py, false, state.p2);
+    drawItems();
+    drawEffects();
+  }
+
+  let lastTs = 0;
+  function loop(ts) {
+    if (!lastTs) lastTs = ts;
+    const dt = Math.min(0.05, (ts - lastTs) / 1000);
+    lastTs = ts;
+    update(dt);
+    render();
+    requestAnimationFrame(loop);
+  }
+
+  /* ==================== 9. 双人多点触控与键盘绑定 ==================== */
+  function bindHoldButton(btnId, keyName) {
+    const el = document.getElementById(btnId);
+    const down = (e) => {
+      e.preventDefault();
+      ensureAudio();
+      state.keys[keyName] = true;
+      el.classList.add('active');
+    };
+    const up = () => {
+      state.keys[keyName] = false;
+      el.classList.remove('active');
+    };
+    el.addEventListener('pointerdown', down);
+    el.addEventListener('pointerup', up);
+    el.addEventListener('pointercancel', up);
+    el.addEventListener('pointerleave', up);
+  }
+
+  bindHoldButton('p1Left', 'p1L');
+  bindHoldButton('p1Right', 'p1R');
+  bindHoldButton('p2Left', 'p2L');
+  bindHoldButton('p2Right', 'p2R');
+
+  // 画布多指直接拖动：左半屏拖小熊，右半屏拖小兔
+  canvas.addEventListener('pointerdown', (e) => {
+    if (state.phase !== 'play') return;
+    ensureAudio();
+    const nx = e.clientX / W;
+    const d1 = Math.abs(nx - state.p1.x);
+    const d2 = Math.abs(nx - state.p2.x);
+    // 优先绑定离按压点更近且空闲的角色
+    if ((d1 <= d2 && state.p1.dragId === null) || (state.p2.dragId !== null && state.p1.dragId === null)) {
+      state.p1.dragId = e.pointerId;
+      state.p1.dragOffset = state.p1.x - nx;
+    } else if (state.p2.dragId === null) {
+      state.p2.dragId = e.pointerId;
+      state.p2.dragOffset = state.p2.x - nx;
+    }
+  });
+
+  canvas.addEventListener('pointermove', (e) => {
+    if (state.phase !== 'play') return;
+    const nx = e.clientX / W;
+    if (e.pointerId === state.p1.dragId) {
+      state.p1.x = Math.max(0.06, Math.min(0.94, nx + state.p1.dragOffset));
+    } else if (e.pointerId === state.p2.dragId) {
+      state.p2.x = Math.max(0.06, Math.min(0.94, nx + state.p2.dragOffset));
+    }
+  });
+
+  function releasePointer(e) {
+    if (e.pointerId === state.p1.dragId) state.p1.dragId = null;
+    if (e.pointerId === state.p2.dragId) state.p2.dragId = null;
+  }
+  window.addEventListener('pointerup', releasePointer);
+  window.addEventListener('pointercancel', releasePointer);
+
+  // 键盘双人控制
+  window.addEventListener('keydown', (e) => {
+    if (e.key === 'a' || e.key === 'A') state.keys.p1L = true;
+    if (e.key === 'd' || e.key === 'D') state.keys.p1R = true;
+    if (e.key === 'ArrowLeft')  { e.preventDefault(); state.keys.p2L = true; }
+    if (e.key === 'ArrowRight') { e.preventDefault(); state.keys.p2R = true; }
+    if (e.key === ' ' && (state.phase === 'play' || state.phase === 'paused')) {
+      e.preventDefault();
+      togglePause();
+    }
+  });
+
+  window.addEventListener('keyup', (e) => {
+    if (e.key === 'a' || e.key === 'A') state.keys.p1L = false;
+    if (e.key === 'd' || e.key === 'D') state.keys.p1R = false;
+    if (e.key === 'ArrowLeft')  state.keys.p2L = false;
+    if (e.key === 'ArrowRight') state.keys.p2R = false;
+  });
+
+  // 按钮事件
+  pauseBtn.addEventListener('click', () => { ensureAudio(); togglePause(); });
+  muteBtn.addEventListener('click', () => {
+    state.muted = !state.muted;
+    muteBtn.textContent = state.muted ? '🔇' : '🔊';
+    if (!state.muted) { ensureAudio(); playTone(660, 0.12, 'triangle', 0.22); }
+  });
+
+  document.getElementById('startBtn').addEventListener('click', () => { ensureAudio(); startGame(false, 0); });
+  document.getElementById('endlessBtn').addEventListener('click', () => { ensureAudio(); startGame(true, 0); });
+
+  window.addEventListener('resize', resize);
+
+  window.onload = () => {
+    resize();
+    initClouds();
+    updateHUD();
+    requestAnimationFrame(loop);
+  };
+})();
+</script>
+<script>
+(function () {
+  function goHome(e) {
+    if (e) { e.preventDefault(); e.stopPropagation(); }
+    location.href = 'index.html';
+  }
+  ['homeBtn', 'modalHomeBtn'].forEach(function (id) {
+    var btn = document.getElementById(id);
+    if (!btn) return;
+    btn.addEventListener('pointerdown', goHome, true);
+    btn.addEventListener('click', goHome, true);
+  });
+})();
+</script>
+</body>
+</html>
